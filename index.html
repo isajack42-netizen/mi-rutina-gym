@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Track Gym — Progreso v3.4</title>
+<title>Track Gym — Progreso v3.7 Limpio</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
@@ -116,6 +116,7 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:15px;z-index:20}
 .modal{width:min(520px,100%);background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px;max-height:90vh;overflow:auto}
+.modal-backdrop.show{display:flex}
 .modal.show{display:flex}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);padding:10px 15px;border-radius:9px;font-weight:800;display:none;z-index:30}
 
@@ -153,7 +154,7 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
   <div class="header-actions">
       <button class="icon-btn" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades">KG</button>
       <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos">🏋️</button>
-      <button class="icon-btn" onclick="openDataModal()" title="Ajustes">⚙️</button>
+      <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes">⚙️</button>
   </div>
 </header>
 
@@ -351,8 +352,8 @@ window.setTheme = function(t) {
     currentTheme = t;
     document.documentElement.setAttribute('data-theme', currentTheme);
     saveToFirebase();
-    openDataModal(); // Para actualizar los bordes de los botones en el modal
-    refreshAll(); // Para repintar las gráficas con el nuevo color accent
+    renderSettingsModal();
+    refreshAll();
     toast('Tema visual actualizado');
 }
 
@@ -752,8 +753,10 @@ window.exportCSV = function() {
     toast('Exportado a Excel OK');
 }
 
-window.openDataModal = function(){
-    document.getElementById('modal').innerHTML=`
+function renderSettingsModal(){
+    const modal = document.getElementById('modal');
+    if(!modal) return;
+    modal.innerHTML=`
         <h2>Ajustes</h2>
         
         <label>Tema visual (Paleta de Colores)</label>
@@ -777,6 +780,9 @@ window.openDataModal = function(){
         </div>`;
     document.getElementById('modalBackdrop').classList.add('show');
 }
+window.openDataModal = function(){
+    renderSettingsModal();
+};
 window.closeModal = function(){document.getElementById('modalBackdrop').classList.remove('show')}
 window.exportData = function(){const blob=new Blob([JSON.stringify({version:3,data,categories,weights,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
 window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
@@ -813,7 +819,14 @@ async function initApp() {
 document.getElementById('routineDate').addEventListener('change',()=>loadDay());
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});
 
+const settingsBtn = document.getElementById('settingsBtn');
+if(settingsBtn){
+    settingsBtn.addEventListener('click', () => renderSettingsModal());
+}
+
 initApp();
 </script>
+
+
 </body>
 </html>
