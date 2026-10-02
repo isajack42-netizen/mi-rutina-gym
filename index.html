@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Track Gym — Progreso v3.7 Limpio</title>
+<title>Track Gym — Progreso v3.5 Limpio</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
@@ -114,10 +114,9 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
 .note{background:var(--input);border-left:3px solid var(--accent);padding:10px;border-radius:0 7px 7px 0;color:var(--text);font-size:.82rem}
 .empty{color:var(--muted);text-align:center;padding:18px}
 
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:15px;z-index:20}
-.modal{width:min(520px,100%);background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px;max-height:90vh;overflow:auto}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-start;justify-content:center;padding:15px;z-index:20;overflow-y:auto;box-sizing:border-box}
+.modal{width:min(520px,100%);background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px;max-height:calc(100vh - 30px);overflow:auto;box-sizing:border-box;margin:0}
 .modal-backdrop.show{display:flex}
-.modal.show{display:flex}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);padding:10px 15px;border-radius:9px;font-weight:800;display:none;z-index:30}
 
 /* Selector de temas visuales */
