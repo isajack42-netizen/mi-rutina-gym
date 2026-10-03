@@ -3,27 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Track Gym — Progreso v4.3.1</title>
+<title>Track Gym — Progreso v4.3.2</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
 :root {
-  --bg:#0d0f12; --card:#171a1f; --card2:#1d2127; --input:#242932;
+  --bg:#0d0f12; --card:#171a1f; --card2:#1d2127; --input:#242932; --soft:#1a1e24;
   --text:#f4f5f7; --muted:#8f98a5; --line:#303640; --accent:#d8dde5;
   --green:#67d391; --red:#ff7272; --yellow:#f2c96d; --blue:#78a9ff;
 }
 
 /* TEMAS ADICIONALES */
 [data-theme="ocean"] {
-  --bg:#0b1120; --card:#111827; --card2:#1f2937; --input:#374151;
+  --bg:#0b1120; --card:#111827; --card2:#1f2937; --input:#374151; --soft:#152033;
   --text:#f3f4f6; --muted:#9ca3af; --line:#374151; --accent:#60a5fa;
 }
 [data-theme="forest"] {
-  --bg:#121614; --card:#181d1a; --card2:#1f2622; --input:#2a332e;
+  --bg:#121614; --card:#181d1a; --card2:#1f2622; --input:#2a332e; --soft:#1a211d;
   --text:#e5e7eb; --muted:#a3b1a7; --line:#313d37; --accent:#4ade80;
 }
 [data-theme="coffee"] {
-  --bg:#14110f; --card:#1c1815; --card2:#241f1c; --input:#332d28;
+  --bg:#14110f; --card:#1c1815; --card2:#241f1c; --input:#332d28; --soft:#1f1a17;
   --text:#f5ece5; --muted:#a89f91; --line:#3d3630; --accent:#fbbf24;
 }
 
@@ -376,7 +376,7 @@ const muscleMap = {
     "Core": ["Crunch en máquina", "Abdominales en máquina"]
 };
 
-let data={}, categories={}, weights=[], measurements=[], notes={}, customRoutines={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false;
+let data={}, categories={}, weights=[], measurements=[], notes={}, customRoutines={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false, saveQueued=false;
 window.editingId = null;
 window.timerInt = null;
 window.timeLeft = 0;
@@ -417,7 +417,7 @@ function load(){
   document.documentElement.setAttribute('data-theme', currentTheme);
 }
 
-async function saveToFirebase() {
+function persistLocal(){
   localStorage.setItem(KEY,JSON.stringify(data));
   localStorage.setItem(CAT,JSON.stringify(categories));
   localStorage.setItem(WEIGHT,JSON.stringify(weights));
@@ -426,16 +426,30 @@ async function saveToFirebase() {
   localStorage.setItem(ROUTINES_KEY,JSON.stringify(customRoutines));
   localStorage.setItem(UNIT_KEY, currentUnit);
   localStorage.setItem(THEME_KEY, currentTheme);
-  saveInFlight=true; updateSyncStatus('Guardando…','saving');
+}
+
+async function saveToFirebase() {
+  persistLocal();
+  if(saveInFlight){ saveQueued=true; return false; }
+  saveInFlight=true;
+  updateSyncStatus('Guardando…','saving');
+  let ok=true;
   try {
-    await setDoc(doc(db, "userData", "ruben_isaias"), { data, categories, weights, measurements, notes, customRoutines, currentUnit, currentTheme });
+    do {
+      saveQueued=false;
+      persistLocal();
+      await setDoc(doc(db, "userData", "ruben_isaias"), { data, categories, weights, measurements, notes, customRoutines, currentUnit, currentTheme });
+    } while(saveQueued);
     updateSyncStatus('Sincronizado','ok');
-    return true;
   } catch (e) {
     console.error('Track Gym Error Sincronizando:', e);
     updateSyncStatus('Guardado local · sin conexión','error');
-    return false;
-  } finally { saveInFlight=false; }
+    ok=false;
+  } finally {
+    saveInFlight=false;
+    if(saveQueued) saveToFirebase();
+  }
+  return ok;
 }
 
 function updateCategorySelect() {
@@ -701,7 +715,12 @@ function summarizeSession(session){
   const avgRir=rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null;
   return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
 }
-function formatKgValue(v){return v?`${Math.round(fromKg(v)*10)/10} ${unitLabel()}`:'—'}
+function formatKgValue(v, signed=false){
+  if(v==null || v==='' || Number.isNaN(Number(v))) return '—';
+  const n=Math.round(fromKg(Number(v))*10)/10;
+  const prefix=signed && n>0?'+':'';
+  return `${prefix}${n} ${unitLabel()}`;
+}
 function progressionRecommendation(name,sessions,target){
   const last=sessions[sessions.length-1];
   if(!last)return {title:'Sin historial suficiente',text:'Registra al menos una sesión para empezar a recibir una referencia de progresión.',className:'progression-neutral'};
@@ -830,6 +849,21 @@ window.loadLastPerformance = function(){
   const e=entries[entries.length-1].e;document.getElementById('setsContainer').innerHTML='';setCounter=0;e.sets.forEach(s=>addSet({reps:s.reps==='-'?'':s.reps,weight:Math.round(fromKg(s.weight)*10)/10,rir:s.rir==='-'?'':s.rir,rest:s.rest==='-'?'':s.rest}));
   toast('Series cargadas')
 }
+window.offerLastPerformance = function(){
+  const raw=document.getElementById('exerciseName').value.trim();
+  if(!raw) return;
+  const name=normalizeName(raw);
+  document.getElementById('exerciseName').value=name;
+  const entries=allWeightEntries(name);
+  if(!entries.length) return;
+  const rows=document.querySelectorAll('.set-row');
+  const empty=[...rows].every(r=>!r.querySelector('.set-reps').value && !r.querySelector('.set-weight').value);
+  if(empty) loadLastPerformance();
+  else {
+    const last=entries[entries.length-1];
+    toast('Última vez: '+fmtDate(last.date)+' · usa “Cargar anterior” para copiar');
+  }
+}
 
 window.renderCalendar = function(){
   const grid=document.getElementById('calendarGrid'),name=document.getElementById('monthYear');grid.innerHTML='';name.textContent=new Date(currentYear,currentMonth,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
@@ -913,13 +947,13 @@ window.saveMeasurements=function(){
 window.deleteMeasurement=function(date){measurements=measurements.filter(x=>x.date!==date);saveToFirebase();renderBodyWeights();toast('Medición eliminada')}
 
 window.openWeightModal = function(){
-    document.getElementById('modal').innerHTML=`<h2>Registrar peso corporal</h2><div class="grid grid-2"><div><label>Fecha</label><input id="mwDate" type="date" value="${todayStr()}"></div><div><label>Peso (${unitLabel()})</label><input id="mwWeight" type="number" step="0.1" min="0"></div></div><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveBodyWeight()">Guardar</button></div>`;
-    modal.scrollTop = 0;
-    modal.scrollLeft = 0;
-    const backdrop = document.getElementById('modalBackdrop');
-    backdrop.classList.add('show');
+    const modalEl=document.getElementById('modal');
+    modalEl.innerHTML=`<h2>Registrar peso corporal</h2><div class="grid grid-2"><div><label>Fecha</label><input id="mwDate" type="date" value="${todayStr()}"></div><div><label>Peso (${unitLabel()})</label><input id="mwWeight" type="number" step="0.1" min="0"></div></div><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveBodyWeight()">Guardar</button></div>`;
+    modalEl.scrollTop = 0;
+    modalEl.scrollLeft = 0;
+    document.getElementById('modalBackdrop').classList.add('show');
     document.body.classList.add('modal-open');
-    requestAnimationFrame(() => { modal.scrollTop = 0; modal.scrollLeft = 0; });
+    requestAnimationFrame(() => { modalEl.scrollTop = 0; modalEl.scrollLeft = 0; });
 }
 window.saveBodyWeight = function(){
     const date=document.getElementById('mwDate').value,w=parseFloat(document.getElementById('mwWeight').value);if(!date||!w)return;
@@ -961,12 +995,26 @@ window.calculatePlates = function() {
     document.getElementById('calcResult').innerHTML = `<span style="color:var(--accent)">Por cada lado pon:</span><br>${res.join('<br>')}<br><small class="muted" style="font-size:0.8rem; display:block; margin-top:8px;">(Restante: ${perSide.toFixed(2)} ${unitLabel()})</small>`;
 }
 
+function parseRestSeconds(raw){
+  const s=String(raw||'').trim().toLowerCase().replace(/–/g,'-');
+  if(!s) return 90;
+  const nums=s.match(/\d+(?:\.\d+)?/g);
+  if(!nums) return 90;
+  const n=parseFloat(nums[0]);
+  if(!Number.isFinite(n) || n<=0) return 90;
+  if(/min/.test(s)) return Math.round(n*60);
+  if(/s|seg/.test(s)) return Math.round(n);
+  if(/m/.test(s)) return Math.round(n*60);
+  return n<=10 ? Math.round(n*60) : Math.round(n);
+}
+
 window.quickStartTimer = function(btn) {
-    window.timeLeft = 90;
+    const restInput = btn && btn.closest ? btn.closest('.set-row')?.querySelector('.set-rest') : null;
+    window.timeLeft = parseRestSeconds(restInput?.value);
     document.getElementById('floatingTimer').style.display = 'flex';
     updateTimerUI();
     if(!window.timerInt) window.timerInt = setInterval(tickTimer, 1000);
-    toast('⏱️ Cronómetro iniciado (90s)');
+    toast('⏱️ Cronómetro iniciado ('+window.timeLeft+'s)');
 }
 window.addTimer = function(secs) {
     window.timeLeft += secs;
@@ -1080,7 +1128,7 @@ window.openDataModal = function(){
 };
 window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
 window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.3,data,categories,weights,measurements,notes,customRoutines,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
-window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};customRoutines=sanitizeRoutines(x.customRoutines||defaultPPL);currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
+window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};customRoutines=sanitizeRoutines(x.customRoutines||defaultPPL);currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}finally{ev.target.value='';}};r.readAsText(file)}
 
 // --- NUEVAS FUNCIONES DEL CREADOR DE RUTINAS ---
 window.openRoutineEditor = function(origName = '') {
@@ -1149,7 +1197,10 @@ window.saveRoutine = function() {
     if(!newName) { alert('Ingresa un nombre para la rutina.'); return; }
 
     if(origName && origName !== newName) {
+        if(customRoutines[newName] && !confirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?')) return;
         delete customRoutines[origName];
+    } else if(!origName && customRoutines[newName]) {
+        if(!confirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?')) return;
     }
 
     const rows = document.querySelectorAll('.routine-edit-row');
@@ -1209,8 +1260,10 @@ function refreshAll(){
 
 async function initApp() {
     document.getElementById('routineDate').value=todayStr();
+    let cloudOk=false;
     try {
         const docSnap = await getDoc(doc(db, "userData", "ruben_isaias"));
+        cloudOk=true;
         if (docSnap.exists()) {
             const cloud = docSnap.data();
             data = cloud.data || {}; categories = cloud.categories || {}; weights = cloud.weights || []; measurements = cloud.measurements || []; notes = cloud.notes || {};
@@ -1220,17 +1273,15 @@ async function initApp() {
             
             document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
             document.documentElement.setAttribute('data-theme', currentTheme);
-            
-            localStorage.setItem(KEY,JSON.stringify(data)); localStorage.setItem(CAT,JSON.stringify(categories)); localStorage.setItem(WEIGHT,JSON.stringify(weights));
-            localStorage.setItem(MEASURE,JSON.stringify(measurements)); localStorage.setItem('trackGym_notes',JSON.stringify(notes)); localStorage.setItem(ROUTINES_KEY,JSON.stringify(customRoutines)); 
-            localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme);
+            persistLocal();
         } else {
-            load(); if(Object.keys(data).length>0 || Object.keys(categories).length>0 || weights.length>0 || Object.keys(customRoutines).length>0) saveToFirebase();
+            load(); if(Object.keys(data).length>0 || Object.keys(categories).length>0 || weights.length>0 || Object.keys(customRoutines).length>0) await saveToFirebase();
         }
     } catch(e) { load(); }
     
     document.getElementById('loadingOverlay').style.display = 'none';
-    updateSyncStatus('Sincronizado','ok');
+    if(!cloudOk) updateSyncStatus('Guardado local · sin conexión','error');
+    else if(!saveInFlight) updateSyncStatus('Sincronizado','ok');
     
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
