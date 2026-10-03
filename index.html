@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Track Gym — Progreso v4.3</title>
+<title>Track Gym — Progreso v4.3.1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
@@ -333,30 +333,30 @@ const db = getFirestore(app);
 
 const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines';
 
-// La rutina PPL base de Rubén Isaias
+// AHORA LAS RUTINAS USAN OBJETOS, NO LISTAS ANIDADAS, PARA QUE FIREBASE LAS ACEPTE
 const defaultPPL = {
     "Push": [
-        ["Press inclinado con mancuernas", 3, "6–10", "2", "2–3 min"],
-        ["Press de pecho en máquina", 3, "8–12", "1–2", "2 min"],
-        ["Press de hombros en máquina", 3, "6–10", "2", "2–3 min"],
-        ["Elevaciones laterales con mancuernas", 3, "10–15", "1–2", "60–90 s"],
-        ["Extensión de tríceps en polea con cuerda", 3, "10–15", "1–2", "60–90 s"]
+        { name: "Press inclinado con mancuernas", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
+        { name: "Press de pecho en máquina", sets: 3, reps: "8–12", rir: "1–2", rest: "2 min" },
+        { name: "Press de hombros en máquina", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
+        { name: "Elevaciones laterales con mancuernas", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" },
+        { name: "Extensión de tríceps en polea con cuerda", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" }
     ],
     "Pull": [
-        ["Jalón al pecho", 3, "6–10", "2", "2–3 min"],
-        ["Remo con pecho apoyado", 3, "8–12", "1–2", "2 min"],
-        ["Remo unilateral en máquina", 2, "8–12", "1–2", "90–120 s"],
-        ["Reverse pec deck", 3, "10–15", "1–2", "60–90 s"],
-        ["Curl de bíceps con mancuernas", 3, "8–12", "1–2", "90 s"],
-        ["Curl martillo", 2, "10–15", "1–2", "60–90 s"]
+        { name: "Jalón al pecho", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
+        { name: "Remo con pecho apoyado", sets: 3, reps: "8–12", rir: "1–2", rest: "2 min" },
+        { name: "Remo unilateral en máquina", sets: 2, reps: "8–12", rir: "1–2", rest: "90–120 s" },
+        { name: "Reverse pec deck", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" },
+        { name: "Curl de bíceps con mancuernas", sets: 3, reps: "8–12", rir: "1–2", rest: "90 s" },
+        { name: "Curl martillo", sets: 2, reps: "10–15", rir: "1–2", rest: "60–90 s" }
     ],
     "Legs": [
-        ["Sentadilla hack", 3, "6–10", "2", "2–3 min"],
-        ["Prensa de piernas", 3, "8–12", "1–2", "2–3 min"],
-        ["Curl femoral sentado", 3, "8–12", "1–2", "2 min"],
-        ["Extensión de cuádriceps", 2, "10–15", "1–2", "60–90 s"],
-        ["Elevación de pantorrillas", 3, "10–15", "1–2", "60–90 s"],
-        ["Abdominales en máquina", 2, "10–15", "1–2", "60–90 s"]
+        { name: "Sentadilla hack", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
+        { name: "Prensa de piernas", sets: 3, reps: "8–12", rir: "1–2", rest: "2–3 min" },
+        { name: "Curl femoral sentado", sets: 3, reps: "8–12", rir: "1–2", rest: "2 min" },
+        { name: "Extensión de cuádriceps", sets: 2, reps: "10–15", rir: "1–2", rest: "60–90 s" },
+        { name: "Elevación de pantorrillas", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" },
+        { name: "Abdominales en máquina", sets: 2, reps: "10–15", rir: "1–2", rest: "60–90 s" }
     ]
 };
 
@@ -381,6 +381,20 @@ window.editingId = null;
 window.timerInt = null;
 window.timeLeft = 0;
 
+// Esta función limpia automáticamente cualquier array anidado guardado por error en la memoria de tu teléfono
+function sanitizeRoutines(routines) {
+    let fixed = {};
+    for (let k in routines) {
+        fixed[k] = routines[k].map(ex => {
+            if (Array.isArray(ex)) {
+                return { name: ex[0]||'', sets: ex[1]||0, reps: ex[2]||'', rir: ex[3]||'', rest: ex[4]||'' };
+            }
+            return ex;
+        });
+    }
+    return fixed;
+}
+
 function safeParse(raw, fallback){ try { const v=JSON.parse(raw); return v ?? fallback; } catch(e){ return fallback; } }
 function load(){
   data=safeParse(localStorage.getItem(KEY),{});
@@ -388,7 +402,7 @@ function load(){
   weights=safeParse(localStorage.getItem(WEIGHT),[]);
   measurements=safeParse(localStorage.getItem(MEASURE),[]);
   notes=safeParse(localStorage.getItem('trackGym_notes'),{});
-  customRoutines=safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL);
+  customRoutines = sanitizeRoutines(safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL));
   currentUnit=localStorage.getItem(UNIT_KEY)||'kg';
   currentTheme=localStorage.getItem(THEME_KEY)||'default';
   
@@ -418,6 +432,7 @@ async function saveToFirebase() {
     updateSyncStatus('Sincronizado','ok');
     return true;
   } catch (e) {
+    console.error('Track Gym Error Sincronizando:', e);
     updateSyncStatus('Guardado local · sin conexión','error');
     return false;
   } finally { saveInFlight=false; }
@@ -523,7 +538,11 @@ window.loadTemplate = function() {
     if (data[date].length > 0 && !confirm('¿Añadir rutina completa de todos modos?')) return;
 
     customRoutines[cat].forEach(exInfo => {
-        const [name, setsCount, reps, rir, rest] = exInfo;
+        const name = exInfo.name;
+        const setsCount = exInfo.sets;
+        const rir = exInfo.rir;
+        const rest = exInfo.rest;
+        
         const sets = [];
         for(let i=1; i<=setsCount; i++) {
             sets.push({setNumber: i, reps: '-', weight: 0, rir: rir, rest: rest});
@@ -647,10 +666,10 @@ function parseRepRange(range){
 }
 function routineTargetFor(name){
   for(const rows of Object.values(customRoutines)){
-    const row=rows.find(r=>r[0]===name);
+    const row=rows.find(r=>r.name===name);
     if(row){
-      const rr=parseRepRange(row[2]);
-      return {sets:row[1],repRange:rr,rir:String(row[3]),rest:row[4]};
+      const rr=parseRepRange(row.reps);
+      return {sets:row.sets,repRange:rr,rir:String(row.rir),rest:row.rest};
     }
   }
   return null;
@@ -1061,7 +1080,7 @@ window.openDataModal = function(){
 };
 window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
 window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.3,data,categories,weights,measurements,notes,customRoutines,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
-window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};customRoutines=x.customRoutines||defaultPPL;currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
+window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};customRoutines=sanitizeRoutines(x.customRoutines||defaultPPL);currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
 
 // --- NUEVAS FUNCIONES DEL CREADOR DE RUTINAS ---
 window.openRoutineEditor = function(origName = '') {
@@ -1101,7 +1120,12 @@ window.openRoutineEditor = function(origName = '') {
 }
 
 window.addRoutineExerciseRow = function(ex = null) {
-    const [name, sets, reps, rir, rest] = ex || ['', '', '', '', ''];
+    const name = ex ? ex.name : '';
+    const sets = ex ? ex.sets : '';
+    const reps = ex ? ex.reps : '';
+    const rir = ex ? ex.rir : '';
+    const rest = ex ? ex.rest : '';
+
     const div = document.createElement('div');
     div.className = 'routine-edit-row';
     div.innerHTML = `
@@ -1138,7 +1162,7 @@ window.saveRoutine = function() {
         const eRest = r.querySelector('.re-rest').value.trim();
 
         if(eName && eSets > 0) {
-            newExercises.push([eName, eSets, eReps, eRir, eRest]);
+            newExercises.push({ name: eName, sets: eSets, reps: eReps, rir: eRir, rest: eRest });
         }
     });
 
@@ -1172,7 +1196,7 @@ function renderRoutines(){
         <div class="routine-content">
             <table>
                 <thead><tr><th>Ejercicio</th><th>Series</th><th>Reps</th><th>RIR</th><th>Descanso</th></tr></thead>
-                <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td>${r[1]}</td><td>${escapeHtml(r[2])}</td><td>${escapeHtml(r[3])}</td><td>${escapeHtml(r[4])}</td></tr>`).join('')}</tbody>
+                <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${r.sets}</td><td>${escapeHtml(r.reps)}</td><td>${escapeHtml(r.rir)}</td><td>${escapeHtml(r.rest)}</td></tr>`).join('')}</tbody>
             </table>
         </div>
     </details>`).join('') || '<div class="empty">No tienes rutinas creadas. Toca "+ Nueva Rutina" para empezar.</div>';
@@ -1190,7 +1214,7 @@ async function initApp() {
         if (docSnap.exists()) {
             const cloud = docSnap.data();
             data = cloud.data || {}; categories = cloud.categories || {}; weights = cloud.weights || []; measurements = cloud.measurements || []; notes = cloud.notes || {};
-            customRoutines = cloud.customRoutines || safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL);
+            customRoutines = sanitizeRoutines(cloud.customRoutines || safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL));
             currentUnit = cloud.currentUnit || 'kg';
             currentTheme = cloud.currentTheme || 'default';
             
