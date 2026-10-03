@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Track Gym — Progreso v4.5.0</title>
+<title>Track Gym — Progreso v4.6.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230d0f12'/%3E%3Cpath d='M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11' fill='none' stroke='%23d8dde5' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
@@ -363,9 +364,20 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .train-rest b{color:var(--accent);font-variant-numeric:tabular-nums;font-size:1.2rem}
 .train-rest button{min-height:var(--btn-sm);padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--input);color:var(--text);font-weight:700;margin-left:6px}
 .train-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:640px;width:100%;margin:0 auto}
+
+/* ===== ICONOS PROPIOS (línea, heredan el color del tema) ===== */
+.ic{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-.2em}
+.logo{width:1.2em;height:1.2em;margin-right:8px;vertical-align:-.2em}
+.ti{display:inline-flex}.ti .ic{width:22px;height:22px}
+.btn-edit-sm,.btn-delete-sm,.icon-btn,.timer-btn,.remove-set,.calendar-head button,.floating-timer button,.tr-ok,.train-chip{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn{gap:8px}.btn-edit-sm .ic,.btn-delete-sm .ic{width:1em;height:1em}
+.tr-ok .ic{width:1.35em;height:1.35em}.tr-row:not(.done) .tr-ok .ic{opacity:.3}
+.train-hint .ic,.train-rest .ic{color:var(--accent)}
+.tr-rest{grid-column:1/-1;text-align:center;font-size:var(--fs-xs);color:var(--muted)}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18M6 20v-7M12 20V5M18 20v-10"/></symbol><symbol id="i-log" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 14l2 2 4-4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol><symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol><symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.6 9.2 4.5 4.5 0 0 0 7 18z"/></symbol><symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7"/><path d="M12 10v3.5l2.5 1.5M9.5 3h5"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19zM14.5 6.5l3 3"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></symbol><symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></symbol><symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4.5a3 3 0 0 0 3 4M16 6h3.5a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol><symbol id="i-table" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 10h17M3.5 15h17M10 4.5v15"/></symbol><symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3.5V6M12 18v2.5M3.5 12H6M18 12h2.5"/></symbol></defs></svg>
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
@@ -377,26 +389,26 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
     <div class="controls">
         <button onclick="addTimer(90)">+90s</button>
         <button onclick="addTimer(60)">+60s</button>
-        <button onclick="stopTimer()" style="color:var(--red);">⏹</button>
+        <button onclick="stopTimer()" style="color:var(--red);" aria-label="Detener"><svg class="ic" aria-hidden="true"><use href="#i-stop"/></svg></button>
     </div>
 </div>
 
 <div class="app">
 <header>
-  <div class="brand"><h1>Track Gym</h1><p>Registro, progresión y constancia</p></div>
-  <div class="header-actions"><span id="syncStatus" class="sync-status" data-state="">☁ Sincronizado</span>
+  <div class="brand"><h1><svg class="ic logo" aria-hidden="true"><use href="#i-dumbbell"/></svg>Track Gym</h1><p>Registro, progresión y constancia</p></div>
+  <div class="header-actions"><span id="syncStatus" class="sync-status" data-state=""><svg class="ic" aria-hidden="true"><use href="#i-cloud"/></svg> Sincronizado</span>
       <button class="icon-btn" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades" aria-label="Cambiar unidades">KG</button>
-      <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos" aria-label="Calculadora de discos">🏋️</button>
-      <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙️</button>
+      <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos" aria-label="Calculadora de discos"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg></button>
+      <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes" aria-label="Ajustes"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
   </div>
 </header>
 
 <nav class="tabs">
-<button class="tab-btn active" onclick="switchTab('resumen',this)"><span class="ti">📊</span><span>Resumen</span></button>
-<button class="tab-btn" onclick="switchTab('registro',this)"><span class="ti">📝</span><span>Registro</span></button>
-<button class="tab-btn" onclick="switchTab('calendario',this)"><span class="ti">📅</span><span>Calendario</span></button>
-<button class="tab-btn" onclick="switchTab('progreso',this)"><span class="ti">📈</span><span>Progreso</span></button>
-<button class="tab-btn" onclick="switchTab('rutinas',this)"><span class="ti">📋</span><span>Rutinas</span></button>
+<button class="tab-btn active" onclick="switchTab('resumen',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>Resumen</span></button>
+<button class="tab-btn" onclick="switchTab('registro',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg></span><span>Registro</span></button>
+<button class="tab-btn" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
+<button class="tab-btn" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
+<button class="tab-btn" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
 </nav>
 
 <section id="resumen" class="tab active">
@@ -435,7 +447,7 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
       </select></div>
       <div><label>Notas de la sesión</label><input id="sessionNote" placeholder="Energía, sueño, molestias..." onchange="saveNote()"></div>
     </div>
-    <button class="btn btn-secondary full" style="margin-top:10px; border:1px dashed var(--accent); color:var(--text);" onclick="loadTemplate()">⬇️ Pre-cargar ejercicios de la rutina</button>
+    <button class="btn btn-secondary full" style="margin-top:10px; border:1px dashed var(--accent); color:var(--text);" onclick="loadTemplate()"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Pre-cargar ejercicios de la rutina</button>
   </div>
 
   <div class="card">
@@ -464,7 +476,7 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 
 <section id="calendario" class="tab">
   <div class="card">
-    <div class="calendar-head"><button aria-label="Mes anterior" onclick="changeMonth(-1)">←</button><strong id="monthYear"></strong><button aria-label="Mes siguiente" onclick="changeMonth(1)">→</button></div>
+    <div class="calendar-head"><button aria-label="Mes anterior" onclick="changeMonth(-1)"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg></button><strong id="monthYear"></strong><button aria-label="Mes siguiente" onclick="changeMonth(1)"><svg class="ic" aria-hidden="true"><use href="#i-arrow-right"/></svg></button></div>
     <div class="calendar-grid" id="calendarGrid"></div>
   </div>
   <div id="calendarSummary"></div>
@@ -525,14 +537,14 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 
 <div id="trainOverlay" class="train-overlay">
   <div class="train-top">
-    <button class="icon-btn" onclick="trainExit()" aria-label="Salir (queda en pausa)">✕</button>
+    <button class="icon-btn" onclick="trainExit()" aria-label="Salir (queda en pausa)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     <div class="train-title"><b id="trainTitle"></b><small id="trainElapsed">00:00</small></div>
     <button class="btn btn-primary" onclick="trainFinish()">Finalizar</button>
   </div>
   <div class="train-chips" id="trainChips"></div>
   <div class="train-body" id="trainBody"></div>
-  <div class="train-rest"><span>⏱ Descanso <b id="trainRestTime">00:00</b></span><span><button onclick="addTimer(30)">+30s</button><button onclick="stopTimer()">Saltar</button></span></div>
-  <div class="train-foot"><button class="btn btn-secondary" onclick="trainNav(-1)">← Anterior</button><button class="btn btn-primary" id="trainNext" onclick="trainNav(1)">Siguiente →</button></div>
+  <div class="train-rest"><span><svg class="ic" aria-hidden="true"><use href="#i-timer"/></svg> Descanso <b id="trainRestTime">00:00</b></span><span><button onclick="addTimer(30)">+30s</button><button onclick="stopTimer()">Saltar</button></span></div>
+  <div class="train-foot"><button class="btn btn-secondary" onclick="trainNav(-1)"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg> Anterior</button><button class="btn btn-primary" id="trainNext" onclick="trainNav(1)">Siguiente <svg class="ic" aria-hidden="true"><use href="#i-arrow-right"/></svg></button></div>
 </div>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
@@ -542,7 +554,7 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-// ⚠️ SEGURIDAD: la apiKey es pública por diseño; lo que protege tus datos son las REGLAS de Firestore.
+// ⚠ SEGURIDAD: la apiKey es pública por diseño; lo que protege tus datos son las REGLAS de Firestore.
 // Si las reglas permiten leer/escribir sin autenticación, cualquiera con la URL puede ver o borrar tu historial.
 // Recomendado: activar Firebase Authentication y restringir el documento a tu uid.
 const firebaseConfig = {
@@ -558,6 +570,7 @@ const DOC_ID="ruben_isaias";
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
 let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0;
 
+function ic(n){return `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`}
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
 
 async function connectFirebase(){
@@ -763,7 +776,7 @@ function updateCategorySelect() {
 function updateSyncStatus(text,state){
   const el=document.getElementById('syncStatus');
   if(!el) return;
-  el.textContent='☁ '+text;
+  el.innerHTML=ic('cloud')+' '+escapeHtml(text);
   el.dataset.state=state||'';
 }
 
@@ -825,7 +838,7 @@ window.addSet = function(values=null){
       }
   }
 
-  setCounter++;const d=document.createElement('div');d.className='set-row';d.id=`set-${setCounter}`;
+  setCounter++;const d=document.createElement('div');d.className='set-row';d.id=`set-${setCounter}`; if(v.restUsed) d.dataset.restused=v.restUsed;
   d.innerHTML=`
     <div class="set-main">
         <div class="set-num">${setCounter}</div>
@@ -835,8 +848,8 @@ window.addSet = function(values=null){
     </div>
     <div class="set-sub">
         <div><label>Descanso</label><input class="set-rest" value="${escapeHtml(v.rest||'')}" placeholder="2m"></div>
-        <button class="timer-btn" onclick="quickStartTimer(this)" title="Iniciar Cronómetro">⏱️</button>
-        <button class="remove-set" onclick="removeSet(this)">×</button>
+        <button class="timer-btn" onclick="quickStartTimer(this)" title="Iniciar Cronómetro" aria-label="Iniciar cronómetro"><svg class="ic" aria-hidden="true"><use href="#i-timer"/></svg></button>
+        <button class="remove-set" aria-label="Quitar serie" onclick="removeSet(this)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>`;
   document.getElementById('setsContainer').appendChild(d);
 }
@@ -895,7 +908,7 @@ window.saveEntry = function(){
         reps:r.querySelector('.set-reps').value||'-',
         weight:toKg(r.querySelector('.set-weight').value),
         rir:r.querySelector('.set-rir').value||'-',
-        rest:r.querySelector('.set-rest').value||'-'
+        rest:r.querySelector('.set-rest').value||'-',...(r.dataset.restused?{restUsed:Number(r.dataset.restused)}:{})
     })).filter(s=>s.reps!=='-'||s.weight!==0);
     if(!sets.length){alert('Registra al menos una serie.');return}
     newEntry = {id: window.editingId || Date.now(), isCardio:false, name:normalizeName(name), sets:sets};
@@ -935,7 +948,7 @@ window.editEntry = function(date, id) {
             reps: s.reps!=='-'?s.reps:'', 
             weight: fromKg(s.weight) ? Math.round(fromKg(s.weight)*10)/10 : '', 
             rir: s.rir, 
-            rest: s.rest
+            rest: s.rest, restUsed: s.restUsed
         }));
     }
     window.editingId = id;
@@ -979,9 +992,9 @@ function loadDay(){
 }
 
 function renderExerciseCard(e,date){
-  if(e.isCardio)return `<div class="exercise-card"><div class="exercise-title"><span>🏃 ${escapeHtml(e.name)}</span><span class="badge">Cardio</span></div><div class="muted">Tiempo ${escapeHtml(e.time)} min &nbsp; · &nbsp; Distancia ${escapeHtml(e.distance)} km</div><div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">✏️ Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">🗑️</button></div></div>`;
+  if(e.isCardio)return `<div class="exercise-card"><div class="exercise-title"><span>${ic('pulse')} ${escapeHtml(e.name)}</span><span class="badge">Cardio</span></div><div class="muted">Tiempo ${escapeHtml(e.time)} min &nbsp; · &nbsp; Distancia ${escapeHtml(e.distance)} km</div><div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`;
   const volDisplay = Math.round(fromKg(sessionVolume(e))*10)/10;
-  return `<div class="exercise-card"><div class="exercise-title"><span>🏋️ ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${escapeHtml(s.rir)}</span><span>${escapeHtml(s.rest)}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">✏️ Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">🗑️</button></div></div>`
+  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${escapeHtml(s.rir)}</span><span>${escapeHtml(restLabel(s))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
 window.deleteEntry = function(date,id){if(!confirm('¿Eliminar este registro?'))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
@@ -1213,7 +1226,7 @@ window.renderCalendar = function(){
 
 function showDaySummary(d){
   const box=document.getElementById('calendarSummary'),arr=data[d]||[];if(!arr.length&&!categories[d]){box.innerHTML='<div class="empty">Selecciona un día.</div>';return}
-  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${escapeHtml(categories[d]||'')} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">🏃 ${escapeHtml(e.name)} ·${escapeHtml(e.time)} min</div>`:`<div class="progress-item"><b>🏋️ ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}</div>`
+  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${escapeHtml(categories[d]||'')} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">${ic('pulse')} ${escapeHtml(e.name)} ·${escapeHtml(e.time)} min</div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}</div>`
 }
 window.changeMonth = function(n){currentMonth+=n;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
 function avgWeight(days){
@@ -1248,7 +1261,7 @@ function renderBodyCompSummary(){
 }
 function renderBodyWeights(){
     const box=document.getElementById('bodyWeightList');const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
-    box.innerHTML=arr.slice(-10).reverse().map(x=>`<div class="progress-item"><span>${fmtDate(x.date)}</span><span style="display:flex;align-items:center;gap:10px"><b style="color:var(--accent)">${Math.round(fromKg(x.weight)*10)/10} ${unitLabel()}</b><button class="btn-delete-sm" aria-label="Eliminar peso" onclick="deleteBodyWeight('${x.date}')">🗑️</button></span></div>`).join('')||'<div class="empty">Sin peso corporal registrado.</div>';
+    box.innerHTML=arr.slice(-10).reverse().map(x=>`<div class="progress-item"><span>${fmtDate(x.date)}</span><span style="display:flex;align-items:center;gap:10px"><b style="color:var(--accent)">${Math.round(fromKg(x.weight)*10)/10} ${unitLabel()}</b><button class="btn-delete-sm" aria-label="Eliminar peso" onclick="deleteBodyWeight('${x.date}')">${ic('trash')}</button></span></div>`).join('')||'<div class="empty">Sin peso corporal registrado.</div>';
     if(bodyWeightChart) bodyWeightChart.destroy();
     const canvas=document.getElementById('bodyWeightChart');
     if(canvas && arr.length){
@@ -1363,7 +1376,7 @@ window.quickStartTimer = function(btn) {
     const secs = parseRestSeconds(restInput?.value);
     window.timerEndAt = Date.now() + secs*1000;
     ensureTimerRunning();
-    toast('⏱️ Cronómetro iniciado ('+secs+'s)');
+    toast('Cronómetro iniciado ('+secs+'s)');
 }
 window.addTimer = function(secs) {
     const base = timerRemaining()>0 ? window.timerEndAt : Date.now();
@@ -1371,6 +1384,7 @@ window.addTimer = function(secs) {
     ensureTimerRunning();
 }
 window.stopTimer = function() {
+    trainRestEnded();
     clearInterval(window.timerInt); window.timerInt = null; window.timerEndAt = 0;
     document.getElementById('floatingTimer').style.display = 'none';
     const ov=document.getElementById('trainOverlay'); if(ov) ov.classList.remove('resting');
@@ -1379,7 +1393,7 @@ function tickTimer() {
     if(timerRemaining() > 0) { updateTimerUI(); return; }
     stopTimer();
     if ("vibrate" in navigator) navigator.vibrate([200, 100, 200, 100, 200]);
-    toast('⏱️ ¡Tiempo terminado!');
+    toast('¡Tiempo terminado!');
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator(); osc.connect(ctx.destination);
@@ -1398,7 +1412,7 @@ function updateTimerUI() {
 window.exportCSV = function() {
     const csvEscape = value => { const v=String(value ?? ''); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
     const addRow = row => { csv += row.map(csvEscape).join(',') + '\n'; };
-    let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas,Peso_corporal,Unidad_peso,Cintura_cm,Pecho_cm,Brazo_cm,Muslo_cm,Cadera_cm\n";
+    let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas,Peso_corporal,Unidad_peso,Cintura_cm,Pecho_cm,Brazo_cm,Muslo_cm,Cadera_cm,Descanso_real_seg\n";
     let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...weights.map(w=>w.date), ...measurements.map(m=>m.date)]);
     let sortedDates = Array.from(allDates).sort();
 
@@ -1422,7 +1436,7 @@ window.exportCSV = function() {
             } else {
                 ex.sets.forEach(s => {
                     let wVal = currentUnit === 'lbs' ? s.weight * 2.20462 : s.weight;
-                    addRow([date,cat,"Pesas",exName,s.setNumber,s.reps,Math.round(wVal*10)/10,dayUnit,s.rir,s.rest,"-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
+                    addRow([date,cat,"Pesas",exName,s.setNumber,s.reps,Math.round(wVal*10)/10,dayUnit,s.rir,s.rest,"-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??"",s.restUsed??""]);
                 });
             }
         });
@@ -1460,7 +1474,7 @@ function renderSettingsModal(){
             <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
             
             <p class="muted">Tus datos están sincronizados en la nube con Firebase.</p>
-            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">📊 Exportar a Excel (CSV)</button>
+            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">${ic('table')} Exportar a Excel (CSV)</button>
             <div class="actions">
                 <button class="btn btn-primary" onclick="exportData()">Respaldo JSON</button>
                 <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
@@ -1546,7 +1560,7 @@ window.addRoutineExerciseRow = function(ex = null) {
     div.innerHTML = `
         <div class="re-head">
             <input class="re-name" placeholder="Nombre del ejercicio" value="${escapeHtml(name)}" list="exerciseList">
-            <button class="remove-set" aria-label="Quitar ejercicio" onclick="this.closest('.routine-edit-row').remove()">×</button>
+            <button class="remove-set" aria-label="Quitar ejercicio" onclick="this.closest('.routine-edit-row').remove()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
         </div>
         <div class="re-subgrid">
             <div><label>Series</label><input class="re-sets" type="number" value="${sets}"></div>
@@ -1611,7 +1625,7 @@ function renderRoutines(){
     <details>
         <summary>
             <span>${escapeHtml(name)}</span>
-            <button class="btn-edit-sm" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); openRoutineEditor(this.dataset.name)">✏️ Editar</button>
+            <button class="btn-edit-sm" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); openRoutineEditor(this.dataset.name)">${ic('edit')} Editar</button>
         </summary>
         <div class="routine-content">
             <table>
@@ -1647,6 +1661,17 @@ const TRAIN_KEY='gymTrainState';
 let train=safeParse(localStorage.getItem(TRAIN_KEY),null), trainClock=null, wakeLock=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
 const isDone=s=>s.done===undefined?(parseFloat(s.reps)>0):!!s.done;
 const rd=v=>Math.round(fromKg(v)*10)/10;
+// Descanso real: lo que marcó el cronómetro tras cada serie (hasta Saltar, la siguiente serie o el fin de la cuenta)
+let restCtx=null;
+function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+function restLabel(s){ return s.restUsed?fmtRest(s.restUsed):s.rest; }
+function trainRestEnded(){
+  if(!restCtx) return; const c=restCtx; restCtx=null;
+  const end=window.timerEndAt?Math.min(Date.now(),window.timerEndAt):Date.now();
+  const secs=Math.round((end-c.startAt)/1000);
+  const e=(data[c.date]||[]).find(x=>x.id===c.id), st=e&&e.sets[c.i];
+  if(st&&secs>=5&&isDone(st)){ st.restUsed=secs; saveToFirebase(); renderTrain(); }
+}
 function saveTrain(){ try{ if(train) localStorage.setItem(TRAIN_KEY,JSON.stringify(train)); else localStorage.removeItem(TRAIN_KEY); }catch(e){} }
 function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[]).find(x=>x.id===id)).filter(Boolean):[]; }
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
@@ -1654,14 +1679,14 @@ function openEl(){ document.getElementById('modalBackdrop').classList.add('show'
 function renderTrainCTA(){
   document.querySelectorAll('.train-cta-slot').forEach(b=>{
     b.innerHTML=train
-      ? `<button class="btn btn-primary" onclick="openTraining()">▶ Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
-      : `<button class="btn btn-primary" onclick="openTrainStart()">🏋️ Iniciar modo entrenamiento</button>`;
+      ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
+      : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
   });
 }
 window.openTrainStart=function(){
   const pre=categories[todayStr()];
   document.getElementById('modal').innerHTML=`<h2>Modo entrenamiento</h2>
-    <p class="muted">Elige la rutina de hoy. Verás tu rendimiento anterior en cada serie y el descanso arranca solo al marcar ✓.</p>
+    <p class="muted">Elige la rutina de hoy. Verás tu rendimiento anterior en cada serie y el descanso arranca solo al marcar cada serie como hecha y se guarda como dato.</p>
     <div class="progress-list">${Object.keys(customRoutines).map(k=>`<button class="btn btn-secondary full" style="${k===pre?'border-color:var(--accent)':''}" data-n="${escapeHtml(k)}" onclick="startTraining(this.dataset.n)">${escapeHtml(k)}${k===pre?' · asignada hoy':''}</button>`).join('')}
     <button class="btn btn-secondary full" onclick="startTraining('')">Sesión libre</button></div>
     <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button></div>`;
@@ -1710,8 +1735,8 @@ function renderTrain(){
   train.idx=Math.min(Math.max(train.idx,0),es.length-1);
   const e=es[train.idx], d=train.date, body=document.getElementById('trainBody'), keep=body.scrollTop;
   document.getElementById('trainTitle').textContent=train.routine||'Sesión libre';
-  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone);return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="Ejercicio ${i+1}">${dn?'✓':i+1}</button>`}).join('');
-  document.getElementById('trainNext').textContent=train.idx===es.length-1?'Finalizar ✓':'Siguiente →';
+  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone);return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="Ejercicio ${i+1}">${dn?ic('check'):i+1}</button>`}).join('');
+  document.getElementById('trainNext').innerHTML=train.idx===es.length-1?'Finalizar '+ic('check'):'Siguiente '+ic('arrow-right');
   const tg=routineTargetFor(e.name);
   const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${tg.rest}`].filter(Boolean):[];
   const prev=getExerciseSessions(e.name).filter(x=>x.date<d), last=prev[prev.length-1];
@@ -1733,13 +1758,13 @@ function renderTrain(){
       <input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}">
       <input class="tr-r" type="number" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}">
       <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">
-      <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?'✓':'○'}</button></div>`;
+      <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?ic('check'):ic('circle')}</button>${s.restUsed?`<div class="tr-rest">Descanso real ${fmtRest(s.restUsed)}</div>`:''}</div>`;
   }).join('');
   body.innerHTML=`<h2 class="train-name">${escapeHtml(e.name)}</h2>
     <div class="train-tags">${tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>
-    ${lastHtml}${hint?`<div class="train-hint">💡 ${escapeHtml(hint)}</div>`:''}
+    ${lastHtml}${hint?`<div class="train-hint">${ic('bulb')} ${escapeHtml(hint)}</div>`:''}
     <div class="tr-head"><span>#</span><span>Peso (${unitLabel()})</span><span>Reps</span><span>RIR</span><span></span></div>${rows}
-    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">⏱ Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
+    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
   body.scrollTop=keep;
 }
 function trainCur(){ return trainEntries()[train.idx]; }
@@ -1753,11 +1778,11 @@ window.trainSave=function(i){
 }
 window.trainToggle=function(i){
   const es=trainEntries(), e=es[train.idx]; if(!e) return; const s=e.sets[i];
-  if(isDone(s)){ s.done=false; saveToFirebase(); renderTrain(); return; }
+  if(isDone(s)){ s.done=false; delete s.restUsed; saveToFirebase(); renderTrain(); return; }
   const v=trainRead(i,true);
   if(!(parseFloat(v.r)>0)){ toast('Escribe las repeticiones'); return; }
-  s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.done=true; saveToFirebase();
-  if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; ensureTimerRunning(); }
+  trainRestEnded(); s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.done=true; saveToFirebase();
+  if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; ensureTimerRunning(); }
   if(navigator.vibrate) navigator.vibrate(30);
   renderTrain();
 }
@@ -1773,24 +1798,25 @@ window.trainNav=function(n){
 window.trainFinish=function(){
   const es=trainEntries(), done=es.reduce((a,e)=>a+e.sets.filter(isDone).length,0);
   const vol=es.reduce((a,e)=>a+e.sets.filter(isDone).reduce((b,s)=>b+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0),0);
-  const mins=Math.max(1,Math.round((Date.now()-train.startedAt)/60000));
+  const mins=Math.max(1,Math.round((Date.now()-train.startedAt)/60000)), rv=es.flatMap(e=>e.sets.map(z=>z.restUsed).filter(Boolean));
   const prs=es.map(e=>{
     const pv=getExerciseSessions(e.name).filter(x=>x.date<train.date).flatMap(x=>x.sets.map(s=>s.weight)), pb=pv.length?Math.max(...pv):0;
     const nb=Math.max(0,...e.sets.filter(isDone).map(s=>parseFloat(s.weight)||0));
-    return nb>pb&&pb>0?`<div class="progress-item">🏆 <b>${escapeHtml(e.name)}</b><span class="pr">${rd(nb)} ${unitLabel()}</span></div>`:'';
+    return nb>pb&&pb>0?`<div class="progress-item">${ic('trophy')} <b>${escapeHtml(e.name)}</b><span class="pr">${rd(nb)} ${unitLabel()}</span></div>`:'';
   }).join('');
   document.getElementById('modal').innerHTML=`<h2>Resumen del entrenamiento</h2>
     <div class="stat-grid" style="margin-bottom:12px"><div class="stat"><div class="label">Duración</div><div class="value">${mins} min</div></div><div class="stat"><div class="label">Series hechas</div><div class="value">${done}</div></div><div class="stat"><div class="label">Ejercicios</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Volumen</div><div class="value">${Math.round(fromKg(vol)).toLocaleString()} ${unitLabel()}</div></div></div>
     ${prs?`<div class="progress-list" style="margin-bottom:12px">${prs}</div>`:''}
-    <p class="muted">Las series sin datos se descartan al terminar.</p>
+    ${rv.length?`<p class="muted">Descanso promedio: <b>${fmtRest(Math.round(rv.reduce((a,b)=>a+b,0)/rv.length))}</b></p>`:''}<p class="muted">Las series sin datos se descartan al terminar.</p>
     <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Seguir</button><button class="btn btn-primary" onclick="trainEnd()">Terminar y guardar</button></div>`;
   openEl();
 }
 window.trainEnd=function(){
+  stopTimer();
   const d=train.date;
   trainEntries().forEach(e=>{ e.sets=e.sets.filter(setHasData); e.sets.forEach((s,i)=>s.setNumber=i+1); });
   data[d]=(data[d]||[]).filter(e=>e.isCardio||e.sets.length); if(!data[d].length) delete data[d];
-  stopTimer(); train=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase(); refreshAll(); toast('¡Entrenamiento guardado!');
+  train=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase(); refreshAll(); toast('¡Entrenamiento guardado!');
 }
 
 async function initApp() {
