@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Track Gym — Progreso v4.2</title>
+<title>Track Gym — Progreso v4.3</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
@@ -122,7 +122,8 @@ input:focus,select:focus{border-color:var(--accent)}
 .cal-num{font-weight:900;font-size:.8rem}.cal-cat{font-size:.58rem;color:var(--muted);margin-top:5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .selected .cal-cat{color:var(--bg)}
 .routine details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden}
-.routine summary{padding:13px;font-weight:850;cursor:pointer}.routine-content{padding:0 12px 12px;overflow:auto}
+.routine summary{padding:13px;font-weight:850;cursor:pointer; display:flex; justify-content:space-between; align-items:center;}
+.routine-content{padding:0 12px 12px;overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:.78rem}th{color:var(--muted)}
 .note{background:var(--input);border-left:3px solid var(--accent);padding:10px;border-radius:0 7px 7px 0;color:var(--text);font-size:.82rem}
 .empty{color:var(--muted);text-align:center;padding:18px}
@@ -138,7 +139,12 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
 .sync-status{font-size:.72rem;color:var(--muted);white-space:nowrap}.sync-status[data-state="error"]{color:var(--red)}.sync-status[data-state="saving"]{color:var(--accent)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);padding:10px 15px;border-radius:9px;font-weight:800;display:none;z-index:30}
 
-/* Selector de temas visuales */
+/* Ajustes del modal de rutinas */
+.routine-edit-row { background: var(--card2); padding: 10px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 8px; }
+.routine-edit-row .re-name { width: 100%; margin-bottom: 6px; font-weight: bold;}
+.re-subgrid { display: grid; grid-template-columns: 1fr 1.5fr 1fr 1.5fr 36px; gap: 5px; align-items: center; }
+.re-subgrid input { padding: 8px 5px; font-size: 0.75rem; text-align:center; }
+
 .theme-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:15px;}
 .btn-theme { background:var(--input); border:2px solid var(--line); border-radius:8px; padding:10px; color:var(--text); font-weight:bold; font-size:0.85rem;}
 .btn-theme.active { border-color:var(--accent); color:var(--accent);}
@@ -214,8 +220,7 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
   <div class="card">
     <div class="grid grid-2">
       <div><label>Rutina</label><select id="dayCategory" onchange="saveCategory()">
-        <option value="">-- Sin etiqueta --</option><option>Push A</option><option>Pull A</option><option>Legs A</option>
-        <option>Push B</option><option>Pull B</option><option>Legs B</option><option>Descanso</option>
+        <!-- Generado dinámicamente -->
       </select></div>
       <div><label>Notas de la sesión</label><input id="sessionNote" placeholder="Energía, sueño, molestias..."></div>
     </div>
@@ -295,8 +300,15 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
 </section>
 
 <section id="rutinas" class="tab">
-  <div class="card"><div class="note">Doble progresión: primero intenta aumentar repeticiones manteniendo el peso. Cuando completes el extremo superior del rango con el RIR objetivo, aumenta el peso y vuelve al inicio del rango.</div></div>
-  <div class="routine" id="routineContent"></div>
+  <div class="card">
+    <div class="section-title" style="margin-top: 0">
+        <h2>Mis Rutinas</h2>
+        <button class="btn btn-primary" onclick="openRoutineEditor()">+ Nueva Rutina</button>
+    </div>
+    <div class="muted" style="margin-bottom:15px; font-size:0.85rem">Agrega tus propios días de entrenamiento y modifícalos a tu gusto.</div>
+    <div class="note" style="margin-bottom: 15px">Doble progresión: primero intenta aumentar repeticiones manteniendo el peso. Cuando completes el extremo superior del rango, aumenta el peso y vuelve al inicio del rango.</div>
+    <div id="routineContent"></div>
+  </div>
 </section>
 </div>
 
@@ -319,33 +331,52 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme';
+const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines';
+
+// La rutina PPL base de Rubén Isaias
+const defaultPPL = {
+    "Push": [
+        ["Press inclinado con mancuernas", 3, "6–10", "2", "2–3 min"],
+        ["Press de pecho en máquina", 3, "8–12", "1–2", "2 min"],
+        ["Press de hombros en máquina", 3, "6–10", "2", "2–3 min"],
+        ["Elevaciones laterales con mancuernas", 3, "10–15", "1–2", "60–90 s"],
+        ["Extensión de tríceps en polea con cuerda", 3, "10–15", "1–2", "60–90 s"]
+    ],
+    "Pull": [
+        ["Jalón al pecho", 3, "6–10", "2", "2–3 min"],
+        ["Remo con pecho apoyado", 3, "8–12", "1–2", "2 min"],
+        ["Remo unilateral en máquina", 2, "8–12", "1–2", "90–120 s"],
+        ["Reverse pec deck", 3, "10–15", "1–2", "60–90 s"],
+        ["Curl de bíceps con mancuernas", 3, "8–12", "1–2", "90 s"],
+        ["Curl martillo", 2, "10–15", "1–2", "60–90 s"]
+    ],
+    "Legs": [
+        ["Sentadilla hack", 3, "6–10", "2", "2–3 min"],
+        ["Prensa de piernas", 3, "8–12", "1–2", "2–3 min"],
+        ["Curl femoral sentado", 3, "8–12", "1–2", "2 min"],
+        ["Extensión de cuádriceps", 2, "10–15", "1–2", "60–90 s"],
+        ["Elevación de pantorrillas", 3, "10–15", "1–2", "60–90 s"],
+        ["Abdominales en máquina", 2, "10–15", "1–2", "60–90 s"]
+    ]
+};
+
 const routineExercises=[
 "Press banca con barra","Press inclinado con mancuernas","Press de pecho en máquina","Press de hombro en máquina","Elevaciones laterales","Pushdown de tríceps con cuerda",
 "Jalón al pecho agarre neutro","Remo con pecho apoyado","Remo unilateral con mancuerna","Reverse pec deck","Curl con barra EZ","Curl inclinado con mancuernas",
 "Sentadilla con barra","Prensa 45°","Extensión de cuádriceps","Curl femoral sentado","Pantorrilla de pie","Crunch en máquina",
 "Press inclinado con barra","Press de pecho convergente","Aperturas en máquina","Press de hombro con mancuernas","Elevaciones laterales en máquina","Extensión unilateral de tríceps en polea",
-"Dominadas / dominadas asistidas","Remo sentado en máquina","Jalón unilateral en polea","Curl predicador","Curl martillo con mancuernas","Hack squat","Curl femoral acostado","Extensión de cadera en máquina","Pantorrilla sentado"];
-
-const routines={
-"Push A":[["Press banca con barra",3,"6–8",2,"2–3 min"],["Press inclinado con mancuernas",3,"8–10",2,"2 min"],["Press de pecho en máquina",2,"10–12","1–2","90 s"],["Press de hombro en máquina",2,"8–10",2,"2 min"],["Elevaciones laterales",3,"12–15","1–2","60–90 s"],["Pushdown de tríceps con cuerda",3,"10–15","1–2","60–90 s"]],
-"Pull A":[["Jalón al pecho agarre neutro",3,"8–10",2,"2 min"],["Remo con pecho apoyado",3,"8–10",2,"2 min"],["Remo unilateral con mancuerna",2,"10–12","1–2","90 s"],["Reverse pec deck",3,"12–15","1–2","60–90 s"],["Curl con barra EZ",3,"8–10",2,"90 s"],["Curl inclinado con mancuernas",2,"10–12","1–2","90 s"]],
-"Legs A":[["Sentadilla con barra",3,"6–8","2–3","2–3 min"],["Prensa 45°",3,"8–10",2,"2–3 min"],["Extensión de cuádriceps",2,"10–15","1–2","90 s"],["Curl femoral sentado",3,"10–12","1–2","90 s"],["Pantorrilla de pie",3,"10–15","1–2","90 s"],["Crunch en máquina",3,"10–15","1–2","60–90 s"]],
-"Push B":[["Press inclinado con barra",3,"6–8",2,"2–3 min"],["Press de pecho convergente",3,"8–10","1–2","2 min"],["Aperturas en máquina",2,"12–15","1–2","60–90 s"],["Press de hombro con mancuernas",2,"8–10",2,"2 min"],["Elevaciones laterales en máquina",3,"12–15","1–2","60–90 s"],["Extensión unilateral de tríceps en polea",3,"10–15","1–2","60–90 s"]],
-"Pull B":[["Dominadas / dominadas asistidas",3,"6–10",2,"2–3 min"],["Remo sentado en máquina",3,"8–10",2,"2 min"],["Jalón unilateral en polea",2,"10–12","1–2","90 s"],["Reverse pec deck",2,"12–15","1–2","60–90 s"],["Curl predicador",3,"8–10","1–2","90 s"],["Curl martillo con mancuernas",2,"10–12","1–2","90 s"]],
-"Legs B":[["Hack squat",3,"6–8",2,"2–3 min"],["Curl femoral acostado",3,"8–12","1–2","90 s"],["Prensa 45°",2,"10–12",2,"2 min"],["Extensión de cuádriceps",2,"12–15","1–2","90 s"],["Extensión de cadera en máquina",2,"10–15","1–2","90 s"],["Pantorrilla sentado",3,"10–15","1–2","90 s"],["Crunch en máquina",3,"10–15","1–2","60–90 s"]]
-};
+"Dominadas / dominadas asistidas","Remo sentado en máquina","Jalón unilateral en polea","Curl predicador","Curl martillo con mancuernas","Hack squat","Curl femoral acostado","Extensión de cadera en máquina","Pantorrilla sentado", "Jalón al pecho", "Remo unilateral en máquina", "Curl martillo", "Sentadilla hack", "Prensa de piernas", "Elevación de pantorrillas", "Abdominales en máquina"];
 
 const muscleMap = {
     "Pecho": ["Press banca con barra", "Press inclinado con mancuernas", "Press de pecho en máquina", "Press inclinado con barra", "Press de pecho convergente", "Aperturas en máquina"],
-    "Espalda": ["Jalón al pecho agarre neutro", "Remo con pecho apoyado", "Remo unilateral con mancuerna", "Dominadas / dominadas asistidas", "Remo sentado en máquina", "Jalón unilateral en polea"],
-    "Piernas": ["Sentadilla con barra", "Prensa 45°", "Extensión de cuádriceps", "Curl femoral sentado", "Pantorrilla de pie", "Hack squat", "Curl femoral acostado", "Extensión de cadera en máquina", "Pantorrilla sentado"],
-    "Hombros": ["Press de hombro en máquina", "Elevaciones laterales", "Reverse pec deck", "Press de hombro con mancuernas", "Elevaciones laterales en máquina"],
-    "Brazos": ["Pushdown de tríceps con cuerda", "Curl con barra EZ", "Curl inclinado con mancuernas", "Extensión unilateral de tríceps en polea", "Curl predicador", "Curl martillo con mancuernas"],
-    "Core": ["Crunch en máquina"]
+    "Espalda": ["Jalón al pecho agarre neutro", "Jalón al pecho", "Remo con pecho apoyado", "Remo unilateral con mancuerna", "Remo unilateral en máquina", "Dominadas / dominadas asistidas", "Remo sentado en máquina", "Jalón unilateral en polea"],
+    "Piernas": ["Sentadilla con barra", "Sentadilla hack", "Prensa 45°", "Prensa de piernas", "Extensión de cuádriceps", "Curl femoral sentado", "Pantorrilla de pie", "Elevación de pantorrillas", "Curl femoral acostado", "Extensión de cadera en máquina", "Pantorrilla sentado"],
+    "Hombros": ["Press de hombro en máquina", "Press de hombros en máquina", "Elevaciones laterales", "Elevaciones laterales con mancuernas", "Reverse pec deck", "Press de hombro con mancuernas", "Elevaciones laterales en máquina"],
+    "Brazos": ["Pushdown de tríceps con cuerda", "Extensión de tríceps en polea con cuerda", "Curl con barra EZ", "Curl de bíceps con mancuernas", "Curl inclinado con mancuernas", "Extensión unilateral de tríceps en polea", "Curl predicador", "Curl martillo con mancuernas", "Curl martillo"],
+    "Core": ["Crunch en máquina", "Abdominales en máquina"]
 };
 
-let data={}, categories={}, weights=[], measurements=[], notes={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false;
+let data={}, categories={}, weights=[], measurements=[], notes={}, customRoutines={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false;
 window.editingId = null;
 window.timerInt = null;
 window.timeLeft = 0;
@@ -357,13 +388,17 @@ function load(){
   weights=safeParse(localStorage.getItem(WEIGHT),[]);
   measurements=safeParse(localStorage.getItem(MEASURE),[]);
   notes=safeParse(localStorage.getItem('trackGym_notes'),{});
+  customRoutines=safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL);
   currentUnit=localStorage.getItem(UNIT_KEY)||'kg';
   currentTheme=localStorage.getItem(THEME_KEY)||'default';
+  
   if(!data || typeof data!=='object' || Array.isArray(data)) data={};
   if(!categories || typeof categories!=='object' || Array.isArray(categories)) categories={};
   if(!notes || typeof notes!=='object' || Array.isArray(notes)) notes={};
+  if(!customRoutines || typeof customRoutines!=='object' || Array.isArray(customRoutines) || Object.keys(customRoutines).length===0) customRoutines = defaultPPL;
   if(!Array.isArray(weights)) weights=[];
   if(!Array.isArray(measurements)) measurements=[];
+  
   document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
   document.documentElement.setAttribute('data-theme', currentTheme);
 }
@@ -374,19 +409,27 @@ async function saveToFirebase() {
   localStorage.setItem(WEIGHT,JSON.stringify(weights));
   localStorage.setItem(MEASURE,JSON.stringify(measurements));
   localStorage.setItem('trackGym_notes',JSON.stringify(notes));
+  localStorage.setItem(ROUTINES_KEY,JSON.stringify(customRoutines));
   localStorage.setItem(UNIT_KEY, currentUnit);
   localStorage.setItem(THEME_KEY, currentTheme);
   saveInFlight=true; updateSyncStatus('Guardando…','saving');
   try {
-    await setDoc(doc(db, "userData", "ruben_isaias"), { data, categories, weights, measurements, notes, currentUnit, currentTheme });
+    await setDoc(doc(db, "userData", "ruben_isaias"), { data, categories, weights, measurements, notes, customRoutines, currentUnit, currentTheme });
     updateSyncStatus('Sincronizado','ok');
     return true;
   } catch (e) {
-    console.error('Track Gym: error al sincronizar', e);
     updateSyncStatus('Guardado local · sin conexión','error');
     return false;
   } finally { saveInFlight=false; }
 }
+
+function updateCategorySelect() {
+    const sel = document.getElementById('dayCategory');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- Sin etiqueta --</option>' + Object.keys(customRoutines).map(k => `<option value="${k}">${k}</option>`).join('') + '<option value="Descanso">Descanso</option>';
+    if(Object.keys(customRoutines).includes(current) || current === 'Descanso') sel.value = current;
+}
+
 function updateSyncStatus(text,state){
   const el=document.getElementById('syncStatus');
   if(!el) return;
@@ -423,6 +466,7 @@ window.switchTab = function(id,btn){
   if(id==='resumen')renderDashboard();
   if(id==='calendario')renderCalendar();
   if(id==='progreso'){populateExercises();updateChart();renderBodyWeights();renderProgressionPanel()}
+  if(id==='rutinas'){renderRoutines();}
 }
 
 window.setLogType = function(type){
@@ -474,11 +518,11 @@ window.saveCategory = function(){const d=document.getElementById('routineDate').
 window.loadTemplate = function() {
     const date = document.getElementById('routineDate').value;
     const cat = document.getElementById('dayCategory').value;
-    if (!cat || !routines[cat]) { toast('Selecciona una rutina primero.'); return; }
+    if (!cat || !customRoutines[cat]) { toast('Selecciona una rutina de tu lista.'); return; }
     if (!data[date]) data[date] = [];
-    if (data[date].length > 0 && !confirm('¿Añadir plantilla completa de todos modos?')) return;
+    if (data[date].length > 0 && !confirm('¿Añadir rutina completa de todos modos?')) return;
 
-    routines[cat].forEach(exInfo => {
+    customRoutines[cat].forEach(exInfo => {
         const [name, setsCount, reps, rir, rest] = exInfo;
         const sets = [];
         for(let i=1; i<=setsCount; i++) {
@@ -487,7 +531,7 @@ window.loadTemplate = function() {
         data[date].push({id: Date.now() + Math.random(), isCardio: false, name: name, sets: sets});
     });
     saveToFirebase(); loadDay(); renderDashboard(); populateExercises(); updateChart();
-    toast('Plantilla cargada con éxito.');
+    toast('Rutina cargada con éxito.');
 }
 
 window.saveEntry = function(){
@@ -556,7 +600,9 @@ function populateExercises(){const all=getAllExercises();document.getElementById
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
 function loadDay(){
-  const date=document.getElementById('routineDate').value;document.getElementById('dayCategory').value=categories[date]||'';
+  const date=document.getElementById('routineDate').value;
+  updateCategorySelect();
+  document.getElementById('dayCategory').value=categories[date]||'';
   document.getElementById('sessionNote').value=notes[date]||'';
   const arr=data[date]||[];const box=document.getElementById('dailyLog');
   if(!arr.length){box.innerHTML='<div class="empty">No hay registros para este día.</div>';return}
@@ -600,7 +646,7 @@ function parseRepRange(range){
   return {min,max:Math.max(min,max)};
 }
 function routineTargetFor(name){
-  for(const rows of Object.values(routines)){
+  for(const rows of Object.values(customRoutines)){
     const row=rows.find(r=>r[0]===name);
     if(row){
       const rr=parseRepRange(row[2]);
@@ -880,7 +926,6 @@ window.openPlateCalc = function() {
     document.body.classList.add('modal-open');
 }
 
-
 window.calculatePlates = function() {
     const target = parseFloat(document.getElementById('calcTarget').value) || 0;
     const bar = parseFloat(document.getElementById('calcBar').value) || 0;
@@ -985,26 +1030,28 @@ function renderSettingsModal(){
     const modal = document.getElementById('modal');
     if(!modal) return;
     modal.innerHTML=`
-        <h2>Ajustes</h2>
-        
-        <label>Tema visual (Paleta de Colores)</label>
-        <div class="theme-grid">
-            <button class="btn-theme ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="border-left-color:#d8dde5">Gris Clásico</button>
-            <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="border-left-color:#60a5fa">Océano Profundo</button>
-            <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="border-left-color:#4ade80">Verde Bosque</button>
-            <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="border-left-color:#fbbf24">Café/Ámbar</button>
-        </div>
-        <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
-        
-        <p class="muted">Tus datos están sincronizados en la nube con Firebase.</p>
-        <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">📊 Exportar a Excel (CSV)</button>
-        <div class="actions">
-            <button class="btn btn-primary" onclick="exportData()">Respaldo JSON</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
-        </div>
-        <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
-        <div class="actions" style="margin-top:12px;">
-            <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
+        <div class="modal-content-wrapper">
+            <h2>Ajustes</h2>
+            
+            <label>Tema visual (Paleta de Colores)</label>
+            <div class="theme-grid">
+                <button class="btn-theme ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="border-left-color:#d8dde5">Gris Clásico</button>
+                <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="border-left-color:#60a5fa">Océano Profundo</button>
+                <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="border-left-color:#4ade80">Verde Bosque</button>
+                <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="border-left-color:#fbbf24">Café/Ámbar</button>
+            </div>
+            <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
+            
+            <p class="muted">Tus datos están sincronizados en la nube con Firebase.</p>
+            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">📊 Exportar a Excel (CSV)</button>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="exportData()">Respaldo JSON</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
+            </div>
+            <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+            <div class="actions" style="margin-top:12px;">
+                <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
+            </div>
         </div>`;
     document.getElementById('modalBackdrop').classList.add('show');
     document.body.classList.add('modal-open');
@@ -1013,15 +1060,127 @@ window.openDataModal = function(){
     renderSettingsModal();
 };
 window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
-window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.2,data,categories,weights,measurements,notes,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
-window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
-function refreshAll(){
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();
+window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.3,data,categories,weights,measurements,notes,customRoutines,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
+window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};customRoutines=x.customRoutines||defaultPPL;currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
+
+// --- NUEVAS FUNCIONES DEL CREADOR DE RUTINAS ---
+window.openRoutineEditor = function(origName = '') {
+    const isEdit = !!origName;
+    const rName = isEdit ? origName : '';
+    const exercises = isEdit && customRoutines[origName] ? customRoutines[origName] : [];
+
+    let html = `
+    <div class="modal-content-wrapper">
+        <h2 style="margin-top:0">${isEdit ? 'Editar Rutina' : 'Crear Rutina'}</h2>
+        <label>Nombre de la rutina</label>
+        <input type="text" id="editRoutineName" value="${escapeHtml(rName)}" placeholder="Ej. Push, Pull, Pierna..." style="margin-bottom: 12px;" ${isEdit ? 'data-orig="'+escapeHtml(origName)+'"' : ''}>
+
+        <label>Ejercicios</label>
+        <div id="editRoutineExercises" style="max-height: 45vh; overflow-y: auto; padding-right: 5px; margin-bottom:10px;"></div>
+
+        <button class="add-set" onclick="addRoutineExerciseRow()">+ Añadir Ejercicio</button>
+
+        <div class="actions" style="margin-top:16px;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveRoutine()">Guardar</button>
+        </div>
+        ${isEdit ? `<div style="margin-top:10px;"><button class="btn btn-danger full" onclick="deleteRoutine('${escapeHtml(origName)}')">Eliminar Rutina</button></div>` : ''}
+    </div>`;
+
+    const modal = document.getElementById('modal');
+    modal.innerHTML = html;
+    
+    if(exercises.length === 0) {
+        addRoutineExerciseRow();
+    } else {
+        exercises.forEach(ex => addRoutineExerciseRow(ex));
+    }
+
+    document.getElementById('modalBackdrop').classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+window.addRoutineExerciseRow = function(ex = null) {
+    const [name, sets, reps, rir, rest] = ex || ['', '', '', '', ''];
+    const div = document.createElement('div');
+    div.className = 'routine-edit-row';
+    div.innerHTML = `
+        <input class="re-name" placeholder="Nombre del ejercicio" value="${escapeHtml(name)}" list="exerciseList">
+        <div class="re-subgrid">
+            <input class="re-sets" type="number" placeholder="Series" value="${sets}">
+            <input class="re-reps" placeholder="Reps (ej 8-12)" value="${escapeHtml(reps)}">
+            <input class="re-rir" placeholder="RIR" value="${escapeHtml(rir)}">
+            <input class="re-rest" placeholder="Descanso" value="${escapeHtml(rest)}">
+            <button class="remove-set" onclick="this.closest('.routine-edit-row').remove()">×</button>
+        </div>
+    `;
+    document.getElementById('editRoutineExercises').appendChild(div);
+}
+
+window.saveRoutine = function() {
+    const nameInput = document.getElementById('editRoutineName');
+    const newName = nameInput.value.trim();
+    const origName = nameInput.getAttribute('data-orig');
+
+    if(!newName) { alert('Ingresa un nombre para la rutina.'); return; }
+
+    if(origName && origName !== newName) {
+        delete customRoutines[origName];
+    }
+
+    const rows = document.querySelectorAll('.routine-edit-row');
+    const newExercises = [];
+    rows.forEach(r => {
+        const eName = r.querySelector('.re-name').value.trim();
+        const eSets = parseInt(r.querySelector('.re-sets').value) || 0;
+        const eReps = r.querySelector('.re-reps').value.trim();
+        const eRir = r.querySelector('.re-rir').value.trim();
+        const eRest = r.querySelector('.re-rest').value.trim();
+
+        if(eName && eSets > 0) {
+            newExercises.push([eName, eSets, eReps, eRir, eRest]);
+        }
+    });
+
+    if(newExercises.length === 0) { alert('Agrega al menos un ejercicio con series válidas.'); return; }
+
+    customRoutines[newName] = newExercises;
+    saveToFirebase();
+    updateCategorySelect();
+    renderRoutines();
+    closeModal();
+    toast('Rutina guardada');
+}
+
+window.deleteRoutine = function(name) {
+    if(!confirm(`¿Estás seguro de eliminar la rutina "${name}"?`)) return;
+    delete customRoutines[name];
+    saveToFirebase();
+    updateCategorySelect();
+    renderRoutines();
+    closeModal();
+    toast('Rutina eliminada');
 }
 
 function renderRoutines(){
-  document.getElementById('routineContent').innerHTML=Object.entries(routines).map(([name,rows])=>`<details><summary>${name}</summary><div class="routine-content"><table><thead><tr><th>Ejercicio</th><th>Series</th><th>Reps</th><th>RIR</th><th>Descanso</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')}</tbody></table></div></details>`).join('')+`<div class="card" style="margin-top:12px"><h3>Glosario</h3><p><b>RIR:</b> repeticiones en recámara antes del fallo.</p><p><b>e1RM:</b> estimación de 1RM.</p><p><b>Volumen:</b> suma de peso × reps.</p></div>`
+  document.getElementById('routineContent').innerHTML=Object.entries(customRoutines).map(([name,rows])=>`
+    <details>
+        <summary>
+            <span>${escapeHtml(name)}</span>
+            <button class="btn-edit-sm" onclick="event.preventDefault(); openRoutineEditor('${escapeHtml(name)}')">✏️ Editar</button>
+        </summary>
+        <div class="routine-content">
+            <table>
+                <thead><tr><th>Ejercicio</th><th>Series</th><th>Reps</th><th>RIR</th><th>Descanso</th></tr></thead>
+                <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td>${r[1]}</td><td>${escapeHtml(r[2])}</td><td>${escapeHtml(r[3])}</td><td>${escapeHtml(r[4])}</td></tr>`).join('')}</tbody>
+            </table>
+        </div>
+    </details>`).join('') || '<div class="empty">No tienes rutinas creadas. Toca "+ Nueva Rutina" para empezar.</div>';
+}
+
+function refreshAll(){
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();renderRoutines();
 }
 
 async function initApp() {
@@ -1031,19 +1190,25 @@ async function initApp() {
         if (docSnap.exists()) {
             const cloud = docSnap.data();
             data = cloud.data || {}; categories = cloud.categories || {}; weights = cloud.weights || []; measurements = cloud.measurements || []; notes = cloud.notes || {};
+            customRoutines = cloud.customRoutines || safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL);
             currentUnit = cloud.currentUnit || 'kg';
             currentTheme = cloud.currentTheme || 'default';
+            
             document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
             document.documentElement.setAttribute('data-theme', currentTheme);
+            
             localStorage.setItem(KEY,JSON.stringify(data)); localStorage.setItem(CAT,JSON.stringify(categories)); localStorage.setItem(WEIGHT,JSON.stringify(weights));
-  localStorage.setItem(MEASURE,JSON.stringify(measurements)); localStorage.setItem('trackGym_notes',JSON.stringify(notes)); localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme);
+            localStorage.setItem(MEASURE,JSON.stringify(measurements)); localStorage.setItem('trackGym_notes',JSON.stringify(notes)); localStorage.setItem(ROUTINES_KEY,JSON.stringify(customRoutines)); 
+            localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme);
         } else {
-            load(); if(Object.keys(data).length>0 || Object.keys(categories).length>0 || weights.length>0) saveToFirebase();
+            load(); if(Object.keys(data).length>0 || Object.keys(categories).length>0 || weights.length>0 || Object.keys(customRoutines).length>0) saveToFirebase();
         }
     } catch(e) { load(); }
     
     document.getElementById('loadingOverlay').style.display = 'none';
     updateSyncStatus('Sincronizado','ok');
+    
+    updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
 }
 
@@ -1058,7 +1223,6 @@ if(settingsBtn){
 
 initApp();
 </script>
-
 
 </body>
 </html>
