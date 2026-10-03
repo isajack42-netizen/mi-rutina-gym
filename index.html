@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Track Gym — Progreso v3.8 Limpio</title>
+<title>Track Gym — Progreso v4.2</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* TEMA POR DEFECTO (Gris Clásico) */
@@ -98,6 +98,18 @@ input:focus,select:focus{border-color:var(--accent)}
 .progress-item{display:flex;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:10px; border-left:3px solid var(--line);}
 .progress-item small{color:var(--muted)}
 .pr{color:var(--accent);font-weight:800}
+.progression-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.progression-stat{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:10px}
+.progression-stat .label{color:var(--muted);font-size:.7rem;font-weight:700}
+.progression-stat .value{font-size:1.05rem;font-weight:900;margin-top:4px}
+.progression-message{background:var(--input);border-left:3px solid var(--accent);padding:11px;border-radius:0 8px 8px 0;margin-bottom:12px}
+.progression-message strong{display:block;margin-bottom:3px}
+.progression-table{width:100%;min-width:0;border-collapse:collapse}
+.progression-table th,.progression-table td{padding:7px 5px;border-bottom:1px solid var(--line);font-size:.75rem}
+.progression-table th{color:var(--muted)}
+.progression-positive{color:var(--green);font-weight:800}
+.progression-neutral{color:var(--yellow);font-weight:800}
+@media(max-width:720px){.progression-grid{grid-template-columns:1fr 1fr}.progression-table th:nth-child(4),.progression-table td:nth-child(4){display:none}}
 .chart-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;height:330px; position:relative;}
 .body-weight-trend{font-size:1.5rem;font-weight:900;margin:14px 0; color:var(--accent);}.body-weight-trend small{display:block;font-size:.75rem;color:var(--muted);font-weight:600;margin-top:3px}
 .calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
@@ -118,7 +130,12 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:24px;z-index:20;box-sizing:border-box;overflow:hidden}
 .modal{width:min(520px,100%);max-width:520px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px;max-height:calc(100vh - 48px);overflow-y:auto;overflow-x:hidden;box-sizing:border-box;margin:0;flex:0 1 auto}
 .modal-backdrop.show{display:flex}
+
+.bodycomp-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.bodycomp-stat{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:12px}.bodycomp-stat .label{font-size:.72rem;color:var(--muted);margin-bottom:5px}.bodycomp-stat .value{font-size:1.15rem;font-weight:800}.bodycomp-stat .sub{font-size:.72rem;color:var(--muted);margin-top:3px}.measurement-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.measurement-item{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:10px}.measurement-item .label{font-size:.72rem;color:var(--muted)}.measurement-item .value{font-weight:800;font-size:1rem;margin-top:3px}.trend-positive{color:#67d391}.trend-negative{color:#ff7272}.trend-neutral{color:var(--muted)}.bodycomp-history{max-height:360px;overflow:auto}.measurement-table{width:100%;border-collapse:collapse;font-size:.82rem}.measurement-table th,.measurement-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.measurement-table th{color:var(--muted);font-weight:700;position:sticky;top:0;background:var(--card)}
+@media(max-width:900px){.bodycomp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.measurement-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){.bodycomp-grid{grid-template-columns:1fr 1fr}.measurement-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:720px){.modal-backdrop{align-items:flex-start;padding:12px;overflow-y:auto}.modal{width:100%;max-width:none;max-height:calc(100vh - 24px)}}
+.sync-status{font-size:.72rem;color:var(--muted);white-space:nowrap}.sync-status[data-state="error"]{color:var(--red)}.sync-status[data-state="saving"]{color:var(--accent)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);padding:10px 15px;border-radius:9px;font-weight:800;display:none;z-index:30}
 
 /* Selector de temas visuales */
@@ -152,7 +169,7 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
 <div class="app">
 <header>
   <div class="brand"><h1>Track Gym</h1><p>Registro, progresión y constancia</p></div>
-  <div class="header-actions">
+  <div class="header-actions"><span id="syncStatus" class="sync-status" data-state="">☁ Sincronizado</span>
       <button class="icon-btn" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades">KG</button>
       <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos">🏋️</button>
       <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes">⚙️</button>
@@ -191,7 +208,7 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
   <div class="card">
     <div class="datebar">
       <div><label>Fecha</label><input type="date" id="routineDate"></div>
-      <button class="btn btn-secondary" style="margin-top:17px" onclick="copyLastWorkout()">Cargar anterior</button>
+      <button class="btn btn-secondary" style="margin-top:17px" onclick="copyLastWorkout()">Cargar ejercicio anterior</button>
     </div>
   </div>
   <div class="card">
@@ -249,17 +266,31 @@ table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:8px;bord
     <div class="section-title"><h2>Detalle del ejercicio</h2></div>
     <div id="exerciseDetail"></div>
   </div>
+  <div class="card progression-card">
+    <div class="section-title"><div><h2>Progresión</h2><div class="muted">Compara tu última sesión con el objetivo de tu rutina y define el siguiente paso.</div></div></div>
+    <div id="progressionPanel"><div class="empty">Selecciona un ejercicio para ver su progresión.</div></div>
+  </div>
   <div class="card">
     <div class="section-title">
       <div>
-        <h2>Peso corporal</h2>
-        <div class="muted">Registra tu peso y la fecha de cada medición.</div>
+        <h2>Composición corporal</h2>
+        <div class="muted">Peso, tendencia y medidas para seguir cambios corporales sin depender de una sola métrica.</div>
       </div>
-      <button class="btn btn-secondary" onclick="openWeightModal()">+ Registrar peso</button>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="openWeightModal()">+ Registrar peso</button>
+        <button class="btn btn-primary" onclick="openMeasurementModal()">+ Registrar medidas</button>
+      </div>
     </div>
+    <div id="bodyCompSummary"></div>
     <div id="bodyWeightTrend" class="body-weight-trend"></div>
     <div class="chart-box" style="height:260px;margin-bottom:12px"><canvas id="bodyWeightChart"></canvas></div>
+    <div class="grid grid-2" style="margin-bottom:10px">
+      <div><label>Medida corporal</label><select id="measurementMetric" onchange="renderMeasurementChart()"><option value="waist">Cintura</option><option value="chest">Pecho</option><option value="arm">Brazo</option><option value="thigh">Muslo</option><option value="hip">Cadera</option></select></div>
+      <div><label>Unidad de medida</label><div class="muted" style="padding-top:10px">Las medidas corporales se registran siempre en centímetros.</div></div>
+    </div>
+    <div class="chart-box" style="height:240px;margin-bottom:12px"><canvas id="measurementChart"></canvas></div>
     <div id="bodyWeightList"></div>
+    <div id="bodyMeasurementList" style="margin-top:10px"></div>
   </div>
 </section>
 
@@ -288,7 +319,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme';
+const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme';
 const routineExercises=[
 "Press banca con barra","Press inclinado con mancuernas","Press de pecho en máquina","Press de hombro en máquina","Elevaciones laterales","Pushdown de tríceps con cuerda",
 "Jalón al pecho agarre neutro","Remo con pecho apoyado","Remo unilateral con mancuerna","Reverse pec deck","Curl con barra EZ","Curl inclinado con mancuernas",
@@ -314,18 +345,25 @@ const muscleMap = {
     "Core": ["Crunch en máquina"]
 };
 
-let data={}, categories={}, weights=[], currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null;
+let data={}, categories={}, weights=[], measurements=[], notes={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false;
 window.editingId = null;
 window.timerInt = null;
 window.timeLeft = 0;
 
+function safeParse(raw, fallback){ try { const v=JSON.parse(raw); return v ?? fallback; } catch(e){ return fallback; } }
 function load(){
-  data=JSON.parse(localStorage.getItem(KEY)||'null')||{};
-  categories=JSON.parse(localStorage.getItem(CAT)||'{}');
-  weights=JSON.parse(localStorage.getItem(WEIGHT)||'[]');
+  data=safeParse(localStorage.getItem(KEY),{});
+  categories=safeParse(localStorage.getItem(CAT),{});
+  weights=safeParse(localStorage.getItem(WEIGHT),[]);
+  measurements=safeParse(localStorage.getItem(MEASURE),[]);
+  notes=safeParse(localStorage.getItem('trackGym_notes'),{});
   currentUnit=localStorage.getItem(UNIT_KEY)||'kg';
   currentTheme=localStorage.getItem(THEME_KEY)||'default';
-  
+  if(!data || typeof data!=='object' || Array.isArray(data)) data={};
+  if(!categories || typeof categories!=='object' || Array.isArray(categories)) categories={};
+  if(!notes || typeof notes!=='object' || Array.isArray(notes)) notes={};
+  if(!Array.isArray(weights)) weights=[];
+  if(!Array.isArray(measurements)) measurements=[];
   document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
   document.documentElement.setAttribute('data-theme', currentTheme);
 }
@@ -334,9 +372,26 @@ async function saveToFirebase() {
   localStorage.setItem(KEY,JSON.stringify(data));
   localStorage.setItem(CAT,JSON.stringify(categories));
   localStorage.setItem(WEIGHT,JSON.stringify(weights));
+  localStorage.setItem(MEASURE,JSON.stringify(measurements));
+  localStorage.setItem('trackGym_notes',JSON.stringify(notes));
   localStorage.setItem(UNIT_KEY, currentUnit);
   localStorage.setItem(THEME_KEY, currentTheme);
-  try { await setDoc(doc(db, "userData", "ruben_isaias"), { data, categories, weights, currentUnit, currentTheme }); } catch (e) {}
+  saveInFlight=true; updateSyncStatus('Guardando…','saving');
+  try {
+    await setDoc(doc(db, "userData", "ruben_isaias"), { data, categories, weights, measurements, notes, currentUnit, currentTheme });
+    updateSyncStatus('Sincronizado','ok');
+    return true;
+  } catch (e) {
+    console.error('Track Gym: error al sincronizar', e);
+    updateSyncStatus('Guardado local · sin conexión','error');
+    return false;
+  } finally { saveInFlight=false; }
+}
+function updateSyncStatus(text,state){
+  const el=document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent='☁ '+text;
+  el.dataset.state=state||'';
 }
 
 function toKg(val) { let num = parseFloat(val) || 0; return currentUnit === 'lbs' ? num / 2.20462 : num; }
@@ -367,7 +422,7 @@ window.switchTab = function(id,btn){
   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');
   if(id==='resumen')renderDashboard();
   if(id==='calendario')renderCalendar();
-  if(id==='progreso'){populateExercises();updateChart();renderBodyWeights()}
+  if(id==='progreso'){populateExercises();updateChart();renderBodyWeights();renderProgressionPanel()}
 }
 
 window.setLogType = function(type){
@@ -431,7 +486,7 @@ window.loadTemplate = function() {
         }
         data[date].push({id: Date.now() + Math.random(), isCardio: false, name: name, sets: sets});
     });
-    saveToFirebase(); loadDay(); renderDashboard();
+    saveToFirebase(); loadDay(); renderDashboard(); populateExercises(); updateChart();
     toast('Plantilla cargada con éxito.');
 }
 
@@ -464,9 +519,9 @@ window.saveEntry = function(){
       data[date].push(newEntry);
   }
 
-  if(document.getElementById('sessionNote').value.trim()) data[date].note=document.getElementById('sessionNote').value.trim();
+  const sessionNote=document.getElementById('sessionNote').value.trim(); if(sessionNote) notes[date]=sessionNote; else delete notes[date];
   
-  saveToFirebase(); clearEntry(); loadDay(); renderDashboard(); toast(window.editingId ? 'Registro actualizado' : 'Guardado OK');
+  const wasEditing=!!window.editingId; saveToFirebase(); clearEntry(); loadDay(); renderDashboard(); populateExercises(); updateChart(); toast(wasEditing ? 'Registro actualizado' : 'Guardado OK');
 }
 
 window.editEntry = function(date, id) {
@@ -502,7 +557,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':
 
 function loadDay(){
   const date=document.getElementById('routineDate').value;document.getElementById('dayCategory').value=categories[date]||'';
-  document.getElementById('sessionNote').value=(data[date]&&data[date].note)||'';
+  document.getElementById('sessionNote').value=notes[date]||'';
   const arr=data[date]||[];const box=document.getElementById('dailyLog');
   if(!arr.length){box.innerHTML='<div class="empty">No hay registros para este día.</div>';return}
   box.innerHTML=arr.map(e=>renderExerciseCard(e,date)).join('')
@@ -514,7 +569,7 @@ function renderExerciseCard(e,date){
   return `<div class="exercise-card"><div class="exercise-title"><span>🏋️ ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${s.reps}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${s.rir}</span><span>${s.rest}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">✏️ Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">🗑️</button></div></div>`
 }
 
-window.deleteEntry = function(date,id){if(!confirm('¿Eliminar este registro?'))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();toast('Registro eliminado')}
+window.deleteEntry = function(date,id){if(!confirm('¿Eliminar este registro?'))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
 function sessionVolume(e){return (e.sets||[]).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}
 function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>(data[date]||[]).forEach(e=>{if(!e.isCardio&&e.name===name)out.push({date,e})}));return out}
 function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps)return 0;return weight*(1+reps/30)}
@@ -534,7 +589,106 @@ window.updateChart = function(){
   const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
   
   chart=new Chart(document.getElementById('progressChart'),{type:'line',data:{labels,datasets:[{label:`${metric==='weight'?'Peso máximo':metric==='volume'?'Volumen':'e1RM estimado'} (${unitLabel()})`,data:vals,borderColor:accentColor,backgroundColor:accentColor+'20',fill:true,tension:.28,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'#303640'}},x:{grid:{color:'#303640'}}}}});
-  renderExerciseDetail(name)
+  renderExerciseDetail(name);
+  renderProgressionPanel();
+}
+
+function parseRepRange(range){
+  const nums=String(range||'').match(/\d+/g)||[];
+  if(!nums.length)return null;
+  const min=parseInt(nums[0],10), max=parseInt(nums[nums.length-1],10);
+  return {min,max:Math.max(min,max)};
+}
+function routineTargetFor(name){
+  for(const rows of Object.values(routines)){
+    const row=rows.find(r=>r[0]===name);
+    if(row){
+      const rr=parseRepRange(row[2]);
+      return {sets:row[1],repRange:rr,rir:String(row[3]),rest:row[4]};
+    }
+  }
+  return null;
+}
+function getExerciseSessions(name){
+  const out=[];
+  Object.keys(data).sort().forEach(date=>{
+    const entries=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);
+    entries.forEach(e=>{
+      const sets=(e.sets||[]).map(s=>({
+        reps:parseFloat(s.reps)||0,
+        weight:parseFloat(s.weight)||0,
+        rir:s.rir==='-'||s.rir===''?null:parseFloat(s.rir),
+        rest:s.rest
+      })).filter(s=>s.reps>0||s.weight>0);
+      if(sets.length) out.push({date,sets});
+    });
+  });
+  return out;
+}
+function summarizeSession(session){
+  const valid=session.sets.filter(s=>s.reps>0&&s.weight>0);
+  const bestWeight=valid.length?Math.max(...valid.map(s=>s.weight)):0;
+  const bestReps=valid.length?Math.max(...valid.map(s=>s.reps)):0;
+  const volume=valid.reduce((a,s)=>a+s.reps*s.weight,0);
+  const bestSet=valid.slice().sort((a,b)=>((b.weight*b.reps)-(a.weight*a.reps)))[0]||null;
+  const e1=bestSet?e1rm(bestSet.weight,bestSet.reps):0;
+  const rirVals=valid.filter(s=>s.rir!==null).map(s=>s.rir);
+  const avgRir=rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null;
+  return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
+}
+function formatKgValue(v){return v?`${Math.round(fromKg(v)*10)/10} ${unitLabel()}`:'—'}
+function progressionRecommendation(name,sessions,target){
+  const last=sessions[sessions.length-1];
+  if(!last)return {title:'Sin historial suficiente',text:'Registra al menos una sesión para empezar a recibir una referencia de progresión.',className:'progression-neutral'};
+  const sum=summarizeSession(last);
+  if(!target||!target.repRange){
+    return {title:'Usa la última sesión como referencia',text:`Tu último registro fue ${sum.bestWeight?formatKgValue(sum.bestWeight):'sin peso'} con hasta ${sum.bestReps||'—'} reps. Intenta igualar o superar ligeramente el rendimiento manteniendo una técnica sólida.`,className:'progression-neutral'};
+  }
+  const max=target.repRange.max, min=target.repRange.min;
+  const allAtTop=last.sets.filter(s=>s.weight>0&&s.reps>0).length>0 && last.sets.filter(s=>s.weight>0&&s.reps>0).every(s=>s.reps>=max);
+  const allAtLeastMin=last.sets.filter(s=>s.weight>0&&s.reps>0).length>0 && last.sets.filter(s=>s.weight>0&&s.reps>0).every(s=>s.reps>=min);
+  if(allAtTop){
+    return {title:'Siguiente paso: considera subir el peso',text:`Completaste el extremo superior del rango (${max} reps) en todas las series registradas. En la próxima sesión puedes probar un incremento pequeño y volver al inicio del rango (${min}–${max}).`,className:'progression-positive'};
+  }
+  if(allAtLeastMin){
+    return {title:'Siguiente paso: busca más repeticiones',text:`Ya estás dentro del rango (${min}–${max}). Mantén el peso y trata de sumar 1 repetición en alguna serie antes de subir carga.`,className:'progression-neutral'};
+  }
+  return {title:'Siguiente paso: consolida el peso actual',text:`Aún hay series por debajo del mínimo del rango (${min}–${max}). Mantén la carga y prioriza acercarte al mínimo con buena ejecución.`,className:'progression-neutral'};
+}
+function renderProgressionPanel(){
+  const box=document.getElementById('progressionPanel');
+  const sel=document.getElementById('chartExercise');
+  if(!box||!sel)return;
+  const name=sel.value;
+  if(!name){box.innerHTML='<div class="empty">Selecciona un ejercicio para ver su progresión.</div>';return}
+  const sessions=getExerciseSessions(name);
+  if(!sessions.length){box.innerHTML='<div class="empty">Todavía no hay registros para este ejercicio.</div>';return}
+  const target=routineTargetFor(name);
+  const last=sessions[sessions.length-1];
+  const lastSum=summarizeSession(last);
+  const prev=sessions.length>1?summarizeSession(sessions[sessions.length-2]):null;
+  const rec=progressionRecommendation(name,sessions,target);
+  const targetText=target&&target.repRange?`${target.repRange.min}–${target.repRange.max} reps · RIR ${escapeHtml(target.rir)}`:'Sin rango definido en rutina';
+  const weightDelta=prev&&lastSum.bestWeight&&prev.bestWeight?lastSum.bestWeight-prev.bestWeight:0;
+  const e1Delta=prev&&lastSum.e1rm&&prev.e1rm?lastSum.e1rm-prev.e1rm:0;
+  const deltaText=prev&&weightDelta!==0?`${weightDelta>0?'+':''}${Math.round(fromKg(weightDelta)*10)/10} ${unitLabel()}`:'—';
+  const e1DeltaText=prev&&e1Delta!==0?`${e1Delta>0?'+':''}${Math.round(fromKg(e1Delta)*10)/10} ${unitLabel()}`:'—';
+  const rows=sessions.slice(-5).reverse().map((session)=>{
+    const sum=summarizeSession(session);
+    return `<tr><td>${fmtDate(session.date)}</td><td>${sum.sets}</td><td>${sum.bestWeight?formatKgValue(sum.bestWeight):'—'}</td><td>${sum.bestReps||'—'}</td><td>${sum.e1rm?formatKgValue(sum.e1rm):'—'}</td></tr>`;
+  }).join('');
+  box.innerHTML=`
+    <div class="progression-grid">
+      <div class="progression-stat"><div class="label">Última sesión</div><div class="value">${fmtDate(last.date)}</div></div>
+      <div class="progression-stat"><div class="label">Mejor peso</div><div class="value">${formatKgValue(lastSum.bestWeight)}</div></div>
+      <div class="progression-stat"><div class="label">Mejor e1RM</div><div class="value">${formatKgValue(lastSum.e1rm)}</div></div>
+      <div class="progression-stat"><div class="label">Reps máximas</div><div class="value">${lastSum.bestReps||'—'}</div></div>
+      <div class="progression-stat"><div class="label">Cambio de peso</div><div class="value">${deltaText}</div></div>
+      <div class="progression-stat"><div class="label">Cambio e1RM</div><div class="value">${e1DeltaText}</div></div>
+    </div>
+    <div class="progression-message"><strong class="${rec.className}">${escapeHtml(rec.title)}</strong><span>${escapeHtml(rec.text)}</span></div>
+    <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target?` · ${target.sets} series · descanso ${escapeHtml(target.rest)}`:''}</div>
+    <div style="overflow:auto"><table class="progression-table"><thead><tr><th>Fecha</th><th>Series</th><th>Mejor peso</th><th>Máx. reps</th><th>e1RM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderExerciseDetail(name){
@@ -558,7 +712,7 @@ function renderDashboard(){
   const totalVolKg=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:sessionVolume(e)),0),0);
   const displayVol = currentUnit === 'lbs' ? totalVolKg * 2.20462 : totalVolKg;
   
-  document.getElementById('stats').innerHTML=`<div class="stat"><div class="label">Días registrados</div><div class="value">${dates.length}</div></div><div class="stat"><div class="label">Entrenamientos</div><div class="value">${workouts}</div></div><div class="stat"><div class="label">Series</div><div class="value">${allSets}</div></div><div class="stat"><div class="label">Volumen total</div><div class="value">${Math.round(displayVol/1000*10)/10} t</div></div>`;
+  document.getElementById('stats').innerHTML=`<div class="stat"><div class="label">Días registrados</div><div class="value">${dates.length}</div></div><div class="stat"><div class="label">Entrenamientos</div><div class="value">${workouts}</div></div><div class="stat"><div class="label">Series</div><div class="value">${allSets}</div></div><div class="stat"><div class="label">Volumen total</div><div class="value">${currentUnit==='lbs' ? Math.round(displayVol).toLocaleString()+' lb' : Math.round(displayVol).toLocaleString()+' kg'}</div></div>`;
   
   const recent=dates.slice(-6).reverse();
   document.getElementById('recentWorkouts').innerHTML=recent.length?recent.map(d=>{
@@ -608,7 +762,7 @@ window.copyLastWorkout = function(){
 window.loadLastPerformance = function(){
   const name=normalizeName(document.getElementById('exerciseName').value);if(!name)return;
   const entries=allWeightEntries(name);if(!entries.length){toast('No hay sesión anterior');return}
-  const e=entries[entries.length-1].e;document.getElementById('setsContainer').innerHTML='';setCounter=0;e.sets.forEach(s=>addSet({weight:Math.round(fromKg(s.weight)*10)/10,rir:s.rir==='-'?'':s.rir,rest:s.rest==='-'?'':s.rest}));
+  const e=entries[entries.length-1].e;document.getElementById('setsContainer').innerHTML='';setCounter=0;e.sets.forEach(s=>addSet({reps:s.reps==='-'?'':s.reps,weight:Math.round(fromKg(s.weight)*10)/10,rir:s.rir==='-'?'':s.rir,rest:s.rest==='-'?'':s.rest}));
   toast('Series cargadas')
 }
 
@@ -622,13 +776,76 @@ window.renderCalendar = function(){
 
 function showDaySummary(d){
   const box=document.getElementById('calendarSummary'),arr=data[d]||[];if(!arr.length&&!categories[d]){box.innerHTML='<div class="empty">Selecciona un día.</div>';return}
-  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${categories[d]||''} ${data[d]?.note?'<br>Nota '+escapeHtml(data[d].note):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">🏃 ${escapeHtml(e.name)} ·${e.time} min</div>`:`<div class="progress-item"><b>🏋️ ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}</div>`
+  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${categories[d]||''} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">🏃 ${escapeHtml(e.name)} ·${e.time} min</div>`:`<div class="progress-item"><b>🏋️ ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}</div>`
 }
 window.changeMonth = function(n){currentMonth+=n;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
+function avgWeight(days){
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+    const vals=weights.filter(x=>new Date(x.date+'T00:00:00')>=cutoff).map(x=>x.weight);
+    if(!vals.length)return null;
+    return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+function weightChangeDays(days){
+    const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
+    if(arr.length<2)return null;
+    const latest=arr[arr.length-1];
+    const cutoff=new Date(latest.date+'T00:00:00');cutoff.setDate(cutoff.getDate()-days);
+    let base=arr.find(x=>new Date(x.date+'T00:00:00')>=cutoff);
+    if(!base)base=arr[0];
+    return latest.weight-base.weight;
+}
+function latestMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null}
+function firstMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date))[0]||null}
+function measurementDelta(key){const a=firstMeasurement(),b=latestMeasurement();if(!a||!b||a[key]==null||b[key]==null)return null;return b[key]-a[key]}
+function trendClass(v){return v==null||Math.abs(v)<0.01?'trend-neutral':v<0?'trend-positive':'trend-negative'}
+function formatDelta(v,unit='cm'){if(v==null)return '—';return `${v>0?'+':''}${v.toFixed(1)} ${unit}`}
+function renderBodyCompSummary(){
+    const box=document.getElementById('bodyCompSummary');if(!box)return;
+    const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));const latest=arr.at(-1);const avg7=avgWeight(7);const d30=weightChangeDays(30);const waist=measurementDelta('waist');
+    const cards=[];
+    cards.push(`<div class="bodycomp-stat"><div class="label">Peso actual</div><div class="value">${latest?formatKgValue(latest.weight):'—'}</div><div class="sub">${latest?fmtDate(latest.date):'Sin registro'}</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Promedio 7 días</div><div class="value">${avg7!=null?formatKgValue(avg7):'—'}</div><div class="sub">Promedio de mediciones disponibles</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30)}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist)}">${formatDelta(waist)}</div><div class="sub">Desde la primera medición</div></div>`);
+    box.innerHTML=`<div class="bodycomp-grid">${cards.join('')}</div>`;
+}
 function renderBodyWeights(){
     const box=document.getElementById('bodyWeightList');const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
-    box.innerHTML=arr.slice(-10).reverse().map(x=>`<div class="progress-item"><span>${fmtDate(x.date)}</span><b style="color:var(--accent)">${Math.round(fromKg(x.weight)*10)/10} ${unitLabel()}</b></div>`).join('')||'<div class="empty">Sin peso corporal registrado.</div>'
+    box.innerHTML=arr.slice(-10).reverse().map(x=>`<div class="progress-item"><span>${fmtDate(x.date)}</span><b style="color:var(--accent)">${Math.round(fromKg(x.weight)*10)/10} ${unitLabel()}</b></div>`).join('')||'<div class="empty">Sin peso corporal registrado.</div>';
+    if(bodyWeightChart) bodyWeightChart.destroy();
+    const canvas=document.getElementById('bodyWeightChart');
+    if(canvas && arr.length){
+      const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      bodyWeightChart=new Chart(canvas,{type:'line',data:{labels:arr.map(x=>fmtDate(x.date)),datasets:[{label:`Peso (${unitLabel()})`,data:arr.map(x=>Math.round(fromKg(x.weight)*10)/10),borderColor:accent,backgroundColor:accent,fill:false,tension:.25,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#aeb5c0'},grid:{color:'rgba(255,255,255,.06)'}},y:{ticks:{color:'#aeb5c0'},grid:{color:'rgba(255,255,255,.06)'}}},plugins:{legend:{labels:{color:'#f4f5f7'}}}}});
+    }
+    renderBodyCompSummary();renderMeasurementChart();renderBodyMeasurements();
 }
+function renderMeasurementChart(){
+    const canvas=document.getElementById('measurementChart'),sel=document.getElementById('measurementMetric');if(!canvas||!sel)return;
+    if(measurementChart)measurementChart.destroy();
+    const key=sel.value||'waist';const arr=[...measurements].filter(x=>x[key]!=null).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!arr.length)return;
+    const labels={waist:'Cintura',chest:'Pecho',arm:'Brazo',thigh:'Muslo',hip:'Cadera'};const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    measurementChart=new Chart(canvas,{type:'line',data:{labels:arr.map(x=>fmtDate(x.date)),datasets:[{label:`${labels[key]} (cm)`,data:arr.map(x=>x[key]),borderColor:accent,backgroundColor:accent,fill:false,tension:.25,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#aeb5c0'},grid:{color:'rgba(255,255,255,.06)'}},y:{ticks:{color:'#aeb5c0'},grid:{color:'rgba(255,255,255,.06)'}}},plugins:{legend:{labels:{color:'#f4f5f7'}}}}});
+}
+function renderBodyMeasurements(){
+    const box=document.getElementById('bodyMeasurementList');if(!box)return;const arr=[...measurements].sort((a,b)=>b.date.localeCompare(a.date));
+    if(!arr.length){box.innerHTML='<div class="empty">Sin medidas corporales registradas.</div>';return}
+    box.innerHTML=`<div class="bodycomp-history"><table class="measurement-table"><thead><tr><th>Fecha</th><th>Cintura</th><th>Pecho</th><th>Brazo</th><th>Muslo</th><th>Cadera</th><th></th></tr></thead><tbody>${arr.map(x=>`<tr><td>${fmtDate(x.date)}</td><td>${x.waist!=null?x.waist.toFixed(1)+' cm':'—'}</td><td>${x.chest!=null?x.chest.toFixed(1)+' cm':'—'}</td><td>${x.arm!=null?x.arm.toFixed(1)+' cm':'—'}</td><td>${x.thigh!=null?x.thigh.toFixed(1)+' cm':'—'}</td><td>${x.hip!=null?x.hip.toFixed(1)+' cm':'—'}</td><td><button class="btn btn-secondary" style="padding:5px 8px" onclick="deleteMeasurement('${x.date}')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+window.openMeasurementModal=function(existingDate=''){
+  const existing=measurements.find(x=>x.date===existingDate)||{};const date=existing.date||todayStr();
+  document.getElementById('modal').innerHTML=`<h2>${existingDate?'Editar':'Registrar'} medidas corporales</h2><p class="muted">Mide en condiciones similares cada vez. Deja en blanco lo que no quieras registrar.</p><div class="grid grid-2"><div><label>Fecha</label><input id="mmDate" type="date" value="${date}"></div><div><label>Unidad</label><div class="muted" style="padding-top:10px">Centímetros (cm)</div></div></div><div class="measurement-grid" style="margin-top:12px"><div><label>Cintura</label><input id="mmWaist" type="number" step="0.1" min="0" value="${existing.waist??''}"></div><div><label>Pecho</label><input id="mmChest" type="number" step="0.1" min="0" value="${existing.chest??''}"></div><div><label>Brazo</label><input id="mmArm" type="number" step="0.1" min="0" value="${existing.arm??''}"></div><div><label>Muslo</label><input id="mmThigh" type="number" step="0.1" min="0" value="${existing.thigh??''}"></div><div><label>Cadera</label><input id="mmHip" type="number" step="0.1" min="0" value="${existing.hip??''}"></div></div><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveMeasurements()">Guardar</button></div>`;
+  document.getElementById('modalBackdrop').classList.add('show');document.body.classList.add('modal-open');document.getElementById('modal').scrollTop=0;
+}
+window.saveMeasurements=function(){
+  const date=document.getElementById('mmDate').value;if(!date)return;
+  const vals={waist:'mmWaist',chest:'mmChest',arm:'mmArm',thigh:'mmThigh',hip:'mmHip'};const entry={date};let has=false;
+  Object.entries(vals).forEach(([k,id])=>{const v=parseFloat(document.getElementById(id).value);if(Number.isFinite(v)&&v>0){entry[k]=Math.round(v*10)/10;has=true;}});
+  if(!has){toast('Registra al menos una medida');return;}
+  measurements=measurements.filter(x=>x.date!==date);measurements.push(entry);saveToFirebase();closeModal();renderBodyWeights();toast('Medidas guardadas OK');
+}
+window.deleteMeasurement=function(date){measurements=measurements.filter(x=>x.date!==date);saveToFirebase();renderBodyWeights();toast('Medición eliminada')}
 
 window.openWeightModal = function(){
     document.getElementById('modal').innerHTML=`<h2>Registrar peso corporal</h2><div class="grid grid-2"><div><label>Fecha</label><input id="mwDate" type="date" value="${todayStr()}"></div><div><label>Peso (${unitLabel()})</label><input id="mwWeight" type="number" step="0.1" min="0"></div></div><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveBodyWeight()">Guardar</button></div>`;
@@ -660,7 +877,9 @@ window.openPlateCalc = function() {
         <div class="actions"><button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button></div>
     `;
     document.getElementById('modalBackdrop').classList.add('show');
+    document.body.classList.add('modal-open');
 }
+
 
 window.calculatePlates = function() {
     const target = parseFloat(document.getElementById('calcTarget').value) || 0;
@@ -715,36 +934,39 @@ function updateTimerUI() {
 }
 
 window.exportCSV = function() {
-    let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas\n";
-    let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...weights.map(w=>w.date)]);
+    const csvEscape = value => { const v=String(value ?? ''); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+    const addRow = row => { csv += row.map(csvEscape).join(',') + '\n'; };
+    let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas,Peso_corporal,Unidad_peso,Cintura_cm,Pecho_cm,Brazo_cm,Muslo_cm,Cadera_cm\n";
+    let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...weights.map(w=>w.date), ...measurements.map(m=>m.date)]);
     let sortedDates = Array.from(allDates).sort();
 
     sortedDates.forEach(date => {
         const cat = categories[date] || "";
-        const note = data[date]?.note ? data[date].note.replace(/,/g, " ").replace(/\n/g, " ") : "";
+        const note = notes[date] || "";
         const dayUnit = currentUnit.toUpperCase();
         const wEntry = weights.find(w => w.date === date);
+        const mEntry = measurements.find(m => m.date === date);
 
         if(wEntry) {
             let wVal = currentUnit === 'lbs' ? wEntry.weight * 2.20462 : wEntry.weight;
-            csv += `${date},${cat},Peso Corporal,Peso Corporal,-,-,${Math.round(wVal*10)/10},${dayUnit},-,-,-,-,${note}\n`;
+            addRow([date,cat,"Peso Corporal","Peso Corporal","-","-",Math.round(wVal*10)/10,dayUnit,"-","-","-","-",note,wVal,dayUnit,mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
         }
 
         const arr = data[date] || [];
         arr.forEach(ex => {
             const exName = ex.name.replace(/,/g, " ");
             if (ex.isCardio) {
-                csv += `${date},${cat},Cardio,${exName},-,-,-,-,-,-,${ex.time},${ex.distance},${note}\n`;
+                addRow([date,cat,"Cardio",exName,"-","-","-","-","-","-",ex.time,ex.distance,note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
             } else {
                 ex.sets.forEach(s => {
                     let wVal = currentUnit === 'lbs' ? s.weight * 2.20462 : s.weight;
-                    csv += `${date},${cat},Pesas,${exName},${s.setNumber},${s.reps},${Math.round(wVal*10)/10},${dayUnit},${s.rir},${s.rest.replace(/,/g," ")},-,-,${note}\n`;
+                    addRow([date,cat,"Pesas",exName,s.setNumber,s.reps,Math.round(wVal*10)/10,dayUnit,s.rir,s.rest,"-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
                 });
             }
         });
 
         if(!wEntry && arr.length === 0 && (cat || note)) {
-            csv += `${date},${cat},Info,-,-,-,-,-,-,-,-,-,${note}\n`;
+            addRow([date,cat,"Info","-","-","-","-","-","-","-","-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
         }
     });
 
@@ -785,16 +1007,17 @@ function renderSettingsModal(){
             <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
         </div>`;
     document.getElementById('modalBackdrop').classList.add('show');
+    document.body.classList.add('modal-open');
 }
 window.openDataModal = function(){
     renderSettingsModal();
 };
-window.closeModal = function(){document.getElementById('modalBackdrop').classList.remove('show');document.body.classList.remove('modal-open')}
-window.exportData = function(){const blob=new Blob([JSON.stringify({version:3,data,categories,weights,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
-window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
+window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
+window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.2,data,categories,weights,measurements,notes,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
+window.importData = function(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.data)throw 0;data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';saveToFirebase();closeModal();refreshAll();toast('Importado OK')}catch{alert('Archivo no válido.')}};r.readAsText(file)}
 function refreshAll(){
     document.documentElement.setAttribute('data-theme', currentTheme);
-    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();
+    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();
 }
 
 function renderRoutines(){
@@ -807,23 +1030,26 @@ async function initApp() {
         const docSnap = await getDoc(doc(db, "userData", "ruben_isaias"));
         if (docSnap.exists()) {
             const cloud = docSnap.data();
-            data = cloud.data || {}; categories = cloud.categories || {}; weights = cloud.weights || [];
+            data = cloud.data || {}; categories = cloud.categories || {}; weights = cloud.weights || []; measurements = cloud.measurements || []; notes = cloud.notes || {};
             currentUnit = cloud.currentUnit || 'kg';
             currentTheme = cloud.currentTheme || 'default';
             document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
             document.documentElement.setAttribute('data-theme', currentTheme);
-            localStorage.setItem(KEY,JSON.stringify(data)); localStorage.setItem(CAT,JSON.stringify(categories)); localStorage.setItem(WEIGHT,JSON.stringify(weights)); localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme);
+            localStorage.setItem(KEY,JSON.stringify(data)); localStorage.setItem(CAT,JSON.stringify(categories)); localStorage.setItem(WEIGHT,JSON.stringify(weights));
+  localStorage.setItem(MEASURE,JSON.stringify(measurements)); localStorage.setItem('trackGym_notes',JSON.stringify(notes)); localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme);
         } else {
             load(); if(Object.keys(data).length>0 || Object.keys(categories).length>0 || weights.length>0) saveToFirebase();
         }
     } catch(e) { load(); }
     
     document.getElementById('loadingOverlay').style.display = 'none';
+    updateSyncStatus('Sincronizado','ok');
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
 }
 
 document.getElementById('routineDate').addEventListener('change',()=>loadDay());
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape' && document.getElementById('modalBackdrop').classList.contains('show')) closeModal()});
 
 const settingsBtn = document.getElementById('settingsBtn');
 if(settingsBtn){
