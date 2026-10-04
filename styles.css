@@ -379,3 +379,13 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 /* ===== iPhone: respetar la muesca / barra de estado en modo app instalada ===== */
 body{padding-top:calc(16px + env(safe-area-inset-top,0px))}
 .auth-overlay{padding-top:calc(24px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+
+
+/* ===== v5.2 · DASHBOARD DE RENDIMIENTO ===== */
+.performance-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:10px}
+.eyebrow{display:block;color:var(--accent);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.performance-headline{font-size:.9rem;line-height:1.45;color:var(--text)}
+.performance-pr{min-width:82px;text-align:center;border-left:1px solid var(--line);padding-left:14px}.performance-pr b{display:block;color:var(--accent);font-size:1.65rem;line-height:1}.performance-pr span{display:block;color:var(--muted);font-size:.66rem;margin-top:5px}
+.performance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.performance-stat{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:10px;min-height:90px;display:flex;flex-direction:column}.performance-stat>span{color:var(--muted);font-size:.7rem;font-weight:700}.performance-stat>b{font-size:1.05rem;margin:5px 0;color:var(--text);font-variant-numeric:tabular-nums}.performance-stat small{color:var(--muted);font-size:.67rem;line-height:1.3;margin-top:auto}.performance-stat small.positive{color:var(--green)}.performance-stat small.negative{color:var(--red)}
+.body-trend-strip{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--input);font-size:.75rem}.body-trend-strip>span{color:var(--muted);font-weight:700}.body-trend-strip i{color:var(--muted);font-style:normal;margin:0 6px}
+@media(max-width:720px){.performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.performance-hero{align-items:stretch}.performance-pr{display:flex;flex-direction:column;justify-content:center}.body-trend-strip{align-items:flex-start;flex-direction:column;gap:5px}}
