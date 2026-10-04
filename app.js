@@ -1,4 +1,4 @@
-// ===== FIREBASE Y MODULOS (AHORA INCLUYE AUTH) =====
+// ===== FIREBASE Y MODULOS (AUTH INCLUIDO) =====
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
@@ -12,7 +12,6 @@ const firebaseConfig = {
   appId: "1:98341278094:web:e2ef6ac56d0dd279fd14df"
 };
 
-// Ya no hay un DOC_ID quemado en el código. Lo tomará de la cuenta iniciada.
 let DOC_ID = localStorage.getItem('gymLastUid') || null;
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
 let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0;
@@ -85,7 +84,8 @@ const routineExercises=[
 "Press inclinado con barra","Press de pecho convergente","Aperturas en máquina","Press de hombro con mancuernas","Elevaciones laterales en máquina","Extensión unilateral de tríceps en polea",
 "Dominadas / dominadas asistidas","Remo sentado en máquina","Jalón unilateral en polea","Curl predicador","Curl martillo con mancuernas","Hack squat","Curl femoral acostado","Extensión de cadera en máquina","Pantorrilla sentado", "Jalón al pecho", "Remo unilateral en máquina", "Curl martillo", "Sentadilla hack", "Prensa de piernas", "Elevación de pantorrillas", "Abdominales en máquina"];
 
-const NAME_ALIASES = {
+// FASE 3: Catálogos por defecto (ahora son la base, pero el usuario puede editar)
+const defaultAliases = {
   "hack squat":"Sentadilla hack",
   "press de hombro en máquina":"Press de hombros en máquina",
   "curl martillo con mancuernas":"Curl martillo",
@@ -93,7 +93,7 @@ const NAME_ALIASES = {
   "pushdown de tríceps con cuerda":"Extensión de tríceps en polea con cuerda"
 };
 
-const muscleMap = {
+const defaultMuscles = {
     "Pecho": ["Press banca con barra", "Press inclinado con mancuernas", "Press de pecho en máquina", "Press inclinado con barra", "Press de pecho convergente", "Aperturas en máquina"],
     "Espalda": ["Jalón al pecho agarre neutro", "Jalón al pecho", "Remo con pecho apoyado", "Remo unilateral con mancuerna", "Remo unilateral en máquina", "Dominadas / dominadas asistidas", "Remo sentado en máquina", "Jalón unilateral en polea"],
     "Piernas": ["Sentadilla con barra", "Sentadilla hack", "Prensa 45°", "Prensa de piernas", "Extensión de cuádriceps", "Curl femoral sentado", "Pantorrilla de pie", "Elevación de pantorrillas", "Curl femoral acostado", "Extensión de cadera en máquina", "Pantorrilla sentado"],
@@ -102,10 +102,13 @@ const muscleMap = {
     "Core": ["Crunch en máquina", "Abdominales en máquina"]
 };
 
+// Variables globales del sistema
 let data={}, categories={}, weights=[], measurements=[], notes={}, customRoutines={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false, saveQueued=false;
+let customAliases={}, customMuscles={}; // Nuevas variables dinámicas
 window.editingId = null;
 window.timerInt = null;
 window.timerEndAt = 0;
+
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
 function makeChart(canvas,cfg){
   if(typeof Chart==='undefined'||!canvas) return null; 
@@ -126,6 +129,7 @@ function sanitizeRoutines(routines) {
 }
 
 function safeParse(raw, fallback){ try { const v=JSON.parse(raw); return v ?? fallback; } catch(e){ return fallback; } }
+
 function load(){
   data=safeParse(localStorage.getItem(KEY),{});
   categories=safeParse(localStorage.getItem(CAT),{});
@@ -136,6 +140,12 @@ function load(){
   currentUnit=localStorage.getItem(UNIT_KEY)||'kg';
   currentTheme=localStorage.getItem(THEME_KEY)||'default';
   
+  // Cargar diccionarios dinámicos (Fase 3)
+  customAliases = safeParse(localStorage.getItem('gymAliases'), {});
+  customMuscles = safeParse(localStorage.getItem('gymMuscles'), {});
+  if(Object.keys(customAliases).length===0) customAliases = JSON.parse(JSON.stringify(defaultAliases));
+  if(Object.keys(customMuscles).length===0) customMuscles = JSON.parse(JSON.stringify(defaultMuscles));
+
   if(!data || typeof data!=='object' || Array.isArray(data)) data={};
   if(!categories || typeof categories!=='object' || Array.isArray(categories)) categories={};
   if(!notes || typeof notes!=='object' || Array.isArray(notes)) notes={};
@@ -154,6 +164,8 @@ function persistLocal(){
   localStorage.setItem(MEASURE,JSON.stringify(measurements));
   localStorage.setItem('trackGym_notes',JSON.stringify(notes));
   localStorage.setItem(ROUTINES_KEY,JSON.stringify(customRoutines));
+  localStorage.setItem('gymAliases',JSON.stringify(customAliases)); // Fase 3
+  localStorage.setItem('gymMuscles',JSON.stringify(customMuscles)); // Fase 3
   localStorage.setItem(UNIT_KEY, currentUnit);
   localStorage.setItem(THEME_KEY, currentTheme);
 }
@@ -172,7 +184,8 @@ async function saveToFirebase() {
       saveQueued=false;
       persistLocal();
       const stamp=updatedAt;
-      await withTimeout(fb.setDoc(fb.doc(fb.db,"userData",DOC_ID),{ data, categories, weights, measurements, notes, customRoutines, currentUnit, currentTheme, updatedAt:stamp }),10000);
+      // Añadimos customAliases y customMuscles a Firebase (Fase 3)
+      await withTimeout(fb.setDoc(fb.doc(fb.db,"userData",DOC_ID),{ data, categories, weights, measurements, notes, customRoutines, customAliases, customMuscles, currentUnit, currentTheme, updatedAt:stamp }),10000);
       if(!saveQueued){ try{ localStorage.removeItem(PENDING_KEY); localStorage.setItem(SYNCED_KEY,String(stamp)); }catch(e){} }
     } while(saveQueued);
     updateSyncStatus('Sincronizado','ok');
@@ -191,6 +204,11 @@ function applyCloud(cloud,stamp){
   data=cloud.data||{}; categories=cloud.categories||{}; weights=cloud.weights||[]; measurements=cloud.measurements||[]; notes=cloud.notes||{};
   const cr=cloud.customRoutines&&Object.keys(cloud.customRoutines).length?cloud.customRoutines:null;
   customRoutines=sanitizeRoutines(cr||safeParse(localStorage.getItem(ROUTINES_KEY),defaultPPL));
+  
+  // Extraemos diccionarios desde la nube
+  customAliases = cloud.customAliases || safeParse(localStorage.getItem('gymAliases'), defaultAliases);
+  customMuscles = cloud.customMuscles || safeParse(localStorage.getItem('gymMuscles'), defaultMuscles);
+
   currentUnit=cloud.currentUnit||'kg'; currentTheme=cloud.currentTheme||'default';
   document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
   persistLocal();
@@ -422,12 +440,13 @@ window.editEntry = function(date, id) {
 function normalizeName(n){
   const clean=String(n).replace(/\s+/g,' ').trim();
   const key=clean.toLowerCase();
-  if(NAME_ALIASES[key]) return NAME_ALIASES[key];
+  // Usa el diccionario dinámico de alias (Fase 3)
+  if(customAliases[key]) return customAliases[key];
   const found=getAllExercises().find(x=>x.toLowerCase()===key);
   return found||clean.charAt(0).toUpperCase()+clean.slice(1);
 }
 function getAllExercises(){
-  const s=new Set(routineExercises.filter(n=>!NAME_ALIASES[n.toLowerCase()]));
+  const s=new Set(routineExercises.filter(n=>!customAliases[n.toLowerCase()]));
   Object.values(customRoutines).forEach(rows=>(rows||[]).forEach(r=>{if(r&&r.name)s.add(r.name)}));
   Object.values(data).forEach(arr=>(arr||[]).forEach(e=>{if(!e.isCardio)s.add(e.name)}));
   return [...s].sort();
@@ -435,7 +454,7 @@ function getAllExercises(){
 function migrateNames(){
   const snap=JSON.stringify({data,customRoutines});
   let changed=false;
-  const fix=o=>{const a=NAME_ALIASES[String(o.name||'').trim().toLowerCase()];if(a&&a!==o.name){o.name=a;changed=true}};
+  const fix=o=>{const a=customAliases[String(o.name||'').trim().toLowerCase()];if(a&&a!==o.name){o.name=a;changed=true}};
   Object.values(data).forEach(arr=>(arr||[]).forEach(e=>{if(e&&!e.isCardio)fix(e)}));
   Object.values(customRoutines).forEach(rows=>(rows||[]).forEach(r=>{if(r)fix(r)}));
   if(changed){ try{ if(!localStorage.getItem('gymBackupBeforeRename')) localStorage.setItem('gymBackupBeforeRename',snap); }catch(e){} }
@@ -597,8 +616,9 @@ function renderExerciseDetail(name){
   document.getElementById('exerciseDetail').innerHTML=`<div class="stat-grid"><div class="stat"><div class="label">Peso máximo</div><div class="value">${Math.round(fromKg(maxW)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">e1RM máximo</div><div class="value">${Math.round(fromKg(bestE)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">Sesiones</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Cambio vs anterior</div><div class="value">${delta}</div></div></div><p class="muted" style="margin-bottom:0">Volumen acumulado: <b style="color:var(--accent)">${Math.round(fromKg(totalVol)).toLocaleString()} ${unitLabel()}</b>.</p>`
 }
 
+// Fase 3: Consulta el diccionario dinámico de músculos
 function getMuscleGroup(name) {
-    for(const [group, exercises] of Object.entries(muscleMap)) {
+    for(const [group, exercises] of Object.entries(customMuscles)) {
         if(exercises.includes(name)) return group;
     }
     return 'Otros';
@@ -934,7 +954,10 @@ function renderSettingsModal(){
                 <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="border-left-color:#4ade80">Verde Bosque</button>
                 <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="border-left-color:#fbbf24">Café/Ámbar</button>
             </div>
+            
             <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
+            <!-- FASE 3: Botón para gestionar Músculos y Alias -->
+            <button class="btn btn-secondary full" style="margin-bottom:12px; border-style:dashed;" onclick="openCatalogsModal('musculos')">${ic('list')} Gestionar Músculos y Alias</button>
             
             <p class="muted">Tus datos están sincronizados en tu propia cuenta de Google.</p>
             <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">${ic('table')} Exportar a Excel (CSV)</button>
@@ -956,8 +979,87 @@ function renderSettingsModal(){
 window.openDataModal = function(){
     renderSettingsModal();
 };
+
+// ==========================================
+// NUEVAS FUNCIONES FASE 3: GESTOR DE CATÁLOGOS
+// ==========================================
+window.openCatalogsModal = function(tab = 'musculos') {
+    let isM = tab === 'musculos';
+    let html = `<h2 style="margin-top:0">Catálogos y Mapeos</h2>
+    <div class="type-toggle" style="margin-bottom:10px;">
+        <button class="${isM?'active':''}" onclick="openCatalogsModal('musculos')">Músculos</button>
+        <button class="${!isM?'active':''}" onclick="openCatalogsModal('alias')">Corrector (Alias)</button>
+    </div>
+    <div id="catContent" style="max-height: 50vh; overflow: auto; margin-bottom: 12px; padding-right:5px;"></div>
+    <div class="actions">
+        <button class="btn btn-primary full" onclick="renderSettingsModal()">Volver a Ajustes</button>
+    </div>`;
+    document.getElementById('modal').innerHTML = html;
+
+    if(isM) {
+        let allEx = getAllExercises();
+        let list = allEx.map(ex => {
+            let currentMuscle = getMuscleGroup(ex);
+            return `<div class="routine-edit-row" style="padding:8px">
+                <div style="font-size:0.85rem; font-weight:bold; margin-bottom:4px;">${escapeHtml(ex)}</div>
+                <select onchange="updateExerciseMuscle('${escapeHtml(ex)}', this.value)" style="min-height:36px; height:36px; padding:4px 8px; font-size:14px;">
+                    <option value="Otros">Otros</option>
+                    ${Object.keys(customMuscles).concat(['Pecho','Espalda','Piernas','Hombros','Brazos','Core']).filter((v,i,a)=>a.indexOf(v)===i).sort().map(m => `<option value="${m}" ${currentMuscle===m?'selected':''}>${m}</option>`).join('')}
+                </select>
+            </div>`;
+        }).join('');
+        document.getElementById('catContent').innerHTML = list || '<div class="empty">No hay ejercicios registrados.</div>';
+    } else {
+        let list = Object.entries(customAliases).map(([alias, real]) => {
+            return `<div class="routine-edit-row" style="padding:8px; display:grid; grid-template-columns:1fr 1fr auto; gap:6px; align-items:center;">
+                <div style="font-size:0.8rem; color:var(--muted)">Si escribo: <br><b style="color:var(--text)">${escapeHtml(alias)}</b></div>
+                <div style="font-size:0.8rem; color:var(--muted)">Se guarda como: <br><b style="color:var(--text)">${escapeHtml(real)}</b></div>
+                <button class="btn-delete-sm" onclick="deleteAlias('${escapeHtml(alias)}')">${ic('trash')}</button>
+            </div>`;
+        }).join('');
+        let form = `<div class="routine-edit-row" style="padding:10px; margin-bottom:15px; border-color:var(--accent);">
+            <div style="font-size:0.85rem; font-weight:bold; margin-bottom:8px;">Añadir Nuevo Alias</div>
+            <input id="newAliasFrom" placeholder="Escribes... (ej. pull up)" style="margin-bottom:6px; min-height:36px; height:36px; font-size:14px;">
+            <input id="newAliasTo" placeholder="Se guarda... (ej. Dominadas)" style="margin-bottom:8px; min-height:36px; height:36px; font-size:14px;" list="exerciseList">
+            <button class="btn btn-primary full" style="min-height:36px;" onclick="addAlias()">Añadir Regla</button>
+        </div>`;
+        document.getElementById('catContent').innerHTML = form + (list || '<div class="empty">No hay alias configurados.</div>');
+    }
+}
+
+window.updateExerciseMuscle = function(ex, newMuscle) {
+    for(let m in customMuscles) {
+        customMuscles[m] = customMuscles[m].filter(x => x !== ex);
+    }
+    if(newMuscle && newMuscle !== 'Otros') {
+        if(!customMuscles[newMuscle]) customMuscles[newMuscle] = [];
+        if(!customMuscles[newMuscle].includes(ex)) customMuscles[newMuscle].push(ex);
+    }
+    saveToFirebase();
+    refreshAll();
+}
+
+window.addAlias = function() {
+    let from = document.getElementById('newAliasFrom').value.trim().toLowerCase();
+    let to = document.getElementById('newAliasTo').value.trim();
+    if(!from || !to) { toast('Llena ambos campos'); return; }
+    customAliases[from] = to;
+    saveToFirebase();
+    openCatalogsModal('alias');
+    toast('Regla de alias añadida');
+}
+
+window.deleteAlias = function(alias) {
+    if(!confirm('¿Eliminar esta regla de alias?')) return;
+    delete customAliases[alias];
+    saveToFirebase();
+    openCatalogsModal('alias');
+    toast('Regla eliminada');
+}
+// ==========================================
+
 window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
-window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.7,data,categories,weights,measurements,notes,customRoutines,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
+window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.8,data,categories,weights,measurements,notes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
 window.importData = function(ev){
   const file=ev.target.files[0]; if(!file) return;
   const r=new FileReader();
@@ -967,9 +1069,12 @@ window.importData = function(ev){
       if(!x||typeof x.data!=='object'||x.data===null||Array.isArray(x.data)) throw 0;
       const days=Object.keys(x.data).length;
       if(!confirm('Este archivo contiene '+days+' días de registros.\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.\n\n¿Continuar?')) return;
-      try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,customRoutines,currentUnit,currentTheme})); }catch(e){}
+      try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme})); }catch(e){}
       data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};
-      customRoutines=sanitizeRoutines(x.customRoutines||defaultPPL);currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';
+      customRoutines=sanitizeRoutines(x.customRoutines||defaultPPL);
+      customAliases=x.customAliases||defaultAliases;
+      customMuscles=x.customMuscles||defaultMuscles;
+      currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';
       migrateNames();saveToFirebase();closeModal();refreshAll();toast('Importado OK');
     }catch{ alert('Archivo no válido.'); }
     finally{ ev.target.value=''; }
@@ -977,7 +1082,7 @@ window.importData = function(ev){
   r.readAsText(file);
 }
 
-// --- NUEVAS FUNCIONES DEL CREADOR DE RUTINAS ---
+// --- FUNCIONES DEL CREADOR DE RUTINAS ---
 window.openRoutineEditor = function(origName = '') {
     const isEdit = !!origName;
     const rName = isEdit ? origName : '';
@@ -1107,7 +1212,7 @@ function refreshAll(){
     populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();renderRoutines();renderTrainCTA();renderTrain();
 }
 
-// ===== TECLADO NUMÉRICO EN MÓVIL (inputmode) + seleccionar al enfocar =====
+// ===== TECLADO NUMÉRICO EN MÓVIL (inputmode) =====
 const NUM_SEL={'.set-weight,#cardioDist,#mwWeight,#calcTarget,#calcBar,#mmWaist,#mmChest,#mmArm,#mmThigh,#mmHip,.tr-w':'decimal',
                '.set-reps,.set-rir,#cardioTime,.re-sets,.tr-r,.tr-rir':'numeric'};
 let numPadQueued=false;
@@ -1293,11 +1398,9 @@ async function initApp() {
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
     renderTrainCTA(); resumeTrainingIfAny();
 
-    // INICIALIZACIÓN DE FIREBASE Y SESIÓN
     if(await connectFirebase()) {
         fb.onAuthStateChanged(fb.auth, user => {
             if(user) {
-                // Usuario autenticado
                 DOC_ID = user.uid;
                 localStorage.setItem('gymLastUid', user.uid);
                 document.getElementById('authOverlay').classList.add('hidden');
@@ -1308,14 +1411,12 @@ async function initApp() {
                     if(!ok) updateSyncStatus('Guardado local · sin conexión','error');
                 });
             } else {
-                // No hay sesión
                 DOC_ID = null;
                 document.getElementById('loadingOverlay').style.display='none';
                 document.getElementById('authOverlay').classList.remove('hidden');
             }
         });
     } else {
-        // Fallo la conexión (modo completamente offline)
         document.getElementById('loadingOverlay').style.display='none';
         if(!DOC_ID) document.getElementById('authOverlay').classList.remove('hidden');
         updateSyncStatus('Guardado local · sin conexión','error');
