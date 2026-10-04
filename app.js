@@ -2,7 +2,7 @@
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-const APP_VERSION='5.0.0';
+const APP_VERSION='5.1.0';
 const DATA_SCHEMA_VERSION=1;
 
 const firebaseConfig = {
@@ -672,7 +672,7 @@ function summarizeSession(session){
   const bestReps=valid.length?Math.max(...valid.map(s=>s.reps)):0;
   const volume=valid.reduce((a,s)=>a+s.reps*s.weight,0);
   const bestSet=valid.slice().sort((a,b)=>((b.weight*b.reps)-(a.weight*a.reps)))[0]||null;
-  const e1=bestSet?e1rm(bestSet.weight,bestSet.reps):0;
+  const e1=valid.reduce((best,s)=>Math.max(best,e1rm(s.weight,s.reps)),0);
   const rirVals=valid.filter(s=>s.rir!==null).map(s=>s.rir);
   const avgRir=rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null;
   return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
@@ -683,23 +683,56 @@ function formatKgValue(v, signed=false){
   const prefix=signed && n>0?'+':'';
   return `${prefix}${n} ${unitLabel()}`;
 }
+function parseRirRange(value){
+  const nums=String(value||'').match(/\d+(?:\.\d+)?/g)||[];
+  if(!nums.length)return null;
+  const a=parseFloat(nums[0]),b=nums.length>1?parseFloat(nums[nums.length-1]):a;
+  return {min:Math.min(a,b),max:Math.max(a,b),target:(a+b)/2};
+}
+function progressionIncrementKg(weight){
+  const w=Math.abs(parseFloat(weight)||0);
+  if(w<=10)return 1.25;
+  if(w<=40)return 2.5;
+  if(w<=80)return 2.5;
+  return 5;
+}
 function progressionRecommendation(name,sessions,target){
   const last=sessions[sessions.length-1];
-  if(!last)return {title:'Sin historial suficiente',text:'Registra al menos una sesión para empezar a recibir una referencia de progresión.',className:'progression-neutral'};
+  if(!last)return {title:'Sin historial suficiente',text:'Registra al menos una sesión para empezar a recibir una referencia de progresión.',className:'progression-neutral',action:'reference'};
   const sum=summarizeSession(last);
+  const valid=last.sets.filter(s=>s.weight>0&&s.reps>0);
+  if(!valid.length)return {title:'Completa al menos una serie',text:'No hay una serie con peso y repeticiones suficientes para evaluar la progresión.',className:'progression-neutral',action:'hold'};
   if(!target||!target.repRange){
-    return {title:'Usa la última sesión como referencia',text:`Tu último registro fue ${sum.bestWeight?formatKgValue(sum.bestWeight):'sin peso'} con hasta ${sum.bestReps||'—'} reps. Intenta igualar o superar ligeramente el rendimiento manteniendo una técnica sólida.`,className:'progression-neutral'};
+    const prev=sessions.length>1?summarizeSession(sessions[sessions.length-2]):null;
+    const e1Trend=prev&&prev.e1rm?sum.e1rm-prev.e1rm:0;
+    if(e1Trend>0)return {title:'Rendimiento en mejora',text:`Tu e1RM subió ${formatKgValue(e1Trend,true)} respecto a la sesión anterior. Mantén la carga y busca repetir o superar ligeramente el rendimiento.`,className:'progression-positive',action:'hold'};
+    return {title:'Usa la última sesión como referencia',text:`Tu último registro fue ${sum.bestWeight?formatKgValue(sum.bestWeight):'sin peso'} con hasta ${sum.bestReps||'—'} reps. Intenta igualar o superar ligeramente el rendimiento manteniendo una técnica sólida.`,className:'progression-neutral',action:'hold'};
   }
-  const max=target.repRange.max, min=target.repRange.min;
-  const allAtTop=last.sets.filter(s=>s.weight>0&&s.reps>0).length>0 && last.sets.filter(s=>s.weight>0&&s.reps>0).every(s=>s.reps>=max);
-  const allAtLeastMin=last.sets.filter(s=>s.weight>0&&s.reps>0).length>0 && last.sets.filter(s=>s.weight>0&&s.reps>0).every(s=>s.reps>=min);
-  if(allAtTop){
-    return {title:'Siguiente paso: considera subir el peso',text:`Completaste el extremo superior del rango (${max} reps) en todas las series registradas. En la próxima sesión puedes probar un incremento pequeño y volver al inicio del rango (${min}–${max}).`,className:'progression-positive'};
+  const min=target.repRange.min,max=target.repRange.max;
+  const rirRange=parseRirRange(target.rir), avgRir=sum.avgRir;
+  const allAtTop=valid.every(s=>s.reps>=max);
+  const allAtLeastMin=valid.every(s=>s.reps>=min);
+  const avgReps=valid.reduce((a,s)=>a+s.reps,0)/valid.length;
+  const belowMin=valid.filter(s=>s.reps<min).length;
+  const topWeight=sum.bestWeight;
+  const inc=progressionIncrementKg(topWeight);
+  const rirTooLow=rirRange&&avgRir!==null&&avgRir<Math.max(0,rirRange.min-0.5);
+  const rirComfortable=rirRange&&avgRir!==null&&avgRir>=rirRange.target-0.25;
+  if(allAtTop&&!rirTooLow&&(!rirRange||avgRir===null||rirComfortable)){
+    return {title:'Siguiente paso: subir el peso',text:`Completaste ${max} reps en todas las series${avgRir!==null?` con RIR promedio ${avgRir.toFixed(1)}`:''}. Prueba +${formatKgValue(inc)} y vuelve hacia ${min}–${max} reps.`,className:'progression-positive',action:'increase',increment:inc};
+  }
+  if(allAtTop&&rirTooLow){
+    return {title:'Mantén el peso: el esfuerzo fue alto',text:`Llegaste al máximo del rango, pero el RIR promedio (${avgRir.toFixed(1)}) quedó por debajo del objetivo. Repite la carga y prioriza una ejecución sólida antes de subir.`,className:'progression-neutral',action:'hold'};
   }
   if(allAtLeastMin){
-    return {title:'Siguiente paso: busca más repeticiones',text:`Ya estás dentro del rango (${min}–${max}). Mantén el peso y trata de sumar 1 repetición en alguna serie antes de subir carga.`,className:'progression-neutral'};
+    const weak=valid.filter(s=>s.reps<max).length;
+    const rirText=avgRir!==null?` RIR promedio ${avgRir.toFixed(1)}.`:'';
+    return {title:'Siguiente paso: sumar repeticiones',text:`Ya estás dentro del rango en todas las series. Mantén ${formatKgValue(topWeight)} y busca +1 repetición en ${weak===1?'la serie que falta para llegar al máximo':'alguna de las series'}.${rirText}`,className:'progression-neutral',action:'reps'};
   }
-  return {title:'Siguiente paso: consolida el peso actual',text:`Aún hay series por debajo del mínimo del rango (${min}–${max}). Mantén la carga y prioriza acercarte al mínimo con buena ejecución.`,className:'progression-neutral'};
+  if(belowMin>0&&avgRir!==null&&rirTooLow){
+    return {title:'Reduce ligeramente la carga',text:`Hay ${belowMin} serie${belowMin>1?'s':''} por debajo del mínimo y el RIR promedio fue bajo. Considera reducir aproximadamente 5% y vuelve a construir dentro de ${min}–${max} reps.`,className:'progression-warning',action:'decrease',decrease:0.05};
+  }
+  return {title:'Siguiente paso: consolidar el peso',text:`Aún faltan repeticiones para completar el rango en todas las series. Mantén ${formatKgValue(topWeight)} y busca acercarte a ${min} reps con buena ejecución.`,className:'progression-neutral',action:'hold'};
 }
 function renderProgressionPanel(){
   const box=document.getElementById('progressionPanel');
@@ -715,6 +748,12 @@ function renderProgressionPanel(){
   const prev=sessions.length>1?summarizeSession(sessions[sessions.length-2]):null;
   const rec=progressionRecommendation(name,sessions,target);
   const targetText=target&&target.repRange?`${target.repRange.min}–${target.repRange.max} reps · RIR ${escapeHtml(target.rir)}`:'Sin rango definido en rutina';
+  const allRecords=getExerciseRecords(name);
+  const recordCards=[
+    {label:'PR de peso',value:allRecords.weight?formatKgValue(allRecords.weight):'—',date:allRecords.weightDate},
+    {label:'PR de reps',value:allRecords.reps?`${allRecords.reps} reps`:'—',date:allRecords.repsDate},
+    {label:'PR de e1RM',value:allRecords.e1rm?formatKgValue(allRecords.e1rm):'—',date:allRecords.e1rmDate}
+  ].map(r=>`<div class="record-mini"><div class="label">${r.label}</div><div class="value">${r.value}</div><small>${r.date?fmtDate(r.date):'Sin registro'}</small></div>`).join('');
   const weightDelta=prev&&lastSum.bestWeight&&prev.bestWeight?lastSum.bestWeight-prev.bestWeight:0;
   const e1Delta=prev&&lastSum.e1rm&&prev.e1rm?lastSum.e1rm-prev.e1rm:0;
   const deltaText=prev&&weightDelta!==0?`${weightDelta>0?'+':''}${Math.round(fromKg(weightDelta)*10)/10} ${unitLabel()}`:'—';
@@ -732,6 +771,7 @@ function renderProgressionPanel(){
       <div class="progression-stat"><div class="label">Cambio de peso</div><div class="value">${deltaText}</div></div>
       <div class="progression-stat"><div class="label">Cambio e1RM</div><div class="value">${e1DeltaText}</div></div>
     </div>
+    <div class="record-grid">${recordCards}</div>
     <div class="progression-message"><strong class="${rec.className}">${escapeHtml(rec.title)}</strong><span>${escapeHtml(rec.text)}</span></div>
     <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target?` · ${target.sets} series · descanso ${escapeHtml(target.rest)}`:''}</div>
     <div style="overflow:auto"><table class="progression-table"><thead><tr><th>Fecha</th><th>Series</th><th>Mejor peso</th><th>Máx. reps</th><th>e1RM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -786,7 +826,11 @@ function renderDashboard(){
   }).join(''):'<div class="empty">Todavía no hay entrenamientos.</div>';
   
   const prs=findPRs();
-  document.getElementById('recentPRs').innerHTML=prs.slice(-8).reverse().map(p=>`<div class="progress-item"><div><b>${escapeHtml(p.name)}</b><br><small>${fmtDate(p.date)} · ${p.reps} reps</small></div><span class="pr">PR ${Math.round(fromKg(p.weight)*10)/10} ${unitLabel()}</span></div>`).join('')||'<div class="empty">Tus PR aparecerán aquí.</div>'
+  document.getElementById('recentPRs').innerHTML=prs.slice(-9).reverse().map(p=>{
+    const value=p.type==='reps'?`${p.value} reps`:formatKgValue(p.value);
+    const detail=p.previous?(p.type==='reps'?`antes ${p.previous} reps`:`antes ${formatKgValue(p.previous)}`):'';
+    return `<div class="progress-item"><div><b>${escapeHtml(p.name)}</b><br><small>${fmtDate(p.date)} · ${escapeHtml(p.label)}${detail?' · '+detail:''}</small></div><span class="pr">PR ${value}</span></div>`;
+  }).join('')||'<div class="empty">Tus PR aparecerán aquí.</div>'
 
   let volByMuscle = {};
   const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -812,9 +856,50 @@ function renderDashboard(){
   }
 }
 
+function getExerciseRecords(name,beforeDate=null){
+  const best={weight:0,reps:0,e1rm:0,weightDate:'',repsDate:'',e1rmDate:''};
+  Object.keys(data).sort().forEach(date=>{
+    if(beforeDate&&date>=beforeDate)return;
+    (data[date]||[]).filter(e=>!e.isCardio&&e.name===name).forEach(e=>(e.sets||[]).forEach(s=>{
+      const w=parseFloat(s.weight)||0, r=parseFloat(s.reps)||0;
+      if(w>best.weight){best.weight=w;best.weightDate=date}
+      if(r>best.reps){best.reps=r;best.repsDate=date}
+      const e1=e1rm(w,r);
+      if(e1>best.e1rm){best.e1rm=e1;best.e1rmDate=date}
+    }));
+  });
+  return best;
+}
+function sessionExerciseBest(e){
+  const out={weight:0,reps:0,e1rm:0,weightSet:null,repsSet:null,e1rmSet:null};
+  (e.sets||[]).forEach(s=>{
+    const w=parseFloat(s.weight)||0,r=parseFloat(s.reps)||0;
+    if(w>out.weight){out.weight=w;out.weightSet=s}
+    if(r>out.reps){out.reps=r;out.repsSet=s}
+    const e1=e1rm(w,r);
+    if(e1>out.e1rm){out.e1rm=e1;out.e1rmSet=s}
+  });
+  return out;
+}
 function findPRs(){
-  const best={};const out=[];
-  Object.keys(data).sort().forEach(date=>(data[date]||[]).forEach(e=>{if(e.isCardio)return;e.sets.forEach(s=>{const w=parseFloat(s.weight)||0;if(!w)return;if(!best[e.name]||w>best[e.name]){best[e.name]=w;out.push({name:e.name,date,weight:w,reps:s.reps})}})}));return out
+  const out=[];
+  Object.keys(data).sort().forEach(date=>{
+    const names=[...new Set((data[date]||[]).filter(e=>!e.isCardio&&entryHasData(e)).map(e=>e.name))];
+    names.forEach(name=>{
+      const current=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name).reduce((acc,e)=>{
+        const b=sessionExerciseBest(e);
+        return {weight:Math.max(acc.weight,b.weight),reps:Math.max(acc.reps,b.reps),e1rm:Math.max(acc.e1rm,b.e1rm)};
+      },{weight:0,reps:0,e1rm:0});
+      const prev=getExerciseRecords(name,date);
+      if(prev.weight>0&&current.weight>prev.weight) out.push({name,date,type:'weight',label:'Peso',value:current.weight,previous:prev.weight});
+      if(prev.reps>0&&current.reps>prev.reps) out.push({name,date,type:'reps',label:'Reps',value:current.reps,previous:prev.reps});
+      if(prev.e1rm>0&&current.e1rm>prev.e1rm) out.push({name,date,type:'e1RM',label:'e1RM',value:current.e1rm,previous:prev.e1rm});
+    });
+  });
+  return out;
+}
+function latestPRsByExercise(name){
+  return findPRs().filter(p=>p.name===name).slice(-20);
 }
 
 window.goToDate = function(d){document.getElementById('routineDate').value=d;loadDay();switchTab('registro',document.querySelectorAll('.tab-btn')[1])}
@@ -1592,10 +1677,12 @@ function renderTrain(){
   const prev=getExerciseSessions(e.name).filter(x=>x.date<d), last=prev[prev.length-1];
   let sug=null,hint='',lastHtml='<div class="train-last muted">Primera vez con este ejercicio: registra tus series.</div>';
   if(last){
-    const v=last.sets.filter(x=>x.reps>0), inc=currentUnit==='lbs'?5/2.20462:2.5;
-    const top=!!(tg&&tg.repRange&&v.length&&v.every(x=>x.weight>0&&x.reps>=tg.repRange.max));
-    sug=i=>{const p=v[i]||v[v.length-1]||{};return top?{w:p.weight+inc,r:tg.repRange.min}:{w:p.weight,r:p.reps}};
-    hint=progressionRecommendation(e.name,prev,tg).title+(top?` → prueba ${rd(v[0].weight+inc)} ${unitLabel()}`:'');
+    const v=last.sets.filter(x=>x.reps>0), rec=progressionRecommendation(e.name,prev,tg);
+    const inc=rec.increment||progressionIncrementKg(Math.max(0,...v.map(x=>x.weight)));
+    const suggestedWeight=rec.action==='increase'&&v.length?v[0].weight+inc:(v[0]?.weight||0);
+    const suggestedReps=rec.action==='increase'&&tg?.repRange?tg.repRange.min:(v[0]?.reps||'');
+    sug=i=>{const p=v[i]||v[v.length-1]||{};return rec.action==='increase'?{w:p.weight+inc,r:tg?.repRange?.min||p.reps}:{w:p.weight,r:p.reps}};
+    hint=rec.title+(rec.action==='increase'?` → prueba ${rd(suggestedWeight)} ${unitLabel()}`:'');
     const best=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>z.weight)));
     lastHtml=`<div class="train-last"><b>Última vez · ${fmtDate(last.date)}</b><br>${last.sets.map(z=>`${rd(z.weight)}×${z.reps}`).join(' · ')}<br><span class="muted">Récord: ${rd(best)} ${unitLabel()}</span></div>`;
   }
@@ -1661,14 +1748,14 @@ window.trainFinish=function(){
   const es=trainEntries(), done=es.reduce((a,e)=>a+e.sets.filter(isDone).length,0);
   const vol=es.reduce((a,e)=>a+e.sets.filter(isDone).reduce((b,s)=>b+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0),0);
   const mins=Math.max(1,Math.round((Date.now()-train.startedAt)/60000)), rv=es.flatMap(e=>e.sets.map(z=>z.restUsed).filter(Boolean));
-  const prs=es.map(e=>{
-    const pv=getExerciseSessions(e.name).filter(x=>x.date<train.date).flatMap(x=>x.sets.map(s=>s.weight)), pb=pv.length?Math.max(...pv):0;
-    const nb=Math.max(0,...e.sets.filter(isDone).map(s=>parseFloat(s.weight)||0));
-    return nb>pb&&pb>0?`<div class="progress-item">${ic('trophy')} <b>${escapeHtml(e.name)}</b><span class="pr">${rd(nb)} ${unitLabel()}</span></div>`:'';
+  const prs=findPRs().filter(p=>p.date===train.date);
+  const prHtml=prs.map(p=>{
+    const value=p.type==='reps'?`${p.value} reps`:formatKgValue(p.value);
+    return `<div class="progress-item">${ic('trophy')} <b>${escapeHtml(p.name)}</b><span class="pr">PR ${escapeHtml(p.label)} · ${value}</span></div>`;
   }).join('');
   document.getElementById('modal').innerHTML=`<h2>Resumen del entrenamiento</h2>
     <div class="stat-grid" style="margin-bottom:12px"><div class="stat"><div class="label">Duración</div><div class="value">${mins} min</div></div><div class="stat"><div class="label">Series hechas</div><div class="value">${done}</div></div><div class="stat"><div class="label">Ejercicios</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Volumen</div><div class="value">${Math.round(fromKg(vol)).toLocaleString()} ${unitLabel()}</div></div></div>
-    ${prs?`<div class="progress-list" style="margin-bottom:12px">${prs}</div>`:''}
+    ${prHtml?`<div class="progress-list" style="margin-bottom:12px">${prHtml}</div>`:''}
     ${rv.length?`<p class="muted">Descanso promedio: <b>${fmtRest(Math.round(rv.reduce((a,b)=>a+b,0)/rv.length))}</b></p>`:''}<p class="muted">Las series sin datos se descartan al terminar.</p>
     <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Seguir</button><button class="btn btn-primary" onclick="trainEnd()">Terminar y guardar</button></div>`;
   openEl();

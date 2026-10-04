@@ -191,6 +191,13 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .progression-table th{color:var(--muted)}
 .progression-positive{color:var(--green);font-weight:800}
 .progression-neutral{color:var(--yellow);font-weight:800}
+.progression-warning{color:var(--red);font-weight:800}
+.record-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.record-mini{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:10px;min-height:82px}
+.record-mini .label{color:var(--muted);font-size:.7rem;font-weight:700}
+.record-mini .value{font-size:.98rem;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
+.record-mini small{display:block;color:var(--muted);font-size:.68rem;margin-top:4px}
+@media(max-width:560px){.record-grid{grid-template-columns:1fr}.record-mini{min-height:0}}
 
 .chart-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;height:300px;position:relative}
 .chart-box-sm{height:240px}
