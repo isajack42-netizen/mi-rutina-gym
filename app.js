@@ -2,7 +2,7 @@
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-const APP_VERSION='5.2.1';
+const APP_VERSION='5.2.2';
 const DATA_SCHEMA_VERSION=1;
 
 const firebaseConfig = {
@@ -68,24 +68,24 @@ const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE
 
 const defaultPPL = {
     "Push": [
-        { name: "Press inclinado con mancuernas", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
-        { name: "Press de pecho en máquina", sets: 3, reps: "8–12", rir: "1–2", rest: "2 min" },
-        { name: "Press de hombros en máquina", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
+        { name: "Press inclinado con mancuernas", sets: 3, reps: "6–10", rir: "2", rest: "120–180 s" },
+        { name: "Press de pecho en máquina", sets: 3, reps: "8–12", rir: "1–2", rest: "120 s" },
+        { name: "Press de hombros en máquina", sets: 3, reps: "6–10", rir: "2", rest: "120–180 s" },
         { name: "Elevaciones laterales con mancuernas", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" },
         { name: "Extensión de tríceps en polea con cuerda", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" }
     ],
     "Pull": [
-        { name: "Jalón al pecho", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
-        { name: "Remo con pecho apoyado", sets: 3, reps: "8–12", rir: "1–2", rest: "2 min" },
+        { name: "Jalón al pecho", sets: 3, reps: "6–10", rir: "2", rest: "120–180 s" },
+        { name: "Remo con pecho apoyado", sets: 3, reps: "8–12", rir: "1–2", rest: "120 s" },
         { name: "Remo unilateral en máquina", sets: 2, reps: "8–12", rir: "1–2", rest: "90–120 s" },
         { name: "Reverse pec deck", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" },
         { name: "Curl de bíceps con mancuernas", sets: 3, reps: "8–12", rir: "1–2", rest: "90 s" },
         { name: "Curl martillo", sets: 2, reps: "10–15", rir: "1–2", rest: "60–90 s" }
     ],
     "Legs": [
-        { name: "Sentadilla hack", sets: 3, reps: "6–10", rir: "2", rest: "2–3 min" },
-        { name: "Prensa de piernas", sets: 3, reps: "8–12", rir: "1–2", rest: "2–3 min" },
-        { name: "Curl femoral sentado", sets: 3, reps: "8–12", rir: "1–2", rest: "2 min" },
+        { name: "Sentadilla hack", sets: 3, reps: "6–10", rir: "2", rest: "120–180 s" },
+        { name: "Prensa de piernas", sets: 3, reps: "8–12", rir: "1–2", rest: "120–180 s" },
+        { name: "Curl femoral sentado", sets: 3, reps: "8–12", rir: "1–2", rest: "120 s" },
         { name: "Extensión de cuádriceps", sets: 2, reps: "10–15", rir: "1–2", rest: "60–90 s" },
         { name: "Elevación de pantorrillas", sets: 3, reps: "10–15", rir: "1–2", rest: "60–90 s" },
         { name: "Abdominales en máquina", sets: 2, reps: "10–15", rir: "1–2", rest: "60–90 s" }
@@ -146,7 +146,7 @@ function sanitizeSet(set,index=0){
     reps: cleanString(set.reps,'-') || '-',
     weight: weight===null ? 0 : weight,
     rir: cleanString(set.rir,'-') || '-',
-    rest: cleanString(set.rest,'-') || '-',
+    rest: normalizeRestLabel(cleanString(set.rest,'-') || '-'),
     ...(restUsed!==null ? {restUsed} : {})
   };
 }
@@ -215,9 +215,9 @@ function sanitizeRoutines(routines) {
     for (const [k,rows] of Object.entries(routines)) {
         if(!safeKey(k)||!Array.isArray(rows)) continue;
         fixed[k.trim()] = rows.map((ex,index) => {
-            if (Array.isArray(ex)) return { name: cleanString(ex[0]), sets: Math.max(0,Number(ex[1])||0), reps: cleanString(ex[2]), rir: cleanString(ex[3]), rest: cleanString(ex[4]) };
+            if (Array.isArray(ex)) return { name: cleanString(ex[0]), sets: Math.max(0,Number(ex[1])||0), reps: cleanString(ex[2]), rir: cleanString(ex[3]), rest: normalizeRestLabel(cleanString(ex[4])) };
             if(!isPlainObject(ex)) return null;
-            return { name: cleanString(ex.name), sets: Math.max(0,Number(ex.sets)||0), reps: cleanString(ex.reps), rir: cleanString(ex.rir), rest: cleanString(ex.rest) };
+            return { name: cleanString(ex.name), sets: Math.max(0,Number(ex.sets)||0), reps: cleanString(ex.reps), rir: cleanString(ex.rir), rest: normalizeRestLabel(cleanString(ex.rest)) };
         }).filter(ex=>ex&&ex.name);
     }
     return fixed;
@@ -373,6 +373,27 @@ async function syncFromCloud(){
   }catch(e){ console.error('Error de sincronización:',e); return false; }
   finally{ syncing=false; }
 }
+
+
+window.retryCloudSync = async function(){
+  updateSyncStatus('Conectando…','saving');
+  try{
+    if(!(await connectFirebase())){ updateSyncStatus('Guardado local · sin conexión','error'); toast('No se pudo conectar con Firebase'); return false; }
+    const user=fb.auth.currentUser;
+    if(!user){ updateSyncStatus('Sesión no disponible','error'); toast('Vuelve a iniciar sesión con Google'); return false; }
+    DOC_ID=user.uid;
+    localStorage.setItem('gymLastUid',user.uid);
+    const ok=await syncFromCloud();
+    if(!ok) updateSyncStatus('Guardado local · sin conexión','error');
+    else toast('Sincronización actualizada');
+    return ok;
+  }catch(e){
+    console.error('Error al reintentar sincronización:',e);
+    updateSyncStatus('Guardado local · sin conexión','error');
+    toast('No se pudo sincronizar');
+    return false;
+  }
+};
 
 function updateCategorySelect() {
     const sel = document.getElementById('dayCategory');
@@ -605,7 +626,7 @@ function loadDay(){
 function renderExerciseCard(e,date){
   if(e.isCardio)return `<div class="exercise-card"><div class="exercise-title"><span>${ic('pulse')} ${escapeHtml(e.name)}</span><span class="badge">Cardio</span></div><div class="muted">Tiempo ${escapeHtml(e.time)} min &nbsp; · &nbsp; Distancia ${escapeHtml(e.distance)} km</div><div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`;
   const volDisplay = Math.round(fromKg(sessionVolume(e))*10)/10;
-  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?fmtRest(s.restUsed)+' min':normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
+  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?fmtRest(s.restUsed):normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
 window.deleteEntry = function(date,id){if(!confirm('¿Eliminar este registro?'))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
@@ -1322,7 +1343,7 @@ window.importCSV=async function(event){
     Object.assign(categories,stagedCats); Object.assign(notes,stagedNotes);
     const byDate=(arr)=>{const m=new Map();arr.forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
     weights=byDate([...weights,...stagedWeights]); measurements=byDate([...measurements,...stagedMeasures]);
-    persistLocal(); await saveToFirebase(); renderAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
+    persistLocal(); await saveToFirebase(); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
   }catch(err){ alert('No se pudo importar el CSV: '+(err&&err.message?err.message:err)); }
   finally{ input.value=''; }
 }
@@ -1348,6 +1369,7 @@ function renderSettingsModal(){
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
             
             <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.</p>
+            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="retryCloudSync()">${ic('cloud')} Reintentar sincronización</button>
             <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:10px;" onclick="exportCSV()">${ic('table')} Exportar datos a Excel (CSV)</button>
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="document.getElementById('importCSVFile').click()">${ic('upload')} Importar datos desde Excel (CSV)</button>
             <input id="importCSVFile" type="file" accept=".csv,text/csv" style="display:none" onchange="importCSV(event)">
@@ -1620,7 +1642,7 @@ window.saveRoutine = function() {
         const eRest = r.querySelector('.re-rest').value.trim();
 
         if(eName && eSets > 0) {
-            newExercises.push({ name: eName, sets: eSets, reps: eReps, rir: eRir, rest: eRest });
+            newExercises.push({ name: eName, sets: eSets, reps: eReps, rir: eRir, rest: normalizeRestLabel(eRest || '90 s') });
         }
     });
 
@@ -1951,4 +1973,4 @@ if(settingsBtn){
 initApp();
 
 // Instalable y con modo sin conexión (requiere https o localhost)
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',async()=>{ try{ const reg=await navigator.serviceWorker.register('sw.js?v=5.2.2',{updateViaCache:'none'}); reg.update().catch(()=>{}); }catch(e){ console.warn('Service Worker no disponible:',e); } });

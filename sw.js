@@ -1,19 +1,30 @@
-// LiftEngine · service worker: app shell sin conexión (cambia VER al publicar una versión nueva)
-const VER='liftengine-v5.2.1';
-const SHELL=['./','index.html','styles.css','app.js','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+// LiftEngine · service worker: app shell sin conexión
+const VER='liftengine-v5.2.2';
+const SHELL=['./','index.html','styles.css?v=5.2.2','app.js?v=5.2.2','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:'reload'}).then(r=>{if(r.ok)c.put(u,r.clone());}).catch(()=>{})))).then(()=>self.skipWaiting()));
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET') return;
   const u=new URL(r.url);
-  if(u.pathname.startsWith('/__/')) return;                                   // login de Firebase Hosting
-  const cdn=u.host==='cdn.jsdelivr.net'||(u.host==='www.gstatic.com'&&u.pathname.startsWith('/firebasejs/'));
-  if(u.origin!==location.origin&&!cdn) return;                                // Firestore/Auth: siempre red
-  e.respondWith(caches.open(VER).then(async c=>{
-    const hit=await c.match(r,{ignoreSearch:true});
-    const net=fetch(r).then(res=>{ if(res&&(res.ok||res.type==='opaque')) c.put(r,res.clone()); return res; }).catch(()=>hit||Response.error());
-    return hit||net;                                                          // rápido desde caché y se actualiza en segundo plano
-  }));
+  if(u.pathname.startsWith('/__/')) return;
+  if(u.origin!==self.location.origin) return; // Firebase/CDN siempre por red; no conservar módulos antiguos
+  e.respondWith((async()=>{
+    const c=await caches.open(VER);
+    try{
+      const res=await fetch(r,{cache:'no-store'});
+      if(res&&res.ok) c.put(r,res.clone()).catch(()=>{});
+      return res;
+    }catch(_){
+      const hit=await c.match(r);
+      if(hit) return hit;
+      if(r.mode==='navigate') return (await c.match('index.html')) || Response.error();
+      return Response.error();
+    }
+  })());
 });
 
 // ===== Avisos de descanso: el service worker muestra la notificación aunque la página esté pausada =====

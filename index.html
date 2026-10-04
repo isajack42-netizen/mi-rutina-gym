@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LiftEngine — Entrena con datos</title>
+<meta name="author" content="Isaias Cruz">
+<meta name="theme-color" content="#0d0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LiftEngine">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<link rel="stylesheet" href="styles.css?v=5.2.2">
+</head>
+<body>
+
+<!-- SVG de Iconos -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9zM10 19a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M12 2.5l8 4.6v9.8l-8 4.6-8-4.6V7.1z"/><path d="M8.5 12.5l3.5-3.5 3.5 3.5M8.5 16.5l3.5-3.5 3.5 3.5"/></symbol>
+  <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14z"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M4 9h3a6 6 0 0 0 0 6h-3"/><path d="M20 9h-3a6 6 0 0 1 0 6h3"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4h6V3z"/><path d="M9 9H3v10a2 2 0 0 0 2 2h4V9z"/><path d="M21 3h-4v6h6V5a2 2 0 0 0-2-2z"/><path d="M21 9h-6v12h4a2 2 0 0 0 2-2V9z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+</defs></svg>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="authOverlay" class="auth-overlay hidden">
+    <div class="auth-card">
+        <svg class="ic logo auth-logo" aria-hidden="true"><use href="#i-logo"/></svg>
+        <h2 style="margin:0 0 8px;font-size:2rem"><span class="wm">Lift<b>Engine</b></span></h2>
+        <p class="muted" style="margin-bottom:24px">Inicia sesión para sincronizar tus rutinas en la nube.</p>
+        <button class="btn btn-primary full" onclick="loginConGoogle()" style="font-size:1.1rem;padding:14px 24px;background:#4285F4;color:#fff;border:none">
+            Continuar con Google
+        </button>
+        <p class="muted" style="font-size:.75rem;margin:18px 0 0">Creada y diseñada por <b style="color:var(--text)">Isaias Cruz</b></p>
+    </div>
+</div>
+
+<div id="loadingOverlay">
+    <div class="load-brand"><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><span class="wm">Lift<b>Engine</b></span></div>
+    <div class="spinner"></div>
+    <h3 style="color: var(--accent);">Conectando...</h3>
+</div>
+
+<div id="floatingTimer" class="floating-timer" style="display:none;">
+    <div class="time" id="timerDisplay">00:00</div>
+    <div class="controls">
+        <button onclick="addTimer(90)">+90s</button>
+        <button onclick="addTimer(60)">+60s</button>
+        <button onclick="stopTimer()" style="color:var(--red);" aria-label="Detener"><svg class="ic" aria-hidden="true"><use href="#i-stop"/></svg></button>
+    </div>
+</div>
+
+<div class="app">
+<header>
+  <div class="brand">
+    <h1><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><span class="wm">Lift<b>Engine</b></span></h1>
+    <p>Entrena con datos</p>
+  </div>
+  <div class="header-actions">
+      <span id="syncStatus" class="sync-status" data-state=""><svg class="ic" aria-hidden="true"><use href="#i-cloud"/></svg> Sincronizado</span>
+      <button class="icon-btn" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades" aria-label="Cambiar unidades">KG</button>
+      <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos" aria-label="Calculadora de discos"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg></button>
+      <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes" aria-label="Ajustes"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
+  </div>
+</header>
+
+<nav class="tabs">
+<button class="tab-btn active" onclick="switchTab('resumen',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>Resumen</span></button>
+<button class="tab-btn" onclick="switchTab('registro',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg></span><span>Registro</span></button>
+<button class="tab-btn" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
+<button class="tab-btn" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
+<button class="tab-btn" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
+</nav>
+
+<!-- PESTAÑA: RESUMEN -->
+<section id="resumen" class="tab active">
+  <div class="train-cta-slot"></div>
+  <div class="card">
+    <div class="section-title"><h2>Resumen de Constancia</h2></div>
+    <div class="stat-grid" id="stats"></div>
+  </div>
+  <div class="card">
+    <div class="section-title"><h2>Esta semana</h2><span class="badge" id="weekBadge"></span></div>
+    <div id="weekBody"></div>
+  </div>
+  <div class="card">
+    <div class="section-title"><h2>Rendimiento</h2><span class="badge">vs. semana anterior</span></div>
+    <div id="performanceOverview"></div>
+  </div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="section-title"><h2>Distribución Muscular (30 Días)</h2></div>
+      <div class="chart-box chart-box-sm"><canvas id="musclePieChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title"><h2>Últimos entrenamientos</h2><button class="btn btn-secondary" onclick="switchTab('calendario',document.querySelectorAll('.tab-btn')[2])">Ver calendario</button></div>
+      <div class="progress-list" id="recentWorkouts"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title"><h2>Récords Personales (PR) recientes</h2></div>
+    <div class="progress-list" id="recentPRs"></div>
+  </div>
+</section>
+
+<!-- PESTAÑA: REGISTRO -->
+<section id="registro" class="tab">
+  <div class="train-cta-slot"></div>
+  <div class="card">
+    <div class="section-title">
+      <h2>Registro Diario</h2>
+      <div class="actions" style="margin-top:0"><button class="btn btn-secondary" onclick="copyLastWorkout()">Copiar última sesión completa</button></div>
+    </div>
+    <div class="datebar">
+      <div><label>Fecha de la sesión</label><input type="date" id="routineDate"></div>
+      <div><button class="btn btn-secondary" onclick="openWeightModal()">+ Peso corporal</button></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:10px">
+      <div><label>Rutina / Categoría asignada</label><select id="dayCategory" onchange="saveCategory()"></select></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-primary full" onclick="loadTemplate()">Cargar rutina completa</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="type-toggle">
+      <button id="weightMode" class="active" onclick="setLogType('pesas')">Entrenamiento de Pesas</button>
+      <button id="cardioMode" onclick="setLogType('cardio')">Cardio</button>
+    </div>
+    
+    <div id="weightsForm">
+      <div class="exercise-head" style="margin-bottom:10px">
+        <div><label>Ejercicio</label><input id="exerciseName" list="exerciseList" placeholder="Ej. Press banca" oninput="offerLastPerformance()"><datalist id="exerciseList"></datalist></div>
+        <div><button class="btn btn-secondary" onclick="loadLastPerformance()" style="margin-top:0">Cargar anterior</button></div>
+      </div>
+      <div id="setsContainer"></div>
+      <button class="add-set" onclick="addSet()">+ Añadir Serie</button>
+    </div>
+
+    <div id="cardioForm" style="display:none">
+      <div class="grid grid-3">
+        <div><label>Tipo de Cardio</label><select id="cardioType"><option>Cinta / Correr</option><option>Eliptica</option><option>Estacionaria</option><option>Escaladora</option><option>Remo</option><option>Otro</option></select></div>
+        <div><label>Tiempo (min)</label><input id="cardioTime" type="number" min="0" placeholder="30"></div>
+        <div><label>Distancia (km)</label><input id="cardioDist" type="number" step="0.1" min="0" placeholder="5"></div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button class="btn btn-primary" id="saveEntryBtn" onclick="saveEntry()">Guardar registro</button>
+      <button class="btn btn-secondary" onclick="clearEntry()">Limpiar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><h2>Nota de la sesión</h2></div>
+    <textarea id="sessionNote" class="note" style="width:100%;min-height:70px;background:var(--input);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--text);padding:10px;resize:vertical;" placeholder="Ej. Buen bombeo, buena energía..." oninput="saveNote()"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><h2>Registros del día</h2></div>
+    <div id="dailyLog"></div>
+  </div>
+</section>
+
+<!-- PESTAÑA: CALENDARIO -->
+<section id="calendario" class="tab">
+  <div class="train-cta-slot"></div>
+  <div class="card">
+    <div class="calendar-head">
+      <button onclick="changeMonth(-1)" aria-label="Mes anterior">&larr;</button>
+      <strong id="monthYear"></strong>
+      <button onclick="changeMonth(1)" aria-label="Mes siguiente">&rarr;</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+  <div id="calendarSummary"></div>
+</section>
+
+<!-- PESTAÑA: PROGRESO -->
+<section id="progreso" class="tab">
+  <div class="train-cta-slot"></div>
+  <div class="card">
+    <div class="section-title"><h2>Evolución por Ejercicio</h2></div>
+    <div class="grid grid-2" style="margin-bottom:12px">
+      <div><label>Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
+      <div><label>Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
+    </div>
+    <div class="chart-box"><canvas id="progressChart"></canvas></div>
+    <div id="exerciseDetail" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><h2>Progresión recomendada</h2></div>
+    <div id="progressionPanel"><div class="empty">Selecciona un ejercicio arriba para ver la recomendación.</div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <h2>Composición Corporal</h2>
+      <button class="btn btn-secondary" onclick="openMeasurementModal()">+ Registrar medidas</button>
+    </div>
+    <div id="bodyCompSummary"></div>
+    <div class="grid grid-2" style="margin-top:12px">
+      <div>
+        <h3 style="font-size:0.9rem;margin-bottom:8px">Evolución de Peso</h3>
+        <div class="chart-box chart-box-sm"><canvas id="bodyWeightChart"></canvas></div>
+        <div class="progress-list" id="bodyWeightList" style="margin-top:10px"></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="font-size:0.9rem;margin:0">Medidas Corporales</h3>
+          <select id="measurementMetric" onchange="renderMeasurementChart()" style="width:140px;height:36px;font-size:0.8rem"><option value="waist">Cintura</option><option value="chest">Pecho</option><option value="arm">Brazo</option><option value="thigh">Muslo</option><option value="hip">Cadera</option></select>
+        </div>
+        <div class="chart-box chart-box-sm"><canvas id="measurementChart"></canvas></div>
+        <div id="bodyMeasurementList" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PESTAÑA: RUTINAS -->
+<section id="rutinas" class="tab">
+  <div class="train-cta-slot"></div>
+  <div class="card">
+    <div class="section-title">
+      <h2>Mis Rutinas</h2>
+      <button class="btn btn-primary" onclick="openRoutineEditor()">+ Nueva Rutina</button>
+    </div>
+    <p class="note" style="margin-bottom:12px"><b>Doble progresión:</b> primero intenta aumentar repeticiones manteniendo el peso. Cuando completes el extremo superior del rango, sube el peso y vuelve al inicio del rango.</p>
+    <div id="routineContent" class="routine"></div>
+  </div>
+</section>
+<footer class="credit"><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><b>LiftEngine</b><span>Creada y diseñada por <b>Isaias Cruz</b></span><a href="mailto:isajack42@gmail.com">isajack42@gmail.com</a></footer>
+</div>
+
+<!-- OVERLAY DE ENTRENAMIENTO -->
+<div id="trainOverlay" class="train-overlay">
+  <div class="train-top">
+    <button class="icon-btn" onclick="trainExit()" title="Minimizar"><svg class="ic"><use href="#i-x"/></svg></button>
+    <div class="train-title">
+      <b id="trainTitle">Sesión</b>
+      <small id="trainElapsed">00:00</small>
+    </div>
+    <button class="btn btn-primary" id="trainNext" onclick="trainNav(1)">Siguiente &rarr;</button>
+  </div>
+  <div class="train-chips" id="trainChips"></div>
+  <div class="train-body" id="trainBody"></div>
+  <div class="train-rest">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg class="ic"><use href="#i-timer"/></svg>
+      <span>Descanso: <b id="trainRestTime">01:30</b></span>
+    </div>
+    <div>
+      <button onclick="addTimer(30)">+30s</button>
+      <button onclick="stopTimer()">Omitir</button>
+    </div>
+  </div>
+  <div class="train-foot">
+    <button class="btn btn-secondary" onclick="trainNav(-1)">&larr; Anterior</button>
+    <button class="btn btn-primary" onclick="trainFinish()">Terminar sesión</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- Script principal modular -->
+<script type="module" src="app.js?v=5.2.2"></script>
+</body>
+</html>
