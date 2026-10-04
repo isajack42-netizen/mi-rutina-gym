@@ -2,6 +2,8 @@
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+const APP_VERSION='5.0.0';
+const DATA_SCHEMA_VERSION=1;
 
 const firebaseConfig = {
   apiKey: "AIzaSyB01Yx5QD_9i89i1CX3SpFyD6W3MzKmxUE",
@@ -47,7 +49,7 @@ window.loginConGoogle = async function() {
 };
 
 function wipeLocalData(){
-    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles',PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymLastUid']
+    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles',PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymRecoveryBackup','gymLastUid']
       .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
     updatedAt=0;
 }
@@ -117,7 +119,8 @@ const defaultMuscles = {
 
 // Variables globales del sistema
 let data={}, categories={}, weights=[], measurements=[], notes={}, customRoutines={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false, saveQueued=false;
-let customAliases={}, customMuscles={}; // Nuevas variables dinámicas
+let customAliases={}, customMuscles={};
+let localRecoveryDetected=false; // Fase 1: indica si se recuperó una estructura local dañada
 window.editingId = null;
 window.timerInt = null;
 window.timerEndAt = 0;
@@ -128,44 +131,153 @@ function makeChart(canvas,cfg){
   try{return new Chart(canvas,cfg)}catch(e){console.error(e);return null}
 }
 
+function isPlainObject(v){ return !!v && typeof v==='object' && !Array.isArray(v); }
+function safeKey(k){ return !['__proto__','prototype','constructor'].includes(String(k)); }
+function cleanString(v,fallback=''){ return typeof v==='string' ? v.trim() : (v==null ? fallback : String(v).trim()); }
+function finiteNumber(v,min=0){ const n=Number(v); return Number.isFinite(n)&&n>=min ? n : null; }
+function validDateKey(v){ return /^\d{4}-\d{2}-\d{2}$/.test(String(v)); }
+
+function sanitizeSet(set,index=0){
+  if(!isPlainObject(set)) return null;
+  const weight=finiteNumber(set.weight,0);
+  const restUsed=finiteNumber(set.restUsed,0);
+  return {
+    setNumber: Math.max(1, Number(set.setNumber)||index+1),
+    reps: cleanString(set.reps,'-') || '-',
+    weight: weight===null ? 0 : weight,
+    rir: cleanString(set.rir,'-') || '-',
+    rest: cleanString(set.rest,'-') || '-',
+    ...(restUsed!==null ? {restUsed} : {})
+  };
+}
+
+function sanitizeEntry(entry){
+  if(!isPlainObject(entry)) return null;
+  const id=entry.id!=null ? entry.id : Date.now()+Math.random();
+  const name=cleanString(entry.name,'Registro');
+  if(entry.isCardio){
+    return {id,isCardio:true,name,time:cleanString(entry.time,'-')||'-',distance:cleanString(entry.distance,'-')||'-'};
+  }
+  const sets=Array.isArray(entry.sets) ? entry.sets.map(sanitizeSet).filter(Boolean) : [];
+  if(!name || !sets.length) return null;
+  sets.forEach((s,i)=>s.setNumber=i+1);
+  return {id,isCardio:false,name,sets};
+}
+
+function sanitizeData(raw){
+  const out={};
+  if(!isPlainObject(raw)) return out;
+  Object.entries(raw).forEach(([date,entries])=>{
+    if(!safeKey(date)||!validDateKey(date)||!Array.isArray(entries)) return;
+    const clean=entries.map(sanitizeEntry).filter(Boolean);
+    if(clean.length) out[date]=clean;
+  });
+  return out;
+}
+
+function sanitizeCategories(raw){
+  const out={};
+  if(!isPlainObject(raw)) return out;
+  Object.entries(raw).forEach(([date,value])=>{ if(safeKey(date)&&validDateKey(date)&&typeof value==='string'&&value.trim()) out[date]=value.trim(); });
+  return out;
+}
+
+function sanitizeNotes(raw){
+  const out={};
+  if(!isPlainObject(raw)) return out;
+  Object.entries(raw).forEach(([date,value])=>{ if(safeKey(date)&&validDateKey(date)&&typeof value==='string'&&value.trim()) out[date]=value.trim(); });
+  return out;
+}
+
+function sanitizeWeights(raw){
+  if(!Array.isArray(raw)) return [];
+  return raw.map(x=>{
+    if(!isPlainObject(x)||!validDateKey(x.date)) return null;
+    const weight=finiteNumber(x.weight,0);
+    return weight===null||weight<=0 ? null : {date:x.date,weight};
+  }).filter(Boolean);
+}
+
+function sanitizeMeasurements(raw){
+  if(!Array.isArray(raw)) return [];
+  const keys=['waist','chest','arm','thigh','hip'];
+  return raw.map(x=>{
+    if(!isPlainObject(x)||!validDateKey(x.date)) return null;
+    const out={date:x.date},has=false;
+    keys.forEach(k=>{ const n=finiteNumber(x[k],0); if(n!==null&&n>0){out[k]=Math.round(n*10)/10;has=true;} });
+    return has?out:null;
+  }).filter(Boolean);
+}
+
 function sanitizeRoutines(routines) {
-    let fixed = {};
-    for (let k in routines) {
-        fixed[k] = routines[k].map(ex => {
-            if (Array.isArray(ex)) {
-                return { name: ex[0]||'', sets: ex[1]||0, reps: ex[2]||'', rir: ex[3]||'', rest: ex[4]||'' };
-            }
-            return ex;
-        });
+    const fixed = {};
+    if(!isPlainObject(routines)) return fixed;
+    for (const [k,rows] of Object.entries(routines)) {
+        if(!safeKey(k)||!Array.isArray(rows)) continue;
+        fixed[k.trim()] = rows.map((ex,index) => {
+            if (Array.isArray(ex)) return { name: cleanString(ex[0]), sets: Math.max(0,Number(ex[1])||0), reps: cleanString(ex[2]), rir: cleanString(ex[3]), rest: cleanString(ex[4]) };
+            if(!isPlainObject(ex)) return null;
+            return { name: cleanString(ex.name), sets: Math.max(0,Number(ex.sets)||0), reps: cleanString(ex.reps), rir: cleanString(ex.rir), rest: cleanString(ex.rest) };
+        }).filter(ex=>ex&&ex.name);
     }
     return fixed;
+}
+
+function sanitizeAliases(raw){
+  const out={}; if(!isPlainObject(raw)) return out;
+  Object.entries(raw).forEach(([k,v])=>{ if(safeKey(k)&&typeof v==='string'&&v.trim()) out[k.trim().toLowerCase()]=v.trim(); });
+  return out;
+}
+function sanitizeMuscles(raw){
+  const out={}; if(!isPlainObject(raw)) return out;
+  Object.entries(raw).forEach(([k,v])=>{ if(safeKey(k)&&Array.isArray(v)) out[k]=v.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()); });
+  return out;
+}
+
+function backupCorruptLocal(key,raw){
+  if(raw==null) return;
+  try{
+    const existing=safeParse(localStorage.getItem('gymRecoveryBackup'),{});
+    if(!existing[key]) existing[key]={savedAt:new Date().toISOString(),raw};
+    localRecoveryDetected=true;
+    localStorage.setItem('gymRecoveryBackup',JSON.stringify(existing));
+  }catch(e){ console.warn('No se pudo guardar recuperación local:',key,e); }
+}
+
+function readLocal(key,fallback,sanitizer){
+  const raw=localStorage.getItem(key);
+  if(raw===null) return fallback;
+  try{
+    const parsed=JSON.parse(raw);
+    const clean=sanitizer(parsed);
+    let suspicious=false;
+    try{ suspicious=JSON.stringify(parsed)!==JSON.stringify(clean); }catch(e){ suspicious=true; }
+    if(suspicious) backupCorruptLocal(key,raw);
+    return clean;
+  }catch(e){
+    backupCorruptLocal(key,raw);
+    return fallback;
+  }
 }
 
 function safeParse(raw, fallback){ try { const v=JSON.parse(raw); return v ?? fallback; } catch(e){ return fallback; } }
 
 function load(){
-  data=safeParse(localStorage.getItem(KEY),{});
-  categories=safeParse(localStorage.getItem(CAT),{});
-  weights=safeParse(localStorage.getItem(WEIGHT),[]);
-  measurements=safeParse(localStorage.getItem(MEASURE),[]);
-  notes=safeParse(localStorage.getItem('trackGym_notes'),{});
-  customRoutines = sanitizeRoutines(safeParse(localStorage.getItem(ROUTINES_KEY), defaultPPL));
-  currentUnit=localStorage.getItem(UNIT_KEY)||'kg';
-  currentTheme=localStorage.getItem(THEME_KEY)||'default';
+  data=readLocal(KEY,{},sanitizeData);
+  categories=readLocal(CAT,{},sanitizeCategories);
+  weights=readLocal(WEIGHT,[],sanitizeWeights);
+  measurements=readLocal(MEASURE,[],sanitizeMeasurements);
+  notes=readLocal('trackGym_notes',{},sanitizeNotes);
+  customRoutines = sanitizeRoutines(readLocal(ROUTINES_KEY, defaultPPL, x=>x));
+  currentUnit=localStorage.getItem(UNIT_KEY)==='lbs'?'lbs':'kg';
+  currentTheme=cleanString(localStorage.getItem(THEME_KEY),'default')||'default';
   
-  // Cargar diccionarios dinámicos (Fase 3)
-  customAliases = safeParse(localStorage.getItem('gymAliases'), {});
-  customMuscles = safeParse(localStorage.getItem('gymMuscles'), {});
+  customAliases = sanitizeAliases(readLocal('gymAliases', {}, x=>x));
+  customMuscles = sanitizeMuscles(readLocal('gymMuscles', {}, x=>x));
   if(Object.keys(customAliases).length===0) customAliases = JSON.parse(JSON.stringify(defaultAliases));
   if(Object.keys(customMuscles).length===0) customMuscles = JSON.parse(JSON.stringify(defaultMuscles));
 
-  if(!data || typeof data!=='object' || Array.isArray(data)) data={};
-  if(!categories || typeof categories!=='object' || Array.isArray(categories)) categories={};
-  if(!notes || typeof notes!=='object' || Array.isArray(notes)) notes={};
-  if(!customRoutines || typeof customRoutines!=='object' || Array.isArray(customRoutines) || Object.keys(customRoutines).length===0) customRoutines = defaultPPL;
-  if(!Array.isArray(weights)) weights=[];
-  if(!Array.isArray(measurements)) measurements=[];
-  
+  if(Object.keys(customRoutines).length===0) customRoutines = JSON.parse(JSON.stringify(defaultPPL));
   document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
   document.documentElement.setAttribute('data-theme', currentTheme);
 }
@@ -214,15 +326,17 @@ async function saveToFirebase() {
 }
 
 function applyCloud(cloud,stamp){
-  data=cloud.data||{}; categories=cloud.categories||{}; weights=cloud.weights||[]; measurements=cloud.measurements||[]; notes=cloud.notes||{};
+  data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes);
   const cr=cloud.customRoutines&&Object.keys(cloud.customRoutines).length?cloud.customRoutines:null;
-  customRoutines=sanitizeRoutines(cr||safeParse(localStorage.getItem(ROUTINES_KEY),defaultPPL));
+  customRoutines=sanitizeRoutines(cr||readLocal(ROUTINES_KEY,defaultPPL,x=>x));
+  if(!Object.keys(customRoutines).length) customRoutines=JSON.parse(JSON.stringify(defaultPPL));
   
-  // Extraemos diccionarios desde la nube
-  customAliases = cloud.customAliases || safeParse(localStorage.getItem('gymAliases'), defaultAliases);
-  customMuscles = cloud.customMuscles || safeParse(localStorage.getItem('gymMuscles'), defaultMuscles);
+  customAliases = sanitizeAliases(cloud.customAliases || readLocal('gymAliases', defaultAliases, x=>x));
+  customMuscles = sanitizeMuscles(cloud.customMuscles || readLocal('gymMuscles', defaultMuscles, x=>x));
+  if(!Object.keys(customAliases).length) customAliases=JSON.parse(JSON.stringify(defaultAliases));
+  if(!Object.keys(customMuscles).length) customMuscles=JSON.parse(JSON.stringify(defaultMuscles));
 
-  currentUnit=cloud.currentUnit||'kg'; currentTheme=cloud.currentTheme||'default';
+  currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg'; currentTheme=cleanString(cloud.currentTheme,'default')||'default';
   document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
   persistLocal();
   updatedAt=stamp;
@@ -499,7 +613,7 @@ function sessionVolume(e){return (e.sets||[]).reduce((a,s)=>a+(parseFloat(s.reps
 function setHasData(s){return (parseFloat(s.reps)||0)>0||(parseFloat(s.weight)||0)>0}
 function entryHasData(e){return e.isCardio?true:(e.sets||[]).some(setHasData)}
 function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>(data[date]||[]).forEach(e=>{if(!e.isCardio&&e.name===name)out.push({date,e})}));return out}
-function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps)return 0;return weight*(1+reps/30)}
+function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps||reps<=0)return 0;return weight*(1+reps/30)} // Epley
 function bestForDate(name,date,metric){
   const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);if(!es.length)return 0;
   if(metric==='weight')return Math.max(...es.flatMap(e=>e.sets.map(s=>parseFloat(s.weight)||0)));
@@ -705,10 +819,35 @@ function findPRs(){
 
 window.goToDate = function(d){document.getElementById('routineDate').value=d;loadDay();switchTab('registro',document.querySelectorAll('.tab-btn')[1])}
 window.copyLastWorkout = function(){
-  const date=document.getElementById('routineDate').value,dates=Object.keys(data).filter(d=>d<date&&data[d]&&data[d].some(e=>!e.isCardio)).sort();const last=dates[dates.length-1];if(!last){toast('No hay sesión anterior');return}
-  const ex=(data[last]||[]).filter(e=>!e.isCardio);document.getElementById('setsContainer').innerHTML='';setCounter=0;
-  if(ex[0]){document.getElementById('exerciseName').value=ex[0].name;ex[0].sets.forEach(s=>addSet({reps:'',weight:Math.round(fromKg(s.weight)*10)/10,rir:s.rir==='-'?'':s.rir,rest:s.rest==='-'?'':s.rest}))}
-  toast('Cargada la última sesión')
+  const date=document.getElementById('routineDate').value;
+  if(!date){toast('Selecciona una fecha');return}
+  const dates=Object.keys(data).filter(d=>d<date&&data[d]&&data[d].some(e=>!e.isCardio&&entryHasData(e))).sort();
+  const last=dates[dates.length-1];
+  if(!last){toast('No hay sesión anterior');return}
+  const source=(data[last]||[]).filter(e=>!e.isCardio&&entryHasData(e));
+  if(!source.length){toast('La última sesión no tiene ejercicios válidos');return}
+  if(data[date]?.length && !confirm(`El día ${fmtDate(date)} ya tiene registros.\n\nSe añadirán ${source.length} ejercicios de ${fmtDate(last)} sin borrar lo existente.\n\n¿Continuar?`)) return;
+  if(!data[date]) data[date]=[];
+  source.forEach((e,exerciseIndex)=>{
+    const cloned={
+      id:Date.now()+Math.random()+exerciseIndex,
+      isCardio:false,
+      name:e.name,
+      sets:(e.sets||[]).map((s,i)=>({
+        setNumber:i+1,
+        reps:'-',
+        weight:Math.max(0,Number(s.weight)||0),
+        rir:s.rir||'-',
+        rest:s.rest||'-',
+        ...(Number.isFinite(Number(s.restUsed))?{restUsed:Number(s.restUsed)}:{})
+      }))
+    };
+    if(cloned.sets.length) data[date].push(cloned);
+  });
+  saveToFirebase();
+  clearEntry();
+  loadDay(); renderDashboard(); populateExercises(); updateChart();
+  toast(`Copiados ${source.length} ejercicios de la última sesión`);
 }
 window.loadLastPerformance = function(){
   const name=normalizeName(document.getElementById('exerciseName').value);if(!name)return;
@@ -1004,7 +1143,7 @@ function renderSettingsModal(){
             <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
             
             <button class="btn btn-danger full" style="margin-top:12px;" onclick="logout()">Cerrar sesión</button>
-            <p class="muted" style="font-size:.75rem;text-align:center;margin:14px 0 0">LiftEngine v4.9 · Creada y diseñada por <b style="color:var(--text)">Isaias Cruz</b><br><a href="mailto:isajack42@gmail.com" style="color:var(--accent);text-decoration:none">isajack42@gmail.com</a></p>
+            <p class="muted" style="font-size:.75rem;text-align:center;margin:14px 0 0">LiftEngine v${APP_VERSION} · Creada y diseñada por <b style="color:var(--text)">Isaias Cruz</b><br><a href="mailto:isajack42@gmail.com" style="color:var(--accent);text-decoration:none">isajack42@gmail.com</a></p>
             
             <div class="actions" style="margin-top:12px;">
                 <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
@@ -1096,24 +1235,86 @@ window.deleteAlias = function(alias) {
 // ==========================================
 
 window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
-window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.9,data,categories,weights,measurements,notes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='liftengine-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
+function buildBackupPayload(){
+  return {
+    appVersion:APP_VERSION,
+    schemaVersion:DATA_SCHEMA_VERSION,
+    exportedAt:new Date().toISOString(),
+    data:sanitizeData(data),
+    categories:sanitizeCategories(categories),
+    weights:sanitizeWeights(weights),
+    measurements:sanitizeMeasurements(measurements),
+    notes:sanitizeNotes(notes),
+    customRoutines:sanitizeRoutines(customRoutines),
+    customAliases:sanitizeAliases(customAliases),
+    customMuscles:sanitizeMuscles(customMuscles),
+    currentUnit:currentUnit==='lbs'?'lbs':'kg',
+    currentTheme:cleanString(currentTheme,'default')||'default'
+  };
+}
+
+function validateBackupPayload(x){
+  if(!isPlainObject(x)) return {ok:false,reason:'El archivo no contiene un objeto JSON válido.'};
+  if(!isPlainObject(x.data)) return {ok:false,reason:'Falta o es inválida la sección de registros.'};
+  if(x.categories!=null&&!isPlainObject(x.categories)) return {ok:false,reason:'La sección de categorías no es válida.'};
+  if(x.weights!=null&&!Array.isArray(x.weights)) return {ok:false,reason:'La sección de peso corporal no es válida.'};
+  if(x.measurements!=null&&!Array.isArray(x.measurements)) return {ok:false,reason:'La sección de medidas corporales no es válida.'};
+  if(x.notes!=null&&!isPlainObject(x.notes)) return {ok:false,reason:'La sección de notas no es válida.'};
+  if(x.customRoutines!=null&&!isPlainObject(x.customRoutines)) return {ok:false,reason:'La sección de rutinas no es válida.'};
+  if(x.customAliases!=null&&!isPlainObject(x.customAliases)) return {ok:false,reason:'La sección de alias no es válida.'};
+  if(x.customMuscles!=null&&!isPlainObject(x.customMuscles)) return {ok:false,reason:'La sección de músculos no es válida.'};
+  if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return {ok:false,reason:'La unidad del archivo no es válida.'};
+  const cleanData=sanitizeData(x.data);
+  const sourceDays=Object.keys(x.data).length,cleanDays=Object.keys(cleanData).length;
+  if(sourceDays>0&&cleanDays===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
+  return {ok:true,cleanDays};
+}
+
+window.exportData = function(){
+  const payload=buildBackupPayload();
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`liftengine-backup-v${APP_VERSION}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),0);
+  toast('Respaldo JSON OK');
+}
+
 window.importData = function(ev){
   const file=ev.target.files[0]; if(!file) return;
+  if(file.size>10*1024*1024){ alert('El archivo es demasiado grande (máximo 10 MB).'); ev.target.value=''; return; }
   const r=new FileReader();
-  r.onload=()=>{
+  r.onload=async()=>{
     try{
       const x=JSON.parse(r.result);
-      if(!x||typeof x.data!=='object'||x.data===null||Array.isArray(x.data)) throw 0;
-      const days=Object.keys(x.data).length;
-      if(!confirm('Este archivo contiene '+days+' días de registros.\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.\n\n¿Continuar?')) return;
-      try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme})); }catch(e){}
-      data=x.data;categories=x.categories||{};weights=x.weights||[];measurements=x.measurements||[];notes=x.notes||{};
-      customRoutines=sanitizeRoutines(x.customRoutines||defaultPPL);
-      customAliases=x.customAliases||defaultAliases;
-      customMuscles=x.customMuscles||defaultMuscles;
-      currentUnit=x.currentUnit||'kg';currentTheme=x.currentTheme||'default';
-      migrateNames();saveToFirebase();closeModal();refreshAll();toast('Importado OK');
-    }catch{ alert('Archivo no válido.'); }
+      const validation=validateBackupPayload(x);
+      if(!validation.ok) throw new Error(validation.reason);
+      const clean={
+        data:sanitizeData(x.data),
+        categories:sanitizeCategories(x.categories||{}),
+        weights:sanitizeWeights(x.weights||[]),
+        measurements:sanitizeMeasurements(x.measurements||[]),
+        notes:sanitizeNotes(x.notes||{}),
+        customRoutines:sanitizeRoutines(x.customRoutines||defaultPPL),
+        customAliases:sanitizeAliases(x.customAliases||defaultAliases),
+        customMuscles:sanitizeMuscles(x.customMuscles||defaultMuscles),
+        currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
+        currentTheme:cleanString(x.currentTheme,'default')||'default'
+      };
+      const days=Object.keys(clean.data).length;
+      const sourceDays=Object.keys(x.data).length;
+      const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
+      if(!confirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.\n\n¿Continuar?`)) return;
+      try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
+      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes;
+      customRoutines=Object.keys(clean.customRoutines).length?clean.customRoutines:JSON.parse(JSON.stringify(defaultPPL));
+      customAliases=Object.keys(clean.customAliases).length?clean.customAliases:JSON.parse(JSON.stringify(defaultAliases));
+      customMuscles=Object.keys(clean.customMuscles).length?clean.customMuscles:JSON.parse(JSON.stringify(defaultMuscles));
+      currentUnit=clean.currentUnit; currentTheme=clean.currentTheme;
+      persistLocal();
+      migrateNames();
+      await saveToFirebase();
+      closeModal(); refreshAll();
+      toast('Importado y validado correctamente');
+    }catch(e){ alert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.')); }
     finally{ ev.target.value=''; }
   };
   r.readAsText(file);
@@ -1489,6 +1690,7 @@ async function initApp() {
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
     renderTrainCTA(); resumeTrainingIfAny();
+    if(localRecoveryDetected) setTimeout(()=>toast('Se detectaron datos locales dañados y se conservó una copia de recuperación en este dispositivo.'),900);
 
     if(await connectFirebase()) {
         fb.onAuthStateChanged(fb.auth, user => {

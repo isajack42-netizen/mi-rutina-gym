@@ -131,7 +131,7 @@
   <div class="card">
     <div class="section-title">
       <h2>Registro Diario</h2>
-      <div class="actions" style="margin-top:0"><button class="btn btn-secondary" onclick="copyLastWorkout()">Copiar última sesión</button></div>
+      <div class="actions" style="margin-top:0"><button class="btn btn-secondary" onclick="copyLastWorkout()">Copiar última sesión completa</button></div>
     </div>
     <div class="datebar">
       <div><label>Fecha de la sesión</label><input type="date" id="routineDate"></div>
@@ -204,7 +204,7 @@
     <div class="section-title"><h2>Evolución por Ejercicio</h2></div>
     <div class="grid grid-2" style="margin-bottom:12px">
       <div><label>Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
-      <div><label>Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (fórmula Brzycki)</option></select></div>
+      <div><label>Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
     </div>
     <div class="chart-box"><canvas id="progressChart"></canvas></div>
     <div id="exerciseDetail" style="margin-top:14px"></div>
