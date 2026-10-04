@@ -885,6 +885,7 @@ function timerRemaining(){ return Math.max(0, Math.ceil((window.timerEndAt - Dat
 function ensureTimerRunning(){
     document.getElementById('floatingTimer').style.display = 'flex';
     if(!window.timerInt) window.timerInt = setInterval(tickTimer, 500);
+    notifSchedule();
     updateTimerUI();
 }
 window.quickStartTimer = function(btn) {
@@ -900,7 +901,7 @@ window.addTimer = function(secs) {
     ensureTimerRunning();
 }
 window.stopTimer = function() {
-    trainRestEnded();
+    trainRestEnded(); notifCancel();
     clearInterval(window.timerInt); window.timerInt = null; window.timerEndAt = 0;
     document.getElementById('floatingTimer').style.display = 'none';
     const ov=document.getElementById('trainOverlay'); if(ov) ov.classList.remove('resting');
@@ -908,6 +909,7 @@ window.stopTimer = function() {
 function tickTimer() {
     if(timerRemaining() > 0) { updateTimerUI(); return; }
     stopTimer();
+    if(document.hidden && notifState()==='on') notifShow('Descanso terminado', notifBody());
     if ("vibrate" in navigator) navigator.vibrate([200, 100, 200, 100, 200]);
     toast('¡Tiempo terminado!');
     try {
@@ -991,6 +993,7 @@ function renderSettingsModal(){
             <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
             <!-- FASE 3: Botón para gestionar Músculos y Alias -->
             <button class="btn btn-secondary full" style="margin-bottom:12px; border-style:dashed;" onclick="openCatalogsModal('musculos')">${ic('list')} Gestionar Músculos y Alias</button>
+            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
             
             <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.</p>
             <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">${ic('table')} Exportar a Excel (CSV)</button>
@@ -1246,6 +1249,47 @@ function refreshAll(){
     populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();renderRoutines();renderTrainCTA();renderTrain();
 }
 
+// ===== AVISOS DEL SISTEMA PARA EL DESCANSO =====
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true; }
+function notifState(){
+  if(!('Notification' in window)||!('serviceWorker' in navigator)) return 'unsupported';
+  if(isIOS()&&!isStandalone()) return 'needs-install';
+  if(Notification.permission==='denied') return 'denied';
+  if(Notification.permission==='granted') return localStorage.getItem('gymNotif')==='0'?'off':'on';
+  return 'off';
+}
+function notifBody(){ try{ const e=train&&trainCur(); return e?('Siguiente serie · '+e.name):'Hora de tu siguiente serie'; }catch(_){ return 'Hora de tu siguiente serie'; } }
+async function swReg(){ return Promise.race([navigator.serviceWorker.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('sw')),2500))]); }
+async function notifShow(title,body){
+  try{ const reg=await swReg(); await reg.showNotification(title,{body,tag:'liftengine-rest',renotify:true,vibrate:[200,100,200,100,200],icon:'icons/icon-192.png',badge:'icons/icon-192.png'}); }catch(e){}
+}
+async function notifSchedule(){
+  if(notifState()!=='on') return;
+  try{ const reg=await swReg(); if(reg.active) reg.active.postMessage({type:'rest-start',endAt:window.timerEndAt,title:'Descanso terminado',body:notifBody()}); }catch(e){}
+}
+async function notifCancel(){ try{ const reg=await swReg(); if(reg.active) reg.active.postMessage({type:'rest-cancel'}); }catch(e){} }
+async function notifClear(){ try{ const reg=await swReg(); (await reg.getNotifications({tag:'liftengine-rest'})).forEach(n=>n.close()); }catch(e){} }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) notifClear(); });
+window.toggleNotifications=async function(silent){
+  const st=notifState();
+  if(st==='unsupported'){ toast('Tu navegador no admite notificaciones'); return; }
+  if(st==='needs-install'){ alert('En iPhone las notificaciones solo funcionan con la app instalada.\n\nSafari → Compartir → Añadir a pantalla de inicio, y ábrela desde ese icono.'); return; }
+  if(st==='denied'){ alert('Las notificaciones están bloqueadas para esta página.\n\nActívalas en los ajustes del sistema o del navegador (Notificaciones → LiftEngine / Chrome).'); return; }
+  if(st==='on'){ try{localStorage.setItem('gymNotif','0')}catch(e){} notifCancel(); }
+  else{
+    const p=Notification.permission==='granted'?'granted':await Notification.requestPermission();
+    if(p==='granted'){ try{localStorage.setItem('gymNotif','1')}catch(e){} notifShow('Avisos activados','Te avisaremos cuando termine tu descanso.'); }
+    else toast('Permiso no concedido');
+  }
+  if(!silent) renderSettingsModal();
+};
+function notifOffer(){
+  if(notifState()!=='off'||Notification.permission!=='default'||localStorage.getItem('gymNotifAsked')) return;
+  try{ localStorage.setItem('gymNotifAsked','1'); }catch(e){}
+  if(confirm('¿Quieres recibir un aviso del sistema cuando termine tu descanso, incluso con la pantalla bloqueada?')) toggleNotifications(true);
+}
+
 // ===== TECLADO NUMÉRICO EN MÓVIL (inputmode) =====
 const NUM_SEL={'.set-weight,#cardioDist,#mwWeight,#calcTarget,#calcBar,#mmWaist,#mmChest,#mmArm,#mmThigh,#mmHip,.tr-w':'decimal',
                '.set-reps,.set-rir,#cardioTime,.re-sets,.tr-r,.tr-rir':'numeric'};
@@ -1297,6 +1341,7 @@ window.openTrainStart=function(){
   openEl();
 }
 window.startTraining=function(name){
+  notifOffer();
   const date=todayStr(); if(!data[date]) data[date]=[];
   const rows=name&&customRoutines[name]?customRoutines[name]:[], order=[];
   rows.forEach(ex=>{
