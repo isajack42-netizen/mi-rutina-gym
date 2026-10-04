@@ -2,7 +2,7 @@
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-const APP_VERSION='5.2.0';
+const APP_VERSION='5.2.1';
 const DATA_SCHEMA_VERSION=1;
 
 const firebaseConfig = {
@@ -455,7 +455,7 @@ window.addSet = function(values=null){
         <div><label>RIR</label><input class="set-rir" type="number" min="0" max="10" value="${escapeHtml(v.rir||'')}"></div>
     </div>
     <div class="set-sub">
-        <div><label>Descanso</label><input class="set-rest" value="${escapeHtml(v.rest||'')}" placeholder="2m"></div>
+        <div><label>Descanso</label><input class="set-rest" value="${escapeHtml(normalizeRestLabel(v.rest||''))}" placeholder="120 s"></div>
         <button class="timer-btn" onclick="quickStartTimer(this)" title="Iniciar Cronómetro" aria-label="Iniciar cronómetro"><svg class="ic" aria-hidden="true"><use href="#i-timer"/></svg></button>
         <button class="remove-set" aria-label="Quitar serie" onclick="removeSet(this)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>`;
@@ -605,7 +605,7 @@ function loadDay(){
 function renderExerciseCard(e,date){
   if(e.isCardio)return `<div class="exercise-card"><div class="exercise-title"><span>${ic('pulse')} ${escapeHtml(e.name)}</span><span class="badge">Cardio</span></div><div class="muted">Tiempo ${escapeHtml(e.time)} min &nbsp; · &nbsp; Distancia ${escapeHtml(e.distance)} km</div><div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`;
   const volDisplay = Math.round(fromKg(sessionVolume(e))*10)/10;
-  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${escapeHtml(s.rir)}</span><span>${escapeHtml(restLabel(s))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
+  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>RIR ${escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?fmtRest(s.restUsed)+' min':normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
 window.deleteEntry = function(date,id){if(!confirm('¿Eliminar este registro?'))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
@@ -773,7 +773,7 @@ function renderProgressionPanel(){
     </div>
     <div class="record-grid">${recordCards}</div>
     <div class="progression-message"><strong class="${rec.className}">${escapeHtml(rec.title)}</strong><span>${escapeHtml(rec.text)}</span></div>
-    <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target?` · ${target.sets} series · descanso ${escapeHtml(target.rest)}`:''}</div>
+    <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target?` · ${target.sets} series · descanso ${escapeHtml(normalizeRestLabel(target.rest))}`:''}</div>
     <div style="overflow:auto"><table class="progression-table"><thead><tr><th>Fecha</th><th>Series</th><th>Mejor peso</th><th>Máx. reps</th><th>e1RM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
@@ -1161,6 +1161,16 @@ function parseRestSeconds(raw){
   return n<=10 ? Math.round(n*60) : Math.round(n);
 }
 
+function normalizeRestLabel(raw){
+  const s=String(raw||'').trim().toLowerCase().replace(/–/g,'-');
+  if(!s || s==='-') return s||'-';
+  const nums=(s.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);
+  if(!nums.length) return String(raw).trim();
+  const mult=/min|\bm\b/.test(s)?60:1;
+  const vals=nums.slice(0,2).map(n=>Math.round(n*mult));
+  return vals.length>1 ? `${vals[0]}–${vals[1]} s` : `${vals[0]} s`;
+}
+
 function timerRemaining(){ return Math.max(0, Math.ceil((window.timerEndAt - Date.now())/1000)); }
 function ensureTimerRunning(){
     document.getElementById('floatingTimer').style.display = 'flex';
@@ -1234,7 +1244,7 @@ window.exportCSV = function() {
             } else {
                 ex.sets.forEach(s => {
                     let wVal = currentUnit === 'lbs' ? s.weight * 2.20462 : s.weight;
-                    addRow([date,cat,"Pesas",exName,s.setNumber,s.reps,Math.round(wVal*10)/10,dayUnit,s.rir,s.rest,"-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??"",s.restUsed??""]);
+                    addRow([date,cat,"Pesas",exName,s.setNumber,s.reps,Math.round(wVal*10)/10,dayUnit,s.rir,normalizeRestLabel(s.rest),"-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??"",s.restUsed??""]);
                 });
             }
         });
@@ -1253,6 +1263,68 @@ window.exportCSV = function() {
     link.click();
     document.body.removeChild(link);
     toast('Exportado a Excel OK');
+}
+
+
+function parseCSVText(text){
+  text=String(text||'').replace(/^\uFEFF/,'');
+  const first=(text.split(/\r?\n/,1)[0]||'');
+  const count=(ch)=>{let q=false,n=0;for(let i=0;i<first.length;i++){if(first[i]==='"')q=!q;else if(!q&&first[i]===ch)n++;}return n;};
+  const delim=count(';')>count(',')?';':',';
+  const rows=[]; let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'&&text[i+1]==='"'){cell+='"';i++;} else if(c==='"')q=false; else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===delim){row.push(cell);cell='';}
+    else if(c==='\n'){row.push(cell.replace(/\r$/,'')); if(row.some(x=>x!==''))rows.push(row); row=[];cell='';}
+    else cell+=c;
+  }
+  row.push(cell.replace(/\r$/,'')); if(row.some(x=>x!==''))rows.push(row);
+  return rows;
+}
+function csvNum(v){ const n=Number(String(v??'').trim().replace(',','.')); return Number.isFinite(n)?n:null; }
+function csvDate(v){
+  const s=String(v||'').trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+window.importCSV=async function(event){
+  const input=event.target, file=input.files&&input.files[0]; if(!file) return;
+  try{
+    if(file.size>10*1024*1024) throw new Error('El CSV supera el límite de 10 MB.');
+    const rows=parseCSVText(await file.text()); if(rows.length<2) throw new Error('El archivo no contiene filas de datos.');
+    const headers=rows[0].map(h=>String(h).trim().replace(/^\uFEFF/,'').toLowerCase());
+    const req=['fecha','tipo','ejercicio']; if(req.some(x=>!headers.includes(x))) throw new Error('El CSV no tiene el formato de LiftEngine (faltan Fecha, Tipo o Ejercicio).');
+    const ix=n=>headers.indexOf(n.toLowerCase()), val=(r,n)=>ix(n)>=0?(r[ix(n)]??''):'';
+    const stagedData={}, stagedCats={}, stagedNotes={}, stagedWeights=[], stagedMeasures=[]; let valid=0, skipped=0;
+    for(const r of rows.slice(1)){
+      const date=csvDate(val(r,'Fecha')); if(!date){skipped++;continue;}
+      const type=String(val(r,'Tipo')).trim().toLowerCase(), routine=String(val(r,'Rutina')).trim(), note=String(val(r,'Notas')).trim();
+      if(routine) stagedCats[date]=routine; if(note) stagedNotes[date]=note;
+      const bodyW=csvNum(val(r,'Peso_corporal')), bodyUnit=String(val(r,'Unidad_peso')||val(r,'Unidad')).toLowerCase();
+      if(bodyW!=null&&bodyW>0){ const kg=bodyUnit.includes('lb')?bodyW/2.20462:bodyW; stagedWeights.push({date,weight:kg}); }
+      const mm={date}; let hasM=false; for(const [col,key] of [['Cintura_cm','waist'],['Pecho_cm','chest'],['Brazo_cm','arm'],['Muslo_cm','thigh'],['Cadera_cm','hip']]){const n=csvNum(val(r,col));if(n!=null&&n>0){mm[key]=n;hasM=true;}} if(hasM) stagedMeasures.push(mm);
+      if(type==='pesas'){
+        const name=String(val(r,'Ejercicio')).trim(); const reps=String(val(r,'Reps')).trim(); const weight=csvNum(val(r,'Peso'))??0; const unit=String(val(r,'Unidad')).toLowerCase(); if(!name){skipped++;continue;}
+        const kg=unit.includes('lb')?weight/2.20462:weight, setNo=Math.max(1,Math.round(csvNum(val(r,'Serie'))||1));
+        stagedData[date] ||= []; let ex=stagedData[date].find(e=>!e.isCardio&&e.name===name); if(!ex){ex={id:Date.now()+Math.random(),isCardio:false,name,sets:[]};stagedData[date].push(ex);}
+        ex.sets.push({setNumber:setNo,reps:reps||'-',weight:kg,rir:String(val(r,'RIR')).trim()||'-',rest:normalizeRestLabel(val(r,'Descanso')||'90 s'),...(csvNum(val(r,'Descanso_real_seg'))!=null?{restUsed:Math.round(csvNum(val(r,'Descanso_real_seg')))}:{})}); valid++;
+      } else if(type==='cardio'){
+        const name=String(val(r,'Ejercicio')).trim(); if(!name){skipped++;continue;} stagedData[date] ||= []; stagedData[date].push({id:Date.now()+Math.random(),isCardio:true,name,time:csvNum(val(r,'Tiempo_min'))||0,distance:csvNum(val(r,'Distancia_km'))||0}); valid++;
+      } else if(type==='peso corporal'||type==='info'){valid++;}
+    }
+    if(!valid) throw new Error('No encontré registros válidos para importar.');
+    const dates=Object.keys(stagedData), existing=dates.filter(d=>(data[d]||[]).length).length;
+    const mode=existing?confirm(`Se encontraron ${valid} registros válidos${skipped?` y ${skipped} filas omitidas`:''}.\n\n${existing} fecha(s) ya tienen entrenamientos.\n\nAceptar = REEMPLAZAR los entrenamientos de esas fechas con el CSV.\nCancelar = AGREGAR los registros del CSV sin borrar los existentes.`):false;
+    if(existing && !confirm(`¿Confirmas la importación? ${mode?'Se reemplazarán':'Se agregarán'} los entrenamientos en las fechas coincidentes.`)){ input.value=''; return; }
+    for(const [d,arr] of Object.entries(stagedData)){ data[d]=mode?arr:[...(data[d]||[]),...arr]; }
+    Object.assign(categories,stagedCats); Object.assign(notes,stagedNotes);
+    const byDate=(arr)=>{const m=new Map();arr.forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
+    weights=byDate([...weights,...stagedWeights]); measurements=byDate([...measurements,...stagedMeasures]);
+    persistLocal(); await saveToFirebase(); renderAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
+  }catch(err){ alert('No se pudo importar el CSV: '+(err&&err.message?err.message:err)); }
+  finally{ input.value=''; }
 }
 
 function renderSettingsModal(){
@@ -1276,10 +1348,12 @@ function renderSettingsModal(){
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
             
             <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.</p>
-            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">${ic('table')} Exportar a Excel (CSV)</button>
+            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:10px;" onclick="exportCSV()">${ic('table')} Exportar datos a Excel (CSV)</button>
+            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="document.getElementById('importCSVFile').click()">${ic('upload')} Importar datos desde Excel (CSV)</button>
+            <input id="importCSVFile" type="file" accept=".csv,text/csv" style="display:none" onchange="importCSV(event)">
             <div class="actions">
-                <button class="btn btn-primary" onclick="exportData()">Respaldo JSON</button>
-                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
+                <button class="btn btn-primary" onclick="exportData()">Crear copia de seguridad</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Restaurar copia</button>
             </div>
             <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
             
@@ -1516,7 +1590,7 @@ window.addRoutineExerciseRow = function(ex = null) {
             <div><label>Series</label><input class="re-sets" type="number" value="${sets}"></div>
             <div><label>Reps</label><input class="re-reps" placeholder="8-12" value="${escapeHtml(reps)}"></div>
             <div><label>RIR</label><input class="re-rir" placeholder="1-2" value="${escapeHtml(rir)}"></div>
-            <div><label>Descanso</label><input class="re-rest" placeholder="90 s" value="${escapeHtml(rest)}"></div>
+            <div><label>Descanso</label><input class="re-rest" placeholder="90 s" value="${escapeHtml(normalizeRestLabel(rest))}"></div>
         </div>
     `;
     document.getElementById('editRoutineExercises').appendChild(div);
@@ -1580,7 +1654,7 @@ function renderRoutines(){
         <div class="routine-content">
             <table>
                 <thead><tr><th>Ejercicio</th><th>Series</th><th>Reps</th><th>RIR</th><th>Descanso</th></tr></thead>
-                <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${r.sets}</td><td>${escapeHtml(r.reps)}</td><td>${escapeHtml(r.rir)}</td><td>${escapeHtml(r.rest)}</td></tr>`).join('')}</tbody>
+                <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${r.sets}</td><td>${escapeHtml(r.reps)}</td><td>${escapeHtml(r.rir)}</td><td>${escapeHtml(normalizeRestLabel(r.rest))}</td></tr>`).join('')}</tbody>
             </table>
         </div>
     </details>`).join('') || '<div class="empty">No tienes rutinas creadas. Toca "+ Nueva Rutina" para empezar.</div>';
@@ -1729,7 +1803,7 @@ function renderTrain(){
   document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone);return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="Ejercicio ${i+1}">${dn?ic('check'):i+1}</button>`}).join('');
   document.getElementById('trainNext').innerHTML=train.idx===es.length-1?'Finalizar '+ic('check'):'Siguiente '+ic('arrow-right');
   const tg=routineTargetFor(e.name);
-  const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${tg.rest}`].filter(Boolean):[];
+  const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${normalizeRestLabel(tg.rest)}`].filter(Boolean):[];
   const prev=getExerciseSessions(e.name).filter(x=>x.date<d), last=prev[prev.length-1];
   let sug=null,hint='',lastHtml='<div class="train-last muted">Primera vez con este ejercicio: registra tus series.</div>';
   if(last){
