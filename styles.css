@@ -328,3 +328,43 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .tr-ok .ic{width:1.35em;height:1.35em}.tr-row:not(.done) .tr-ok .ic{opacity:.3}
 .train-hint .ic,.train-rest .ic{color:var(--accent)}
 .tr-rest{grid-column:1/-1;text-align:center;font-size:var(--fs-xs);color:var(--muted)}
+
+/* ===== CORRECCIONES v4.8.1 ===== */
+:root{--fs-xs:.75rem;--fs-sm:.8125rem;--btn-sm:40px}
+/* El resumen final del entrenamiento y los avisos quedaban DETRÁS del modo entrenamiento (z-index 200) */
+.modal-backdrop{z-index:300}
+.toast{z-index:400}
+/* Alturas y apariencia uniformes (iOS dibuja distinto select y fecha) */
+input,select{height:var(--control-h);line-height:1.2}
+select{-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 12px center;background-size:14px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f98a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>")}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+/* Editor de rutinas: nombre + quitar arriba, 4 campos iguales debajo */
+.re-head{display:flex;gap:8px;margin-bottom:8px}
+.re-head .re-name{margin:0;flex:1;min-width:0}
+.re-head .remove-set{width:var(--control-h);flex:none}
+.re-subgrid{grid-template-columns:repeat(4,minmax(0,1fr));align-items:end}
+.re-subgrid label{margin:0 0 4px}
+
+/* ===== MARCA LiftEngine ===== */
+.brand h1{display:flex;align-items:center;color:var(--text)}
+.brand h1 .logo{color:var(--accent);width:1.3em;height:1.3em;margin-right:10px;stroke-width:1.8}
+.wm{font-weight:600;letter-spacing:-.02em;color:var(--text)}.wm b{font-weight:800;color:var(--accent)}
+.auth-logo{width:72px;height:72px;margin:0 0 14px;color:var(--accent);stroke-width:1.6}
+.load-brand{display:flex;align-items:center;gap:10px;font-size:1.9rem;margin-bottom:26px}
+.load-brand .logo{width:1.3em;height:1.3em;margin:0;color:var(--accent);stroke-width:1.8}
+.credit{margin-top:28px;padding:18px 0 6px;border-top:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:var(--fs-sm);text-align:center}
+.credit>.logo{width:1.6em;height:1.6em;color:var(--accent);margin:0 0 2px}
+.credit b{color:var(--text)}.credit a{color:var(--accent);text-decoration:none}.credit a:hover{text-decoration:underline}
+
+/* ===== RESUMEN SEMANAL ===== */
+.week-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.wd{height:38px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:var(--fs-xs);color:var(--muted)}
+.wd.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.wd.today{outline:1px solid var(--accent);outline-offset:2px}
+.mbar{display:grid;grid-template-columns:84px minmax(0,1fr) 30px;gap:10px;align-items:center;margin-top:10px;font-size:var(--fs-sm)}
+.mbar i{display:block;height:8px;border-radius:99px;background:var(--input);overflow:hidden}
+.mbar i b{display:block;height:100%;background:var(--accent);border-radius:99px}
+.mbar span:last-child{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.train-tools{flex-wrap:wrap}.train-tools .btn{flex:1 1 calc(50% - 4px)}

@@ -27,7 +27,7 @@ async function connectFirebase(){
     fb={
         db:fsMod.getFirestore(app), doc:fsMod.doc, setDoc:fsMod.setDoc, getDoc:fsMod.getDoc,
         auth: authMod.getAuth(app), provider: new authMod.GoogleAuthProvider(),
-        signInWithPopup: authMod.signInWithPopup, signOut: authMod.signOut, onAuthStateChanged: authMod.onAuthStateChanged
+        signInWithPopup: authMod.signInWithPopup, signInWithRedirect: authMod.signInWithRedirect, signOut: authMod.signOut, onAuthStateChanged: authMod.onAuthStateChanged
     };
     return true;
   }catch(e){ console.error('Firebase no disponible:',e); return false; }
@@ -37,14 +37,27 @@ window.loginConGoogle = async function() {
     if(!(await connectFirebase())) { alert("Revisa tu conexión a internet."); return; }
     try {
         await fb.signInWithPopup(fb.auth, fb.provider);
-    } catch(e) { alert("Error al iniciar sesión: " + e.message); }
+    } catch(e) {
+        if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/web-storage-unsupported'].includes(e.code)){
+            try{ await fb.signInWithRedirect(fb.auth, fb.provider); return; }catch(e2){ e=e2; }
+        }
+        if(e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request') return;
+        alert("Error al iniciar sesión: " + e.message);
+    }
 };
+
+function wipeLocalData(){
+    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles',PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymLastUid']
+      .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
+    updatedAt=0;
+}
 
 window.logout = async function() {
     if(!fb) return;
+    if(localStorage.getItem(PENDING_KEY)==='1' && !confirm('Hay cambios que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?')) return;
     if(confirm("¿Estás seguro de cerrar sesión? Solo podrás ver y sincronizar tus rutinas al volver a entrar.")) {
         await fb.signOut(fb.auth);
-        localStorage.removeItem('gymLastUid');
+        wipeLocalData();
         location.reload();
     }
 };
@@ -190,7 +203,7 @@ async function saveToFirebase() {
     } while(saveQueued);
     updateSyncStatus('Sincronizado','ok');
   } catch (e) {
-    console.error('Track Gym Error Sincronizando:', e);
+    console.error('LiftEngine · error sincronizando:', e);
     updateSyncStatus('Guardado local · sin conexión','error');
     ok=false;
   } finally {
@@ -351,7 +364,9 @@ window.saveNote = function(){
   const d=document.getElementById('routineDate').value; if(!d) return;
   const t=document.getElementById('sessionNote').value.trim();
   if(t) notes[d]=t; else delete notes[d];
-  saveToFirebase();
+  try{ localStorage.setItem(PENDING_KEY,'1'); }catch(e){}
+  persistLocal();
+  clearTimeout(window.noteT); window.noteT=setTimeout(saveToFirebase,900);
 }
 
 window.loadTemplate = function() {
@@ -624,7 +639,25 @@ function getMuscleGroup(name) {
     return 'Otros';
 }
 
+function weekStart(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function ymd(x){return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`}
+function renderWeek(){
+  const box=document.getElementById('weekBody'); if(!box) return;
+  const ws=weekStart(), days=[...Array(7)].map((_,i)=>{const x=new Date(ws);x.setDate(ws.getDate()+i);return ymd(x)});
+  const lifted=d=>(data[d]||[]).some(e=>!e.isCardio&&entryHasData(e));
+  const trained=days.filter(lifted), sets={};
+  days.forEach(d=>(data[d]||[]).forEach(e=>{ if(e.isCardio) return; const n=e.sets.filter(setHasData).length; if(n){const m=getMuscleGroup(e.name); sets[m]=(sets[m]||0)+n;} }));
+  const wk=new Set(Object.keys(data).filter(lifted).map(d=>ymd(weekStart(new Date(d+'T12:00:00')))));
+  let streak=0, cur=new Date(ws); if(!wk.has(ymd(cur))) cur.setDate(cur.getDate()-7);
+  while(wk.has(ymd(cur))){ streak++; cur.setDate(cur.getDate()-7); }
+  document.getElementById('weekBadge').textContent=streak?`Racha ${streak} sem`:'Sin racha';
+  const rows=Object.entries(sets).sort((a,b)=>b[1]-a[1]), mx=Math.max(10,...rows.map(r=>r[1]));
+  box.innerHTML=`<div class="week-days">${days.map((d,i)=>`<div class="wd ${trained.includes(d)?'on':''} ${d===todayStr()?'today':''}">${'LMXJVSD'[i]}</div>`).join('')}</div>
+    <div class="muted" style="font-size:var(--fs-sm)"><b style="color:var(--text)">${trained.length}</b> entrenamientos esta semana · series por músculo:</div>
+    ${rows.length?rows.map(([m,n])=>`<div class="mbar"><span>${escapeHtml(m)}</span><i><b style="width:${Math.round(n/mx*100)}%"></b></i><span>${n}</span></div>`).join(''):'<div class="empty" style="padding:12px">Aún no hay series esta semana.</div>'}`;
+}
 function renderDashboard(){
+  renderWeek();
   const dates=Object.keys(data).filter(d=>(data[d]||[]).some(entryHasData)).sort(),workouts=dates.filter(d=>(data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))).length;
   const allSets=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:e.sets.filter(setHasData).length),0),0);
   const totalVolKg=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:sessionVolume(e)),0),0);
@@ -933,7 +966,7 @@ window.exportCSV = function() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `TrackGym_Historial_${todayStr()}.csv`;
+    link.download = `LiftEngine_Historial_${todayStr()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -959,7 +992,7 @@ function renderSettingsModal(){
             <!-- FASE 3: Botón para gestionar Músculos y Alias -->
             <button class="btn btn-secondary full" style="margin-bottom:12px; border-style:dashed;" onclick="openCatalogsModal('musculos')">${ic('list')} Gestionar Músculos y Alias</button>
             
-            <p class="muted">Tus datos están sincronizados en tu propia cuenta de Google.</p>
+            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.</p>
             <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:12px;" onclick="exportCSV()">${ic('table')} Exportar a Excel (CSV)</button>
             <div class="actions">
                 <button class="btn btn-primary" onclick="exportData()">Respaldo JSON</button>
@@ -968,6 +1001,7 @@ function renderSettingsModal(){
             <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
             
             <button class="btn btn-danger full" style="margin-top:12px;" onclick="logout()">Cerrar sesión</button>
+            <p class="muted" style="font-size:.75rem;text-align:center;margin:14px 0 0">LiftEngine v4.9 · Creada y diseñada por <b style="color:var(--text)">Isaias Cruz</b><br><a href="mailto:isajack42@gmail.com" style="color:var(--accent);text-decoration:none">isajack42@gmail.com</a></p>
             
             <div class="actions" style="margin-top:12px;">
                 <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
@@ -1002,7 +1036,7 @@ window.openCatalogsModal = function(tab = 'musculos') {
             let currentMuscle = getMuscleGroup(ex);
             return `<div class="routine-edit-row" style="padding:8px">
                 <div style="font-size:0.85rem; font-weight:bold; margin-bottom:4px;">${escapeHtml(ex)}</div>
-                <select onchange="updateExerciseMuscle('${escapeHtml(ex)}', this.value)" style="min-height:36px; height:36px; padding:4px 8px; font-size:14px;">
+                <select data-ex="${escapeHtml(ex)}" onchange="updateExerciseMuscle(this.dataset.ex, this.value)" style="min-height:36px; height:36px; padding:4px 8px; font-size:14px;">
                     <option value="Otros">Otros</option>
                     ${Object.keys(customMuscles).concat(['Pecho','Espalda','Piernas','Hombros','Brazos','Core']).filter((v,i,a)=>a.indexOf(v)===i).sort().map(m => `<option value="${m}" ${currentMuscle===m?'selected':''}>${m}</option>`).join('')}
                 </select>
@@ -1014,7 +1048,7 @@ window.openCatalogsModal = function(tab = 'musculos') {
             return `<div class="routine-edit-row" style="padding:8px; display:grid; grid-template-columns:1fr 1fr auto; gap:6px; align-items:center;">
                 <div style="font-size:0.8rem; color:var(--muted)">Si escribo: <br><b style="color:var(--text)">${escapeHtml(alias)}</b></div>
                 <div style="font-size:0.8rem; color:var(--muted)">Se guarda como: <br><b style="color:var(--text)">${escapeHtml(real)}</b></div>
-                <button class="btn-delete-sm" onclick="deleteAlias('${escapeHtml(alias)}')">${ic('trash')}</button>
+                <button class="btn-delete-sm" data-alias="${escapeHtml(alias)}" onclick="deleteAlias(this.dataset.alias)">${ic('trash')}</button>
             </div>`;
         }).join('');
         let form = `<div class="routine-edit-row" style="padding:10px; margin-bottom:15px; border-color:var(--accent);">
@@ -1059,7 +1093,7 @@ window.deleteAlias = function(alias) {
 // ==========================================
 
 window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
-window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.8,data,categories,weights,measurements,notes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='track-gym-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
+window.exportData = function(){const blob=new Blob([JSON.stringify({version:4.9,data,categories,weights,measurements,notes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='liftengine-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Respaldo JSON OK')}
 window.importData = function(ev){
   const file=ev.target.files[0]; if(!file) return;
   const r=new FileReader();
@@ -1334,7 +1368,7 @@ function renderTrain(){
     <div class="train-tags">${tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>
     ${lastHtml}${hint?`<div class="train-hint">${ic('bulb')}${escapeHtml(hint)}</div>`:''}
     <div class="tr-head"><span>#</span><span>Peso (${unitLabel()})</span><span>Reps</span><span>RIR</span><span></span></div>${rows}
-    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
+    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
   body.scrollTop=keep;
 }
 function trainCur(){ return trainEntries()[train.idx]; }
@@ -1355,6 +1389,18 @@ window.trainToggle=function(i){
   if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; ensureTimerRunning(); }
   if(navigator.vibrate) navigator.vibrate(30);
   renderTrain();
+}
+window.trainAddExercise=function(){
+  document.getElementById('modal').innerHTML=`<h2>Añadir ejercicio</h2><label>Nombre</label><input id="trNewEx" list="exerciseList" placeholder="Ej. Press banca con barra"><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="trainAddExerciseOk()">Añadir</button></div>`;
+  openEl(); setTimeout(()=>{const i=document.getElementById('trNewEx'); if(i) i.focus();},60);
+}
+window.trainAddExerciseOk=function(){
+  const raw=document.getElementById('trNewEx').value.trim(); if(!raw){ toast('Escribe el ejercicio'); return; }
+  const name=normalizeName(raw), d=train.date; if(!data[d]) data[d]=[];
+  const prev=getExerciseSessions(name).filter(x=>x.date<d).pop(), n=prev?prev.sets.length:3, rest=(routineTargetFor(name)||{}).rest||'90 s';
+  const e={id:Date.now()+Math.random(),isCardio:false,name,sets:Array.from({length:n},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest}))};
+  data[d].push(e); train.order.push(e.id); train.idx=train.order.length-1;
+  saveTrain(); saveToFirebase(); closeModal(); populateExercises(); renderTrain();
 }
 window.trainAddSet=function(){ const e=trainCur(); if(!e) return; const l=e.sets[e.sets.length-1]||{}; e.sets.push({setNumber:e.sets.length+1,reps:'-',weight:0,rir:'-',rest:l.rest||'90 s'}); saveToFirebase(); renderTrain(); }
 window.trainDelSet=function(){ const e=trainCur(); if(!e||e.sets.length<2) return; if(isDone(e.sets[e.sets.length-1])){ toast('Desmarca la última serie para quitarla'); return; } e.sets.pop(); saveToFirebase(); renderTrain(); }
@@ -1390,6 +1436,7 @@ window.trainEnd=function(){
 }
 
 async function initApp() {
+    if(DOC_ID) setTimeout(()=>{ document.getElementById('loadingOverlay').style.display='none'; },4000);
     document.getElementById('routineDate').value=todayStr();
     load();
     if(migrateNames()) persistLocal();
@@ -1401,10 +1448,12 @@ async function initApp() {
     if(await connectFirebase()) {
         fb.onAuthStateChanged(fb.auth, user => {
             if(user) {
+                const prevUid=localStorage.getItem('gymLastUid');
+                if(prevUid && prevUid!==user.uid){ wipeLocalData(); train=null; load(); refreshAll(); }
                 DOC_ID = user.uid;
                 localStorage.setItem('gymLastUid', user.uid);
                 document.getElementById('authOverlay').classList.add('hidden');
-                document.getElementById('loadingOverlay').style.display='flex';
+                if(!prevUid) document.getElementById('loadingOverlay').style.display='flex';
                 updateSyncStatus('Conectando…','saving');
                 syncFromCloud().then(ok => {
                     document.getElementById('loadingOverlay').style.display='none';
@@ -1436,3 +1485,6 @@ if(settingsBtn){
 }
 
 initApp();
+
+// Instalable y con modo sin conexión (requiere https o localhost)
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
