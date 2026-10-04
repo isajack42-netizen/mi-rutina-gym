@@ -368,3 +368,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .mbar i b{display:block;height:100%;background:var(--accent);border-radius:99px}
 .mbar span:last-child{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
 .train-tools{flex-wrap:wrap}.train-tools .btn{flex:1 1 calc(50% - 4px)}
+
+/* ===== iPhone: respetar la muesca / barra de estado en modo app instalada ===== */
+body{padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.auth-overlay{padding-top:calc(24px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
