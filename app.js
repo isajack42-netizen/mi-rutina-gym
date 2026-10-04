@@ -2,7 +2,7 @@
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-const APP_VERSION='5.2.2';
+const APP_VERSION='5.2.3';
 const DATA_SCHEMA_VERSION=1;
 
 const firebaseConfig = {
@@ -16,7 +16,7 @@ const firebaseConfig = {
 
 let DOC_ID = localStorage.getItem('gymLastUid') || null;
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
-let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0;
+let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0, lastSyncError='';
 
 function ic(n){return `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`}
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
@@ -24,15 +24,23 @@ function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeou
 async function connectFirebase(){
   if(fb) return true;
   try{
-    const [appMod,fsMod,authMod]=await withTimeout(Promise.all([import(FB_APP_URL),import(FB_FS_URL),import(FB_AUTH_URL)]),8000);
-    const app=appMod.initializeApp(firebaseConfig);
+    // En móvil una carga en frío de los módulos ESM puede superar 8 s.
+    // Damos margen suficiente y reutilizamos una app ya inicializada si existiera.
+    const [appMod,fsMod,authMod]=await withTimeout(Promise.all([import(FB_APP_URL),import(FB_FS_URL),import(FB_AUTH_URL)]),20000);
+    const apps=typeof appMod.getApps==='function' ? appMod.getApps() : [];
+    const app=apps.length && typeof appMod.getApp==='function' ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
     fb={
         db:fsMod.getFirestore(app), doc:fsMod.doc, setDoc:fsMod.setDoc, getDoc:fsMod.getDoc,
         auth: authMod.getAuth(app), provider: new authMod.GoogleAuthProvider(),
         signInWithPopup: authMod.signInWithPopup, signInWithRedirect: authMod.signInWithRedirect, signOut: authMod.signOut, onAuthStateChanged: authMod.onAuthStateChanged
     };
+    lastSyncError='';
     return true;
-  }catch(e){ console.error('Firebase no disponible:',e); return false; }
+  }catch(e){
+    lastSyncError=(e&&e.message)||String(e||'Firebase no disponible');
+    console.error('Firebase no disponible:',e);
+    return false;
+  }
 }
 
 window.loginConGoogle = async function() {
@@ -120,7 +128,8 @@ const defaultMuscles = {
 // Variables globales del sistema
 let data={}, categories={}, weights=[], measurements=[], notes={}, customRoutines={}, currentUnit='kg', currentTheme='default', setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, saveInFlight=false, saveQueued=false;
 let customAliases={}, customMuscles={};
-let localRecoveryDetected=false; // Fase 1: indica si se recuperó una estructura local dañada
+let localRecoveryDetected=false; // Solo para corrupción real (JSON ilegible o pérdida estructural grave)
+let localNormalizationDetected=false; // Migraciones/normalizaciones compatibles, sin alarmar al usuario
 window.editingId = null;
 window.timerInt = null;
 window.timerEndAt = 0;
@@ -244,15 +253,35 @@ function backupCorruptLocal(key,raw){
   }catch(e){ console.warn('No se pudo guardar recuperación local:',key,e); }
 }
 
+function sameContainerType(value,fallback){
+  return Array.isArray(fallback) ? Array.isArray(value) : (isPlainObject(fallback) ? isPlainObject(value) : true);
+}
+function itemCount(value){
+  if(Array.isArray(value)) return value.length;
+  if(isPlainObject(value)) return Object.keys(value).length;
+  return value==null ? 0 : 1;
+}
 function readLocal(key,fallback,sanitizer){
   const raw=localStorage.getItem(key);
   if(raw===null) return fallback;
   try{
     const parsed=JSON.parse(raw);
+    // Un cambio de formato compatible (p. ej. "2 min" -> "120 s" o añadir
+    // isCardio:false) NO significa que los datos estén dañados. La v5.2.2
+    // confundía cualquier normalización con corrupción y mostraba una falsa alarma.
+    if(!sameContainerType(parsed,fallback)){
+      backupCorruptLocal(key,raw);
+      return fallback;
+    }
     const clean=sanitizer(parsed);
-    let suspicious=false;
-    try{ suspicious=JSON.stringify(parsed)!==JSON.stringify(clean); }catch(e){ suspicious=true; }
-    if(suspicious) backupCorruptLocal(key,raw);
+    const before=itemCount(parsed), after=itemCount(clean);
+    if(before>0 && after===0){
+      backupCorruptLocal(key,raw);
+      return fallback;
+    }
+    try{
+      if(JSON.stringify(parsed)!==JSON.stringify(clean)) localNormalizationDetected=true;
+    }catch(e){ localNormalizationDetected=true; }
     return clean;
   }catch(e){
     backupCorruptLocal(key,raw);
@@ -280,6 +309,9 @@ function load(){
   if(Object.keys(customRoutines).length===0) customRoutines = JSON.parse(JSON.stringify(defaultPPL));
   document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
   document.documentElement.setAttribute('data-theme', currentTheme);
+  if(localNormalizationDetected){
+    try{ persistLocal(); localNormalizationDetected=false; }catch(e){ console.warn('No se pudo persistir la normalización local:',e); }
+  }
 }
 
 function persistLocal(){
@@ -299,7 +331,7 @@ async function saveToFirebase() {
   updatedAt=Date.now();
   try{ localStorage.setItem(PENDING_KEY,'1'); localStorage.setItem(UPDATED_KEY,String(updatedAt)); }catch(e){}
   persistLocal();
-  if(!cloudReady||!fb||!DOC_ID){ updateSyncStatus('Guardado local','error'); return false; }
+  if(!cloudReady||!fb||!DOC_ID){ updateSyncStatus('Pendiente de sincronizar','saving'); return false; }
   if(saveInFlight){ saveQueued=true; return false; }
   saveInFlight=true;
   updateSyncStatus('Guardando…','saving');
@@ -370,21 +402,49 @@ async function syncFromCloud(){
     if(useLocal) await saveToFirebase();
     else { applyCloud(cloud,cloudStamp); updateSyncStatus('Sincronizado','ok'); }
     return true;
-  }catch(e){ console.error('Error de sincronización:',e); return false; }
+  }catch(e){
+    lastSyncError=(e&&((e.code?e.code+': ':'')+(e.message||'')))||String(e||'Error de sincronización');
+    console.error('Error de sincronización:',e);
+    return false;
+  }
   finally{ syncing=false; }
 }
 
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+async function syncFromCloudWithRetry(attempts=2){
+  let ok=false;
+  for(let i=0;i<attempts;i++){
+    ok=await syncFromCloud();
+    if(ok) return true;
+    if(i<attempts-1){
+      updateSyncStatus('Reintentando sincronización…','saving');
+      await delay(1200*(i+1));
+    }
+  }
+  return false;
+}
+
+function waitForAuthState(timeoutMs=8000){
+  return new Promise(resolve=>{
+    if(!fb||!fb.auth) return resolve(null);
+    if(fb.auth.currentUser) return resolve(fb.auth.currentUser);
+    let done=false, unsub=()=>{};
+    const finish=user=>{ if(done) return; done=true; try{unsub();}catch(e){} resolve(user||null); };
+    unsub=fb.onAuthStateChanged(fb.auth,user=>finish(user));
+    setTimeout(()=>finish(fb.auth.currentUser),timeoutMs);
+  });
+}
 
 window.retryCloudSync = async function(){
   updateSyncStatus('Conectando…','saving');
   try{
     if(!(await connectFirebase())){ updateSyncStatus('Guardado local · sin conexión','error'); toast('No se pudo conectar con Firebase'); return false; }
-    const user=fb.auth.currentUser;
+    const user=fb.auth.currentUser || await waitForAuthState(8000);
     if(!user){ updateSyncStatus('Sesión no disponible','error'); toast('Vuelve a iniciar sesión con Google'); return false; }
     DOC_ID=user.uid;
     localStorage.setItem('gymLastUid',user.uid);
-    const ok=await syncFromCloud();
-    if(!ok) updateSyncStatus('Guardado local · sin conexión','error');
+    const ok=await syncFromCloudWithRetry(2);
+    if(!ok){ updateSyncStatus('Guardado local · sin conexión','error'); toast('No se pudo sincronizar. Tus datos siguen guardados en este dispositivo.'); }
     else toast('Sincronización actualizada');
     return ok;
   }catch(e){
@@ -407,6 +467,7 @@ function updateSyncStatus(text,state){
   if(!el) return;
   el.innerHTML=ic('cloud')+' '+escapeHtml(text);
   el.dataset.state=state||'';
+  el.title=(state==='error'&&lastSyncError) ? lastSyncError : '';
 }
 
 function toKg(val) { let num = parseFloat(val) || 0; return currentUnit === 'lbs' ? num / 2.20462 : num; }
@@ -1931,6 +1992,7 @@ async function initApp() {
     renderTrainCTA(); resumeTrainingIfAny();
     if(localRecoveryDetected) setTimeout(()=>toast('Se detectaron datos locales dañados y se conservó una copia de recuperación en este dispositivo.'),900);
 
+    updateSyncStatus('Conectando…','saving');
     if(await connectFirebase()) {
         fb.onAuthStateChanged(fb.auth, user => {
             if(user) {
@@ -1941,7 +2003,7 @@ async function initApp() {
                 document.getElementById('authOverlay').classList.add('hidden');
                 if(!prevUid) document.getElementById('loadingOverlay').style.display='flex';
                 updateSyncStatus('Conectando…','saving');
-                syncFromCloud().then(ok => {
+                syncFromCloudWithRetry(2).then(ok => {
                     document.getElementById('loadingOverlay').style.display='none';
                     if(!ok) updateSyncStatus('Guardado local · sin conexión','error');
                 });
@@ -1955,11 +2017,17 @@ async function initApp() {
         document.getElementById('loadingOverlay').style.display='none';
         if(!DOC_ID) document.getElementById('authOverlay').classList.remove('hidden');
         updateSyncStatus('Guardado local · sin conexión','error');
+        // Un fallo de carga inicial de los módulos no debe dejar la app en local
+        // hasta la siguiente recarga. Si ya conocíamos al usuario, reintentamos.
+        if(DOC_ID && navigator.onLine) setTimeout(()=>retryCloudSync(),2500);
     }
 }
 
-window.addEventListener('online',()=>{ if(!saveInFlight && DOC_ID) syncFromCloud().then(ok=>{ if(!ok) updateSyncStatus('Guardado local · sin conexión','error'); }); });
-document.addEventListener('visibilitychange',()=>{ if(!document.hidden && window.timerInt) tickTimer(); });
+window.addEventListener('online',()=>{ if(!saveInFlight && DOC_ID) syncFromCloudWithRetry(2).then(ok=>{ if(!ok) updateSyncStatus('Guardado local · sin conexión','error'); }); });
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && window.timerInt) tickTimer();
+  if(!document.hidden && DOC_ID && !syncing && !saveInFlight && navigator.onLine && document.getElementById('syncStatus')?.dataset.state==='error') retryCloudSync();
+});
 
 document.getElementById('routineDate').addEventListener('change',()=>loadDay());
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});
@@ -1973,4 +2041,4 @@ if(settingsBtn){
 initApp();
 
 // Instalable y con modo sin conexión (requiere https o localhost)
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',async()=>{ try{ const reg=await navigator.serviceWorker.register('sw.js?v=5.2.2',{updateViaCache:'none'}); reg.update().catch(()=>{}); }catch(e){ console.warn('Service Worker no disponible:',e); } });
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',async()=>{ try{ const reg=await navigator.serviceWorker.register('sw.js?v=5.2.3',{updateViaCache:'none'}); reg.update().catch(()=>{}); }catch(e){ console.warn('Service Worker no disponible:',e); } });
