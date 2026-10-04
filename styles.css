@@ -69,7 +69,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 
 header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px}
 .brand{min-width:0;flex:1}
-.brand h1{font-size:clamp(1.25rem,4vw,1.55rem);margin:0;color:var(--accent);line-height:1.2;font-weight:800}
+.brand h1{font-size:clamp(1.25rem,4vw,1.55rem);margin:0;color:var(--accent);line-height:1.2;font-weight:800;display:flex;align-items:center}
 .brand p{margin:4px 0 0;color:var(--muted);font-size:.82rem}
 .header-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px;flex-shrink:0}
 .icon-btn,.ghost-btn{
@@ -79,11 +79,13 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:10p
 }
 .icon-btn{width:var(--control-h);padding:0}
 
-.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:16px}
+/* PESTAÑAS SIMÉTRICAS EN PC */
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:16px;width:100%}
 .tab-btn{
   border:1px solid var(--line);background:var(--card);color:var(--muted);
-  border-radius:var(--radius-sm);min-height:var(--control-h);padding:8px 4px;
-  font-weight:700;font-size:.78rem;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  border-radius:var(--radius-sm);min-height:var(--control-h);padding:8px 12px;
+  font-weight:700;font-size:.85rem;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%
 }
 .tab-btn.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 .tab{display:none}.tab.active{display:block}
@@ -149,13 +151,15 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .set-log{display:grid;grid-template-columns:32px repeat(4,minmax(0,1fr));gap:6px;border-top:1px solid var(--line);padding:8px 0;font-size:.8rem;align-items:center}
 .set-log span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.action-group{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
+/* BOTONES DE EDICIÓN MEJORADOS Y SIMÉTRICOS */
+.action-group{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .btn-edit-sm,.btn-delete-sm{
-  background:transparent;min-height:36px;padding:6px 12px;border-radius:7px;
-  font-size:.8rem;font-weight:700
+  background:var(--input);min-height:38px;padding:6px 14px;border-radius:var(--radius-sm);
+  font-size:.82rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line)
 }
-.btn-edit-sm{color:var(--accent);border:1px solid var(--accent)}
-.btn-delete-sm{color:var(--red);border:1px solid #633b3b}
+.btn-edit-sm{color:var(--accent);border-color:var(--line)}
+.btn-edit-sm:hover{border-color:var(--accent);background:var(--card2)}
+.btn-delete-sm{color:var(--red);border-color: #633b3b}
 
 .muted{color:var(--muted)}
 .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
@@ -190,8 +194,6 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 
 .chart-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;height:300px;position:relative}
 .chart-box-sm{height:240px}
-.body-weight-trend{font-size:1.35rem;font-weight:800;margin:12px 0;color:var(--accent);font-variant-numeric:tabular-nums}
-.body-weight-trend small{display:block;font-size:.75rem;color:var(--muted);font-weight:600;margin-top:3px}
 
 .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
 .calendar-head strong{text-transform:capitalize;text-align:center;flex:1}
@@ -270,58 +272,7 @@ th{color:var(--muted)}
   .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:720px){
-  .tabs{gap:5px}
-  .tab-btn{font-size:.68rem;padding:8px 2px}
-  .grid-2,.grid-3{grid-template-columns:1fr}
-  .datebar,.exercise-head{grid-template-columns:1fr}
-  .section-title .actions{width:100%;margin-top:0}
-  .progression-grid{grid-template-columns:1fr 1fr}
-  .progression-table th:nth-child(4),.progression-table td:nth-child(4){display:none}
-  .chart-box{height:220px}
-  .chart-box-sm{height:200px}
-  .cal-day,.cal-day.empty{min-height:52px;height:52px;padding:3px}
-  .set-log{grid-template-columns:28px repeat(2,minmax(0,1fr));font-size:.78rem}
-  .modal-backdrop{align-items:flex-start;padding:12px}
-  .modal{width:100%;max-width:none;max-height:calc(100dvh - 24px)}
-  .re-subgrid{grid-template-columns:1fr 1fr var(--control-h)}
-}
-@media(max-width:400px){
-  .header-actions .sync-status{display:none}
-  .stat{min-height:88px}
-}
-
-/* ===== v4.5 · ARMONÍA VISUAL ===== */
-:root{--fs-xs:.75rem;--fs-sm:.8125rem;--btn-sm:40px}
-input,select{height:var(--control-h);line-height:1.2}
-select{-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 12px center;background-size:14px;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f98a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>")}
-input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;text-align:left}
-input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
-.card{padding:16px;margin-bottom:12px}
-.section-title{margin:4px 0 12px}
-.stat,.progression-stat,.bodycomp-stat{min-height:92px}
-.stat .label,.progression-stat .label,.bodycomp-stat .label,.measurement-item .label,.bodycomp-stat .sub{font-size:var(--fs-xs)}
-.stat .value,.progression-stat .value,.bodycomp-stat .value,.measurement-item .value{font-size:clamp(1rem,4.2vw,1.25rem);font-weight:800;line-height:1.15}
-th,td,.progression-table th,.progression-table td{font-size:var(--fs-sm)}
-.set-row label{font-size:var(--fs-xs)}
-.set-log{grid-template-columns:30px repeat(4,minmax(0,1fr));font-size:var(--fs-sm)}
-.datebar{align-items:end}.datebar .btn{margin-top:0!important}
-.btn-edit-sm,.btn-delete-sm,.floating-timer button,.calendar-head button{min-height:var(--btn-sm);min-width:var(--btn-sm)}
-.header-actions{flex-wrap:nowrap}
-.tab-btn{display:flex;align-items:center;justify-content:center;gap:6px}
-.cal-cat{font-size:.65rem}.cal-day.has-workout{background:var(--card2)}.cal-day.selected{background:var(--accent)}
-.modal-backdrop{z-index:300}.toast{z-index:400}
-.re-head{display:flex;gap:8px;margin-bottom:8px}.re-head .re-name{margin:0;flex:1;min-width:0}.re-head .remove-set{width:var(--control-h);flex:none}
-.re-subgrid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px;align-items:end}
-.re-subgrid label{font-size:var(--fs-xs);margin:0 0 4px}.re-subgrid input{padding:0 4px}
-.train-cta-slot{margin-bottom:12px}.train-cta-slot .btn{width:100%;min-height:52px;font-size:1rem}
-@media(min-width:900px){
-  #resumen.active{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
-  #resumen>.train-cta-slot,#resumen>.stat-grid{grid-column:1/-1}
-  #resumen .card{margin:0!important}.tabs{max-width:680px}
-}
-@media(max-width:720px){
-  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line)}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr)}
   .tab-btn{flex-direction:column;gap:2px;min-height:52px;padding:4px 0;border:0;background:transparent;font-size:.68rem;overflow:visible}
   .tab-btn .ti{font-size:1.2rem;line-height:1}
   .tab-btn.active{background:transparent;color:var(--accent);box-shadow:inset 0 2px 0 var(--accent);border-radius:0}
@@ -368,7 +319,7 @@ body.train-open .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .train-rest button{min-height:var(--btn-sm);padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--input);color:var(--text);font-weight:700;margin-left:6px}
 .train-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:640px;width:100%;margin:0 auto}
 
-/* ===== ICONOS PROPIOS (línea, heredan el color del tema) ===== */
+/* ===== ICONOS PROPIOS ===== */
 .ic{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-.2em}
 .logo{width:1.2em;height:1.2em;margin-right:8px;vertical-align:-.2em}
 .ti{display:inline-flex}.ti .ic{width:22px;height:22px}
