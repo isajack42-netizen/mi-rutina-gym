@@ -306,6 +306,8 @@ window.renderCalendar = function(){
     const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
     const has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData));
     const routine=categories[d]||'';
+    const workoutEntries=(data[d]||[]).filter(e=>!e.isCardio&&entryHasData(e));
+    const setCount=workoutEntries.reduce((n,e)=>n+(e.sets||[]).filter(setCountsForWork).length,0);
     const label=routine||((data[d]||[]).some(entryHasData)?'Entrenamiento':'Registro');
     const el=document.createElement('button');
     el.type='button';
@@ -313,7 +315,8 @@ window.renderCalendar = function(){
     el.setAttribute('aria-label',`${i} · ${label||'Sin registro'}`);
     el.title=routine||label||'';
     const routineHtml=routine?`<span class="cal-routine">${escapeHtml(routine)}</span>`:'';
-    el.innerHTML=`<div class="cal-num">${i}</div>${has?`<div class="cal-day-meta">${routineHtml}<span class="cal-dot" aria-hidden="true"></span></div>`:''}`;
+    const statsHtml=workoutEntries.length?`<span class="cal-desktop-stats">${workoutEntries.length} ej · ${setCount} series</span>`:'';
+    el.innerHTML=`<div class="cal-num">${i}</div>${has?`<div class="cal-day-meta"><div class="cal-day-copy">${routineHtml}${statsHtml}</div><span class="cal-dot" aria-hidden="true"></span></div>`:''}`;
     el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};
     grid.appendChild(el);
   }
