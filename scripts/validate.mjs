@@ -71,6 +71,7 @@ if(appList&&swList){
 const dashboard=read('js/dashboard.js');
 const core=read('js/core.js');
 const toolsJs=read('js/tools.js');
+const css=read('styles.css');
 if(/entries\[entries\.length-1\]\.e/.test(dashboard)) fail.push('Regresión: Cargar anterior vuelve a asumir .e en allWeightEntries().');
 if(!core.includes('function sanitizeRecordId')) fail.push('Falta sanitización estricta de IDs importados.');
 if(!core.includes("const key=boundedString(rawKey,80,'');")) fail.push('Falta normalizar nombres de rutina antes de safeKey().');
@@ -84,7 +85,6 @@ if(!html.includes('id="summaryMore"')||!css.includes('.summary-glance-grid')) fa
 if(!dashboard.includes("document.createElement('button')")||!css.includes('.cal-dot')) fail.push('Calendario v6.1 no usa celdas accesibles e indicador visual.');
 if(!read('js/training.js').includes('class="train-context')) fail.push('Modo Entrenamiento v6.1 no compacta el contexto previo.');
 
-const css=read('styles.css');
 let depth=0;
 for(const ch of css){
   if(ch==='{') depth++;
