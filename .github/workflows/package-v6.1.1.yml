@@ -1,0 +1,36 @@
+name: Package LiftEngine v6.1.1
+
+on:
+  push:
+    branches: [ "package-v6.1.1" ]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact v6.1.1 main commit
+        uses: actions/checkout@v4
+        with:
+          ref: 18b5c19103b97ddcd9eafd9012181f796c2082c3
+          path: LiftEngine-v6.1.1
+
+      - name: Verify version
+        shell: bash
+        run: |
+          grep -F "LIFTENGINE_VERSION = '6.1.1'" LiftEngine-v6.1.1/js/version.js
+
+      - name: Remove repository metadata
+        shell: bash
+        run: rm -rf LiftEngine-v6.1.1/.git
+
+      - name: Upload source package
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiftEngine-v6.1.1
+          path: LiftEngine-v6.1.1
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
