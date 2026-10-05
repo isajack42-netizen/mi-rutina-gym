@@ -121,7 +121,7 @@ if(!html.includes('id="progress-tab-history"')||!html.includes('id="progress-his
 if(!read('js/history.js').includes('function historyPeriodCompare')||!read('js/history.js').includes('window.renderHistory')) fail.push('Falta el motor de historial/comparación v6.5.');
 if(!read('js/bootstrap.js').includes("'performance','intelligence','analytics','history','body'")||!read('js/bootstrap.js').includes("activeProgressView==='history'")) fail.push('Historial no está integrado en la subnavegación de Progreso.');
 if(!css.includes('v6.5 · TRAINING HISTORY & COMPARE')||!css.includes('.desktop-progress-only{display:none!important}')||!css.includes('#progreso .desktop-history-view.active{display:block!important}')) fail.push('Historial debe ser una experiencia exclusiva de escritorio.');
-if(!app.includes("'analytics','history','intelligence'")||!sw.includes("'analytics','history','intelligence'")) fail.push('history.js debe cargarse y precachearse entre Analytics e Intelligence.');
+if(!app.includes("'history'")||!sw.includes("'history'")) fail.push('history.js debe cargarse y precachearse.');
 if(!html.includes('id="routinePlanSummary"')||!html.includes('id="routinePlanFrequency"')||!html.includes('id="routinePlanMuscles"')) fail.push('Falta el Planning Workspace v6.6 en Rutinas.');
 if(!read('js/planning.js').includes('function planningComputePlan')||!read('js/planning.js').includes('window.renderRoutinePlanner')||!read('js/planning.js').includes('window.renderRoutineEditorPreview')) fail.push('Falta el motor o la vista previa del planificador v6.6.');
 if(!app.includes("'history','planning','intelligence'")||!sw.includes("'history','planning','intelligence'")) fail.push('planning.js debe cargarse y precachearse entre History e Intelligence.');
