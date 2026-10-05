@@ -426,7 +426,7 @@ body{padding-top:calc(16px + env(safe-area-inset-top,0px))}
 /* v5.4.1 · cierre preciso del descanso */
 .tr-start{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:8px;padding:6px 9px;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer}
 .tr-start:active{transform:translateY(1px)}
-\n\n/* LiftEngine v5.5 · diálogos propios, accesibles y consistentes */
+/* LiftEngine v5.5 · diálogos propios, accesibles y consistentes */
 .dialog-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:18px;z-index:12000}
 .dialog-backdrop.show{display:flex}
 .app-dialog{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
