@@ -433,6 +433,85 @@ function summarizeSession(session){
   return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
 }
 
+// <exercise-profile-helpers>
+function profileShiftDate(key,deltaDays){
+  const d=new Date(`${key}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate()+deltaDays);
+  return d.toISOString().slice(0,10);
+}
+function profileSessionSummary(session){
+  const sets=(session?.sets||[]).filter(s=>(Number(s.reps)||0)>0);
+  const weighted=sets.filter(s=>(Number(s.weight)||0)>0);
+  const bestWeight=weighted.length?Math.max(...weighted.map(s=>Number(s.weight)||0)):0;
+  const bestReps=sets.length?Math.max(...sets.map(s=>Number(s.reps)||0)):0;
+  const volume=weighted.reduce((a,s)=>a+(Number(s.reps)||0)*(Number(s.weight)||0),0);
+  const e1=weighted.reduce((best,s)=>Math.max(best,(Number(s.weight)||0)*(1+(Number(s.reps)||0)/30)),0);
+  const rirVals=sets.filter(s=>s.rir!==null&&s.rir!==undefined&&s.rir!==''&&s.rir!=='-').map(s=>Number(s.rir)).filter(Number.isFinite);
+  return {
+    bestWeight,bestReps,volume,e1rm:e1,sets:sets.length,
+    avgReps:sets.length?sets.reduce((a,s)=>a+(Number(s.reps)||0),0)/sets.length:null,
+    avgRir:rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null
+  };
+}
+function exerciseWindowAggregate(sessions,startKey,endKey){
+  const rows=(sessions||[]).filter(s=>s.date>=startKey&&s.date<=endKey);
+  const sums=rows.map(profileSessionSummary);
+  const rir=sums.map(x=>x.avgRir).filter(v=>v!==null);
+  const reps=sums.map(x=>x.avgReps).filter(v=>v!==null);
+  const totalVolume=sums.reduce((a,x)=>a+x.volume,0);
+  return {
+    startKey,endKey,sessions:rows.length,
+    bestWeight:sums.length?Math.max(0,...sums.map(x=>x.bestWeight)):0,
+    bestE1rm:sums.length?Math.max(0,...sums.map(x=>x.e1rm)):0,
+    workSets:sums.reduce((a,x)=>a+x.sets,0),
+    totalVolume,
+    volumePerSession:rows.length?totalVolume/rows.length:0,
+    avgReps:reps.length?reps.reduce((a,b)=>a+b,0)/reps.length:null,
+    avgRir:rir.length?rir.reduce((a,b)=>a+b,0)/rir.length:null
+  };
+}
+function profilePct(current,previous){return previous>0?((current-previous)/previous)*100:null;}
+function exercisePeriodComparison(sessions,days=28){
+  if(!sessions?.length)return null;
+  const anchor=sessions[sessions.length-1].date;
+  const currentStart=profileShiftDate(anchor,-(days-1));
+  const previousEnd=profileShiftDate(currentStart,-1);
+  const previousStart=profileShiftDate(previousEnd,-(days-1));
+  const current=exerciseWindowAggregate(sessions,currentStart,anchor);
+  const previous=exerciseWindowAggregate(sessions,previousStart,previousEnd);
+  return {anchor,days,current,previous,deltas:{
+    bestWeight:profilePct(current.bestWeight,previous.bestWeight),
+    bestE1rm:profilePct(current.bestE1rm,previous.bestE1rm),
+    volumePerSession:profilePct(current.volumePerSession,previous.volumePerSession),
+    avgReps:profilePct(current.avgReps||0,previous.avgReps||0),
+    sessions:previous.sessions?((current.sessions-previous.sessions)/previous.sessions)*100:null
+  }};
+}
+function exercisePrMilestones(sessions){
+  let weight=0,e1=0,reps=0;
+  const out=[];
+  (sessions||[]).forEach(session=>{
+    const sum=profileSessionSummary(session), gains={};
+    if(sum.bestWeight>weight){weight=sum.bestWeight;gains.weight=weight;}
+    if(sum.e1rm>e1){e1=sum.e1rm;gains.e1rm=e1;}
+    if(sum.bestReps>reps){reps=sum.bestReps;gains.reps=reps;}
+    if(Object.keys(gains).length)out.push({date:session.date,...gains});
+  });
+  return out;
+}
+function exerciseTrendSignal(comparison){
+  if(!comparison||!comparison.previous.sessions)return {kind:'neutral',title:'Aún sin comparación sólida',text:'Necesitas historial también en las 4 semanas anteriores para comparar periodos.'};
+  const d=comparison.deltas;
+  const primary=Number.isFinite(d.bestE1rm)?d.bestE1rm:(Number.isFinite(d.bestWeight)?d.bestWeight:d.avgReps);
+  const pct=Number.isFinite(primary)?primary:0;
+  const kind=pct>=2?'positive':pct<=-2?'warning':'neutral';
+  const title=kind==='positive'?'Señal de mejora':kind==='warning'?'Rendimiento por revisar':'Rendimiento estable';
+  const metric=Number.isFinite(d.bestE1rm)?'e1RM':Number.isFinite(d.bestWeight)?'peso':'reps';
+  const vol=Number.isFinite(d.volumePerSession)?` · volumen/sesión ${d.volumePerSession>=0?'+':''}${d.volumePerSession.toFixed(1)}%`:'';
+  return {kind,title,text:`${metric} ${pct>=0?'+':''}${pct.toFixed(1)}% frente a las 4 semanas anteriores${vol}.`};
+}
+// </exercise-profile-helpers>
+
 function renderDesktopExerciseContext(name){
   const hero=document.getElementById('desktopExerciseHero');
   const history=document.getElementById('desktopExerciseHistory');
