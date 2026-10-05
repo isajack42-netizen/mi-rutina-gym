@@ -25,8 +25,8 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) notifCle
 window.toggleNotifications=async function(silent){
   const st=notifState();
   if(st==='unsupported'){ toast('Tu navegador no admite notificaciones'); return; }
-  if(st==='needs-install'){ alert('En iPhone las notificaciones solo funcionan con la app instalada.\n\nSafari → Compartir → Añadir a pantalla de inicio, y ábrela desde ese icono.'); return; }
-  if(st==='denied'){ alert('Las notificaciones están bloqueadas para esta página.\n\nActívalas en los ajustes del sistema o del navegador (Notificaciones → LiftEngine / Chrome).'); return; }
+  if(st==='needs-install'){ await appAlert('En iPhone las notificaciones solo funcionan con la app instalada.\n\nSafari → Compartir → Añadir a pantalla de inicio, y ábrela desde ese icono.','Instala LiftEngine'); return; }
+  if(st==='denied'){ await appAlert('Las notificaciones están bloqueadas para esta página.\n\nActívalas en los ajustes del sistema o del navegador (Notificaciones → LiftEngine / Chrome).','Notificaciones bloqueadas'); return; }
   if(st==='on'){ try{localStorage.setItem('gymNotif','0')}catch(e){} notifCancel(); }
   else{
     const p=Notification.permission==='granted'?'granted':await Notification.requestPermission();
@@ -35,10 +35,10 @@ window.toggleNotifications=async function(silent){
   }
   if(!silent) renderSettingsModal();
 };
-function notifOffer(){
+async function notifOffer(){
   if(notifState()!=='off'||Notification.permission!=='default'||localStorage.getItem('gymNotifAsked')) return;
   try{ localStorage.setItem('gymNotifAsked','1'); }catch(e){}
-  if(confirm('¿Quieres recibir avisos de descanso? En segundo plano funcionan cuando el sistema mantiene activa la PWA; para garantía con pantalla bloqueada hace falta un servicio Push externo.')) toggleNotifications(true);
+  if(await appConfirm('¿Quieres recibir avisos de descanso? En segundo plano funcionan cuando el sistema mantiene activa la PWA.',{title:'Avisos de descanso',confirmText:'Activar'})) toggleNotifications(true);
 }
 
 // ===== TECLADO NUMÉRICO EN MÓVIL (inputmode) =====

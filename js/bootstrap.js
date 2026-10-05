@@ -9,6 +9,7 @@ async function initApp() {
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
     renderTrainCTA(); resumeTrainingIfAny();
+    improveFormAccessibility(document);
     if(localRecoveryDetected) setTimeout(()=>toast('Se detectaron datos locales dañados y se conservó una copia de recuperación en este dispositivo.'),900);
 
     updateSyncStatus('Conectando…','saving');
@@ -57,7 +58,10 @@ if(settingsBtn){
     settingsBtn.addEventListener('click', () => renderSettingsModal());
 }
 
+const accessibilityObserver=new MutationObserver(()=>improveFormAccessibility(document));
+accessibilityObserver.observe(document.body,{childList:true,subtree:true});
+
 initApp();
 
 // Instalable y con modo sin conexión (requiere https o localhost)
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',async()=>{ try{ const reg=await navigator.serviceWorker.register(`sw.js?v=${APP_VERSION}`,{updateViaCache:'none'}); reg.update().catch(()=>{}); }catch(e){ console.warn('Service Worker no disponible:',e); } });
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',async()=>{ try{ const reg=await navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}); reg.update().catch(()=>{}); }catch(e){ console.warn('Service Worker no disponible:',e); } });

@@ -3,6 +3,8 @@
 let DOC_ID = localStorage.getItem('gymLastUid') || null;
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
 let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0, lastSyncError='';
+let cloudMode='unknown', cloudMeta={days:{},settings:{revision:0,hash:''}};
+const CLOUD_META_PREFIX='gymCloudMetaV2:';
 
 function ic(n){return `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`}
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
@@ -16,7 +18,8 @@ async function connectFirebase(){
     const apps=typeof appMod.getApps==='function' ? appMod.getApps() : [];
     const app=apps.length && typeof appMod.getApp==='function' ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
     fb={
-        db:fsMod.getFirestore(app), doc:fsMod.doc, setDoc:fsMod.setDoc, getDoc:fsMod.getDoc,
+        db:fsMod.getFirestore(app), doc:fsMod.doc, setDoc:fsMod.setDoc, getDoc:fsMod.getDoc, deleteDoc:fsMod.deleteDoc,
+        collection:fsMod.collection, getDocs:fsMod.getDocs, writeBatch:fsMod.writeBatch, runTransaction:fsMod.runTransaction,
         auth: authMod.getAuth(app), provider: new authMod.GoogleAuthProvider(),
         signInWithPopup: authMod.signInWithPopup, signInWithRedirect: authMod.signInWithRedirect, signOut: authMod.signOut, onAuthStateChanged: authMod.onAuthStateChanged
     };
@@ -30,7 +33,7 @@ async function connectFirebase(){
 }
 
 window.loginConGoogle = async function() {
-    if(!(await connectFirebase())) { alert("Revisa tu conexión a internet."); return; }
+    if(!(await connectFirebase())) { await appAlert('Revisa tu conexión a internet.','Sin conexión'); return; }
     try {
         await fb.signInWithPopup(fb.auth, fb.provider);
     } catch(e) {
@@ -38,20 +41,21 @@ window.loginConGoogle = async function() {
             try{ await fb.signInWithRedirect(fb.auth, fb.provider); return; }catch(e2){ e=e2; }
         }
         if(e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request') return;
-        alert("Error al iniciar sesión: " + e.message);
+        await appAlert('Error al iniciar sesión: ' + e.message,'No se pudo iniciar sesión');
     }
 };
 
 function wipeLocalData(){
-    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymRecoveryBackup','gymLastUid']
+    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymLastUid']
       .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
-    updatedAt=0;
+    try{ for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k&&k.startsWith(CLOUD_META_PREFIX)) localStorage.removeItem(k); } }catch(e){}
+    cloudMeta={days:{},settings:{revision:0,hash:''}}; cloudMode='unknown'; updatedAt=0;
 }
 
 window.logout = async function() {
     if(!fb) return;
-    if(localStorage.getItem(PENDING_KEY)==='1' && !confirm('Hay cambios que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?')) return;
-    if(confirm("¿Estás seguro de cerrar sesión? Solo podrás ver y sincronizar tus rutinas al volver a entrar.")) {
+    if(localStorage.getItem(PENDING_KEY)==='1' && !(await appConfirm(`Hay cambios que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?`,{title:'Cambios pendientes',confirmText:'Cerrar sesión',danger:true}))) return;
+    if(await appConfirm('¿Estás seguro de cerrar sesión? Solo podrás ver y sincronizar tus rutinas al volver a entrar.',{title:'Cerrar sesión',confirmText:'Cerrar sesión',danger:true})) {
         await fb.signOut(fb.auth);
         wipeLocalData();
         location.reload();
@@ -133,6 +137,51 @@ function cleanString(v,fallback=''){ return typeof v==='string' ? v.trim() : (v=
 function finiteNumber(v,min=0){ const n=Number(v); return Number.isFinite(n)&&n>=min ? n : null; }
 function validDateKey(v){ return /^\d{4}-\d{2}-\d{2}$/.test(String(v)); }
 
+
+let dialogResolve=null;
+function closeAppDialog(value=false){
+  const back=document.getElementById('dialogBackdrop');
+  if(!back) return;
+  back.classList.remove('show'); back.setAttribute('aria-hidden','true');
+  const r=dialogResolve; dialogResolve=null; if(r) r(value);
+}
+function appDialog({title='LiftEngine',message='',confirmText='Aceptar',cancelText='',danger=false}={}){
+  const back=document.getElementById('dialogBackdrop'), box=document.getElementById('appDialog');
+  if(!back||!box){ console.warn('Diálogo no disponible:',title,message); return Promise.resolve(cancelText?false:true); }
+  if(dialogResolve){ const prev=dialogResolve; dialogResolve=null; try{prev(false);}catch(e){} }
+  box.innerHTML=`<h2 id="appDialogTitle">${escapeHtml(title)}</h2><div class="dialog-message">${escapeHtml(message)}</div><div class="dialog-actions">${cancelText?`<button class="btn btn-secondary" id="appDialogCancel">${escapeHtml(cancelText)}</button>`:''}<button class="btn ${danger?'btn-danger':'btn-primary'}" id="appDialogConfirm">${escapeHtml(confirmText)}</button></div>`;
+  back.classList.add('show'); back.setAttribute('aria-hidden','false');
+  return new Promise(resolve=>{
+    dialogResolve=resolve;
+    box.querySelector('#appDialogConfirm')?.addEventListener('click',()=>closeAppDialog(true),{once:true});
+    box.querySelector('#appDialogCancel')?.addEventListener('click',()=>closeAppDialog(false),{once:true});
+    setTimeout(()=>box.querySelector('#appDialogConfirm')?.focus(),20);
+  });
+}
+function appAlert(message,title='Aviso'){ return appDialog({title,message,confirmText:'Entendido'}); }
+function appConfirm(message,{title='Confirmar',confirmText='Continuar',cancelText='Cancelar',danger=false}={}){ return appDialog({title,message,confirmText,cancelText,danger}); }
+window.appAlert=appAlert; window.appConfirm=appConfirm;
+
+let a11yIdCounter=0;
+function improveFormAccessibility(root=document){
+  root.querySelectorAll?.('label:not([for])').forEach(label=>{
+    const host=label.parentElement; if(!host) return;
+    let control=label.nextElementSibling;
+    if(!(control&&control.matches&&control.matches('input,select,textarea'))){
+      const direct=[...host.children].filter(el=>el.matches&&el.matches('input,select,textarea'));
+      control=direct.length===1?direct[0]:null;
+    }
+    if(!control) return; // labels de sección (p. ej. "Tema visual") no se fuerzan a un campo incorrecto
+    if(!control.id) control.id=`le-field-${++a11yIdCounter}`;
+    label.htmlFor=control.id;
+  });
+  root.querySelectorAll?.('input,select,textarea').forEach(el=>{
+    if(el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')) return;
+    if(el.id){ const sel=`label[for="${el.id}"]`; const lab=root.querySelector?.(sel)||document.querySelector(sel); if(lab) return; }
+    const ph=el.getAttribute('placeholder'); if(ph) el.setAttribute('aria-label',ph);
+  });
+}
+
 function normalizeSetType(value){
   const v=cleanString(value,'normal').toLowerCase();
   if(['warmup','calentamiento','calentar'].includes(v)) return 'warmup';
@@ -148,14 +197,18 @@ function sanitizeSet(set,index=0){
   if(!isPlainObject(set)) return null;
   const weight=finiteNumber(set.weight,0);
   const restUsed=finiteNumber(set.restUsed,0);
+  const reps=cleanString(set.reps,'-') || '-';
+  // El estado completado es explícito. Para datos históricos sin
+  // `done`, una serie con reps válidas se migra una sola vez como completada.
+  const done=typeof set.done==='boolean' ? set.done : ((parseFloat(reps)||0)>0);
   return {
     setNumber: Math.max(1, Number(set.setNumber)||index+1),
-    reps: cleanString(set.reps,'-') || '-',
+    reps,
     weight: weight===null ? 0 : weight,
     rir: cleanString(set.rir,'-') || '-',
     rest: normalizeRestLabel(cleanString(set.rest,'-') || '-'),
     type: normalizeSetType(set.type||set.setType),
-    ...(set.done===true?{done:true}:{}),
+    done,
     ...(restUsed!==null ? {restUsed} : {})
   };
 }
@@ -171,7 +224,7 @@ function sanitizeEntry(entry){
   if(!name || !sets.length) return null;
   sets.forEach((s,i)=>s.setNumber=i+1);
   const substitutedFrom=cleanString(entry.substitutedFrom,'');
-  return {id,isCardio:false,name,sets,...(substitutedFrom?{substitutedFrom}:{})};
+  return {id,isCardio:false,name,sets,...(substitutedFrom?{substitutedFrom}:{}),...(entry.trainingDraft===true?{trainingDraft:true}:{})};
 }
 
 function sanitizeData(raw){
@@ -225,7 +278,7 @@ function sanitizeMeasurements(raw){
   const keys=['waist','chest','arm','thigh','hip'];
   return raw.map(x=>{
     if(!isPlainObject(x)||!validDateKey(x.date)) return null;
-    const out={date:x.date},has=false;
+    const out={date:x.date}; let has=false;
     keys.forEach(k=>{ const n=finiteNumber(x[k],0); if(n!==null&&n>0){out[k]=Math.round(n*10)/10;has=true;} });
     return has?out:null;
   }).filter(Boolean);
@@ -342,88 +395,309 @@ function persistLocal(){
   localStorage.setItem(THEME_KEY, currentTheme);
 }
 
-async function saveToFirebase() {
-  updatedAt=Date.now();
-  try{ localStorage.setItem(PENDING_KEY,'1'); localStorage.setItem(UPDATED_KEY,String(updatedAt)); }catch(e){}
-  persistLocal();
-  if(!cloudReady||!fb||!DOC_ID){ updateSyncStatus('Pendiente de sincronizar','saving'); return false; }
-  if(saveInFlight){ saveQueued=true; return false; }
-  saveInFlight=true;
-  updateSyncStatus('Guardando…','saving');
-  let ok=true;
-  try {
-    do {
-      saveQueued=false;
-      persistLocal();
-      const stamp=updatedAt;
-      // Añadimos customAliases y customMuscles a Firebase (Fase 3)
-      await withTimeout(fb.setDoc(fb.doc(fb.db,"userData",DOC_ID),{ data, categories, weights, measurements, notes, exerciseNotes, customRoutines, customAliases, customMuscles, currentUnit, currentTheme, updatedAt:stamp }),10000);
-      if(!saveQueued){ try{ localStorage.removeItem(PENDING_KEY); localStorage.setItem(SYNCED_KEY,String(stamp)); }catch(e){} }
-    } while(saveQueued);
-    updateSyncStatus('Sincronizado','ok');
-  } catch (e) {
-    console.error('LiftEngine · error sincronizando:', e);
-    updateSyncStatus('Guardado local · sin conexión','error');
-    ok=false;
-  } finally {
-    saveInFlight=false;
-    if(saveQueued && ok) saveToFirebase();
-  }
-  return ok;
+function compactDataForCloud(raw){
+  const clean=sanitizeData(raw), out={};
+  Object.entries(clean).forEach(([date,entries])=>{
+    const kept=[];
+    entries.forEach(entry=>{
+      if(entry.isCardio){
+        const hasCardio=(parseFloat(entry.time)||0)>0||(parseFloat(entry.distance)||0)>0;
+        if(hasCardio) kept.push(entry);
+        return;
+      }
+      const sets=(entry.sets||[]).filter(s=>s.done===true&&(parseFloat(s.reps)||0)>0).map((s,i)=>({...s,setNumber:i+1}));
+      if(sets.length){ const copy={...entry,sets}; delete copy.trainingDraft; kept.push(copy); }
+    });
+    if(kept.length) out[date]=kept;
+  });
+  return out;
+}
+function compactEntriesForDate(date){ return compactDataForCloud({[date]:data[date]||[]})[date]||[]; }
+function cloudMetaKey(){ return CLOUD_META_PREFIX+(DOC_ID||'anonymous'); }
+function loadCloudMeta(){
+  const raw=safeParse(localStorage.getItem(cloudMetaKey()),null);
+  cloudMeta=isPlainObject(raw)?raw:{days:{},settings:{revision:0,hash:''}};
+  if(!isPlainObject(cloudMeta.days)) cloudMeta.days={};
+  if(!isPlainObject(cloudMeta.settings)) cloudMeta.settings={revision:0,hash:''};
+}
+function saveCloudMeta(){ try{localStorage.setItem(cloudMetaKey(),JSON.stringify(cloudMeta));}catch(e){console.warn('No se pudo guardar metadata de nube',e);} }
+function fingerprint(value){
+  const str=JSON.stringify(value??null); let h=2166136261;
+  for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+  return (h>>>0).toString(16).padStart(8,'0');
+}
+function allLocalDates(){
+  const s=new Set([...Object.keys(data),...Object.keys(categories),...Object.keys(notes),...weights.map(x=>x.date),...measurements.map(x=>x.date)]);
+  return [...s].filter(validDateKey).sort();
+}
+function measurementContent(date){ const m=measurements.find(x=>x.date===date); if(!m)return null; const {date:_d,...rest}=m; return rest; }
+function buildDayContent(date){
+  const body=weights.find(x=>x.date===date);
+  const content={
+    entries:compactEntriesForDate(date),
+    category:categories[date]||'',
+    note:notes[date]||'',
+    bodyWeight:body?Number(body.weight):null,
+    measurement:measurementContent(date)
+  };
+  const has=content.entries.length||content.category||content.note||content.bodyWeight||(content.measurement&&Object.keys(content.measurement).length);
+  return has?{deleted:false,...content}:{deleted:true};
+}
+function dayHash(date){ return fingerprint(buildDayContent(date)); }
+function cloudDayContent(raw){
+  if(!raw||raw.deleted===true) return {deleted:true};
+  const date=cleanString(raw.date,'');
+  const entries=date&&validDateKey(date)?(sanitizeData({[date]:raw.entries||[]})[date]||[]):[];
+  const category=typeof raw.category==='string'?raw.category.trim():'';
+  const note=typeof raw.note==='string'?raw.note.trim():'';
+  const bodyWeight=finiteNumber(raw.bodyWeight,0); const m=isPlainObject(raw.measurement)?raw.measurement:null;
+  const measurement=m?sanitizeMeasurements([{date:date||todayStr(),...m}])[0]:null;
+  const mc=measurement?(()=>{const {date:_d,...x}=measurement;return x})():null;
+  return {deleted:false,entries,category,note,bodyWeight:bodyWeight&&bodyWeight>0?bodyWeight:null,measurement:mc};
+}
+function applyCloudDay(date,raw){
+  const c=cloudDayContent({...raw,date});
+  delete data[date]; delete categories[date]; delete notes[date];
+  weights=weights.filter(x=>x.date!==date); measurements=measurements.filter(x=>x.date!==date);
+  if(c.deleted) return;
+  if(c.entries.length) data[date]=c.entries;
+  if(c.category) categories[date]=c.category;
+  if(c.note) notes[date]=c.note;
+  if(c.bodyWeight) weights.push({date,weight:c.bodyWeight});
+  if(c.measurement&&Object.keys(c.measurement).length) measurements.push({date,...c.measurement});
+  weights.sort((a,b)=>a.date.localeCompare(b.date)); measurements.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function buildSettingsContent(){
+  return {
+    exerciseNotes:sanitizeExerciseNotes(exerciseNotes),
+    customRoutines:sanitizeRoutines(customRoutines),
+    customAliases:sanitizeAliases(customAliases),
+    customMuscles:sanitizeMuscles(customMuscles),
+    currentUnit:currentUnit==='lbs'?'lbs':'kg',
+    currentTheme:cleanString(currentTheme,'default')||'default'
+  };
+}
+function settingsHash(){ return fingerprint(buildSettingsContent()); }
+function applyCloudSettings(cloud){
+  exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||{});
+  customRoutines=sanitizeRoutines(cloud.customRoutines||defaultPPL); if(!Object.keys(customRoutines).length) customRoutines=JSON.parse(JSON.stringify(defaultPPL));
+  customAliases=sanitizeAliases(cloud.customAliases||defaultAliases); if(!Object.keys(customAliases).length) customAliases=JSON.parse(JSON.stringify(defaultAliases));
+  customMuscles=sanitizeMuscles(cloud.customMuscles||defaultMuscles); if(!Object.keys(customMuscles).length) customMuscles=JSON.parse(JSON.stringify(defaultMuscles));
+  currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg'; currentTheme=cleanString(cloud.currentTheme,'default')||'default';
+  document.getElementById('unitBtn').innerText=currentUnit.toUpperCase(); document.documentElement.setAttribute('data-theme',currentTheme);
+}
+function cloudModeLabel(){ return cloudMode==='v2'?'Nube v2 · datos por día':cloudMode==='legacy'?'Nube heredada · documento único':'Conectando'; }
+window.cloudModeLabel=cloudModeLabel;
+
+async function cloudV2PermissionsAvailable(){
+  if(!fb||!DOC_ID)return false;
+  const ref=fb.doc(fb.db,'userData',DOC_ID,'meta','permissionProbe');
+  try{ await withTimeout(fb.setDoc(ref,{probe:true,at:Date.now()}),6000); await withTimeout(fb.deleteDoc(ref),6000); return true; }
+  catch(e){ if(e?.code==='permission-denied') lastSyncError='Las reglas de Firestore aún no permiten la nube v2. Publica firestore.rules de esta versión.'; return false; }
+}
+function localCloudMigrationBackup(){
+  try{ localStorage.setItem('gymBackupBeforeCloudV2',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,exerciseNotes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme})); }catch(e){console.warn('No se pudo crear backup de migración',e);}
+}
+async function migrateLocalToCloudV2(){
+  if(!(await cloudV2PermissionsAvailable())) return false;
+  localCloudMigrationBackup(); loadCloudMeta();
+  const dates=allLocalDates(); const nextDays={};
+  try{
+    for(let i=0;i<dates.length;i+=400){
+      const batch=fb.writeBatch(fb.db);
+      for(const date of dates.slice(i,i+400)){
+        const content=buildDayContent(date); const revision=1;
+        batch.set(fb.doc(fb.db,'userData',DOC_ID,'days',date),{date,...content,revision,updatedAt:Date.now()});
+        nextDays[date]={revision,hash:fingerprint(content)};
+      }
+      await withTimeout(batch.commit(),15000);
+    }
+    const settings=buildSettingsContent();
+    await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:Date.now(),...settings}),10000);
+    cloudMode='v2'; cloudMeta={days:nextDays,settings:{revision:1,hash:fingerprint(settings)}}; saveCloudMeta();
+    try{localStorage.removeItem(PENDING_KEY);}catch(e){} updateSyncStatus('Sincronizado','ok');
+    return true;
+  }catch(e){ console.error('Migración nube v2 falló:',e); lastSyncError=e?.message||String(e); cloudMode='legacy'; return false; }
 }
 
-function applyCloud(cloud,stamp){
+async function saveCloudLegacy(){
+  const stamp=updatedAt, cloudData=compactDataForCloud(data);
+  await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,exerciseNotes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme,updatedAt:stamp }),10000);
+}
+function applyLegacyCloud(cloud,stamp){
+  const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
+  const protectedContent=protectedDate?buildDayContent(protectedDate):null;
   data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes); exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x));
-  const cr=cloud.customRoutines&&Object.keys(cloud.customRoutines).length?cloud.customRoutines:null;
-  customRoutines=sanitizeRoutines(cr||readLocal(ROUTINES_KEY,defaultPPL,x=>x));
-  if(!Object.keys(customRoutines).length) customRoutines=JSON.parse(JSON.stringify(defaultPPL));
-  
-  customAliases = sanitizeAliases(cloud.customAliases || readLocal('gymAliases', defaultAliases, x=>x));
-  customMuscles = sanitizeMuscles(cloud.customMuscles || readLocal('gymMuscles', defaultMuscles, x=>x));
-  if(!Object.keys(customAliases).length) customAliases=JSON.parse(JSON.stringify(defaultAliases));
-  if(!Object.keys(customMuscles).length) customMuscles=JSON.parse(JSON.stringify(defaultMuscles));
+  customRoutines=sanitizeRoutines(cloud.customRoutines||defaultPPL);if(!Object.keys(customRoutines).length)customRoutines=JSON.parse(JSON.stringify(defaultPPL));
+  customAliases=sanitizeAliases(cloud.customAliases||defaultAliases);customMuscles=sanitizeMuscles(cloud.customMuscles||defaultMuscles);
+  if(!Object.keys(customAliases).length)customAliases=JSON.parse(JSON.stringify(defaultAliases));if(!Object.keys(customMuscles).length)customMuscles=JSON.parse(JSON.stringify(defaultMuscles));
+  currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg';currentTheme=cleanString(cloud.currentTheme,'default')||'default';document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
+  if(protectedDate&&protectedContent) applyLocalDayContent(protectedDate,protectedContent);
+  persistLocal();updatedAt=stamp;try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(stamp));localStorage.setItem(UPDATED_KEY,String(stamp));}catch(e){}
+  const changed=migrateNames();refreshAll();return changed;
+}
+function applyLocalDayContent(date,c){
+  delete data[date];delete categories[date];delete notes[date];weights=weights.filter(x=>x.date!==date);measurements=measurements.filter(x=>x.date!==date);
+  if(!c||c.deleted)return;
+  if(c.entries?.length)data[date]=sanitizeData({[date]:c.entries})[date]||[];if(c.category)categories[date]=c.category;if(c.note)notes[date]=c.note;
+  if(c.bodyWeight)weights.push({date,weight:c.bodyWeight});if(c.measurement)measurements.push({date,...c.measurement});
+}
 
-  currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg'; currentTheme=cleanString(cloud.currentTheme,'default')||'default';
-  document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
-  persistLocal();
-  updatedAt=stamp;
-  try{ localStorage.removeItem(PENDING_KEY); localStorage.setItem(SYNCED_KEY,String(stamp)); localStorage.setItem(UPDATED_KEY,String(stamp)); }catch(e){}
-  const changed=migrateNames();
-  refreshAll();
-  if(changed) saveToFirebase();
+async function resolveDayConflict(date,cloudDoc){
+  const keepLocal=await appConfirm(`La fecha ${date} cambió también en otro dispositivo.\\n\\nPuedes conservar lo de este dispositivo o usar la versión de la nube.`,{title:'Conflicto de sincronización',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
+  if(!keepLocal){ applyCloudDay(date,cloudDoc); cloudMeta.days[date]={revision:Number(cloudDoc.revision)||0,hash:fingerprint(cloudDayContent({...cloudDoc,date}))}; persistLocal(); return 'cloud'; }
+  return 'local';
+}
+async function writeDayV2(date){
+  let content=buildDayContent(date), expected=Number(cloudMeta.days[date]?.revision)||0;
+  const ref=fb.doc(fb.db,'userData',DOC_ID,'days',date);
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      let nextRev=expected+1;
+      await withTimeout(fb.runTransaction(fb.db,async tx=>{
+        const snap=await tx.get(ref), current=snap.exists()?(Number(snap.data().revision)||0):0;
+        if(current!==expected) throw new Error('LIFTENGINE_DAY_CONFLICT');
+        nextRev=current+1; tx.set(ref,{date,...content,revision:nextRev,updatedAt:Date.now()});
+      }),10000);
+      cloudMeta.days[date]={revision:nextRev,hash:fingerprint(content)}; return true;
+    }catch(e){
+      if(!String(e?.message||'').includes('LIFTENGINE_DAY_CONFLICT'))throw e;
+      const snap=await fb.getDoc(ref), cloudDoc=snap.exists()?snap.data():{date,deleted:true,revision:0};
+      const choice=await resolveDayConflict(date,cloudDoc); if(choice==='cloud')return true;
+      expected=Number(cloudDoc.revision)||0; content=buildDayContent(date);
+    }
+  }
+  return false;
+}
+async function writeSettingsV2(){
+  const content=buildSettingsContent(); let expected=Number(cloudMeta.settings?.revision)||0; const ref=fb.doc(fb.db,'userData',DOC_ID);
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      let nextRev=expected+1;
+      await withTimeout(fb.runTransaction(fb.db,async tx=>{
+        const snap=await tx.get(ref), current=snap.exists()?(Number(snap.data().revision)||0):0;
+        if(current!==expected) throw new Error('LIFTENGINE_SETTINGS_CONFLICT');
+        nextRev=current+1;tx.set(ref,{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:nextRev,updatedAt:Date.now(),...content});
+      }),10000);
+      cloudMeta.settings={revision:nextRev,hash:fingerprint(content)};return true;
+    }catch(e){
+      if(!String(e?.message||'').includes('LIFTENGINE_SETTINGS_CONFLICT'))throw e;
+      const snap=await fb.getDoc(ref), cloud=snap.exists()?snap.data():{};
+      const keepLocal=await appConfirm('La configuración (rutinas, alias, tema o notas de ejercicios) cambió en otro dispositivo.\\n\\n¿Conservar la configuración de este dispositivo?',{title:'Conflicto de configuración',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
+      if(!keepLocal){applyCloudSettings(cloud);cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};persistLocal();return true;}
+      expected=Number(cloud.revision)||0;
+    }
+  }
+  return false;
+}
+async function saveCloudV2Changes(){
+  loadCloudMeta(); const dates=new Set([...allLocalDates(),...Object.keys(cloudMeta.days||{})]);
+  for(const date of [...dates].sort()){
+    const hash=dayHash(date), meta=cloudMeta.days[date];
+    if(!meta&&buildDayContent(date).deleted)continue;
+    if(!meta||meta.hash!==hash) await writeDayV2(date);
+  }
+  if((cloudMeta.settings?.hash||'')!==settingsHash()) await writeSettingsV2();
+  saveCloudMeta();
+}
+
+async function saveToFirebase(){
+  updatedAt=Date.now();try{localStorage.setItem(PENDING_KEY,'1');localStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){}persistLocal();
+  if(!cloudReady||!fb||!DOC_ID){updateSyncStatus('Pendiente de sincronizar','saving');return false;}
+  if(saveInFlight){saveQueued=true;return false;}saveInFlight=true;updateSyncStatus('Guardando…','saving');let ok=true;
+  try{
+    do{
+      saveQueued=false;persistLocal();
+      if(cloudMode==='v2') await saveCloudV2Changes();
+      else{
+        try{ await saveCloudLegacy(); }
+        catch(e){
+          if(e?.code==='permission-denied' && await cloudV2PermissionsAvailable()){
+            if(!(await migrateLocalToCloudV2())) throw e;
+          }else throw e;
+        }
+      }
+    }while(saveQueued);
+    try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(updatedAt));}catch(e){} updateSyncStatus('Sincronizado','ok');
+  }catch(e){console.error('LiftEngine · error sincronizando:',e);lastSyncError=e?.message||String(e);updateSyncStatus('Guardado local · sin conexión','error');ok=false;}
+  finally{saveInFlight=false;if(saveQueued&&ok)saveToFirebase();}return ok;
+}
+
+async function syncCloudV2(rootCloud){
+  cloudMode='v2';loadCloudMeta(); const query=await withTimeout(fb.getDocs(fb.collection(fb.db,'userData',DOC_ID,'days')),15000); const remote=new Map();
+  query.forEach(snap=>remote.set(snap.id,snap.data()));
+  const pending=localStorage.getItem(PENDING_KEY)==='1'; const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
+  const localProtected=protectedDate?buildDayContent(protectedDate):null;
+  if(!pending){
+    data={};categories={};weights=[];measurements=[];notes={}; applyCloudSettings(rootCloud);
+    cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};
+    cloudMeta.days={}; remote.forEach((doc,date)=>{applyCloudDay(date,doc);cloudMeta.days[date]={revision:Number(doc.revision)||0,hash:fingerprint(cloudDayContent({...doc,date}))};});
+    if(protectedDate&&localProtected) applyLocalDayContent(protectedDate,localProtected);
+  }else{
+    const dates=new Set([...remote.keys(),...allLocalDates(),...Object.keys(cloudMeta.days||{})]);
+    for(const date of [...dates].sort()){
+      const rd=remote.get(date), meta=cloudMeta.days[date]||{revision:0,hash:fingerprint({deleted:true})}; const localHash=dayHash(date);
+      const localChanged=localHash!==meta.hash; const remoteRev=rd?Number(rd.revision)||0:0; const remoteChanged=remoteRev!==Number(meta.revision||0);
+      if(remoteChanged&&!localChanged&&rd){applyCloudDay(date,rd);cloudMeta.days[date]={revision:remoteRev,hash:fingerprint(cloudDayContent({...rd,date}))};}
+      else if(remoteChanged&&localChanged&&rd){const choice=await resolveDayConflict(date,rd);if(choice==='local')cloudMeta.days[date]={revision:remoteRev,hash:meta.hash};}
+    }
+    const localSettingsChanged=settingsHash()!==(cloudMeta.settings?.hash||''); const remoteSettingsChanged=(Number(rootCloud.revision)||0)!==(Number(cloudMeta.settings?.revision)||0);
+    if(remoteSettingsChanged&&!localSettingsChanged){applyCloudSettings(rootCloud);cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};}
+    else if(remoteSettingsChanged&&localSettingsChanged){
+      const keep=await appConfirm('La configuración también cambió en otro dispositivo. ¿Conservar la configuración local?',{title:'Conflicto de configuración',confirmText:'Conservar local',cancelText:'Usar nube'});
+      if(keep)cloudMeta.settings.revision=Number(rootCloud.revision)||0;else{applyCloudSettings(rootCloud);cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};}
+    }
+  }
+  if(!cloudMeta.settings?.revision)cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};
+  persistLocal();saveCloudMeta();updatedAt=Number(rootCloud.updatedAt)||Date.now();refreshAll();
+  if(pending|| (protectedDate&&dayHash(protectedDate)!==(cloudMeta.days[protectedDate]?.hash||fingerprint({deleted:true})))) await saveCloudV2Changes();
+  try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(updatedAt));localStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){} saveCloudMeta();updateSyncStatus('Sincronizado','ok');return true;
 }
 
 async function syncFromCloud(){
-  if(syncing || !DOC_ID) return false;
-  syncing=true;
+  if(syncing||!DOC_ID)return false;syncing=true;
   try{
-    if(!(await connectFirebase())) return false;
-    const snap=await withTimeout(fb.getDoc(fb.doc(fb.db,"userData",DOC_ID)),10000);
-    cloudReady=true;
-    const pending=localStorage.getItem(PENDING_KEY)==='1';
-    const hasLocal=Object.keys(data).length>0||Object.keys(categories).length>0||weights.length>0||measurements.length>0||Object.keys(exerciseNotes).length>0;
+    if(!(await connectFirebase()))return false;loadCloudMeta();
+    const ref=fb.doc(fb.db,'userData',DOC_ID),snap=await withTimeout(fb.getDoc(ref),10000);cloudReady=true;
+    const hasLocal=allLocalDates().length>0||Object.keys(exerciseNotes).length>0||Object.keys(customRoutines).length>0;
     if(!snap.exists()){
-      if(hasLocal) await saveToFirebase(); else updateSyncStatus('Sincronizado','ok');
-      return true;
+      if(await cloudV2PermissionsAvailable()){cloudMode='v2';await migrateLocalToCloudV2();if(!hasLocal)await saveCloudV2Changes();return true;}
+      cloudMode='legacy';if(hasLocal)await saveToFirebase();else updateSyncStatus('Sincronizado','ok');return true;
     }
-    const cloud=snap.data(), cloudStamp=Number(cloud.updatedAt)||0;
-    let useLocal=false;
-    if(pending){
-      const synced=Number(localStorage.getItem(SYNCED_KEY))||0;
-      useLocal = cloudStamp>synced
-        ? confirm('Tienes cambios sin sincronizar en este dispositivo y la nube también cambió desde otro dispositivo.\n\nAceptar = conservar lo de ESTE dispositivo.\nCancelar = usar lo que está en la NUBE.')
-        : true;
+    const cloud=snap.data();
+    if(Number(cloud.cloudSchemaVersion)>=CLOUD_SCHEMA_VERSION)return await syncCloudV2(cloud);
+    cloudMode='legacy';const cloudStamp=Number(cloud.updatedAt)||0,pending=localStorage.getItem(PENDING_KEY)==='1';let useLocal=false;
+    if(pending){const synced=Number(localStorage.getItem(SYNCED_KEY))||0;useLocal=cloudStamp>synced?await appConfirm('Tienes cambios sin sincronizar en este dispositivo y la nube también cambió.\\n\\n¿Conservar lo de este dispositivo?',{title:'Conflicto de sincronización',confirmText:'Conservar local',cancelText:'Usar nube'}):true;}
+    let legacyChanged=false;
+    if(useLocal) await saveCloudLegacy();
+    else legacyChanged=!!applyLegacyCloud(cloud,cloudStamp);
+    // Migración automática solo cuando las reglas publicadas permiten subcolecciones.
+    // Evitamos disparar un guardado heredado en paralelo con la migración v2.
+    if(await cloudV2PermissionsAvailable()) await migrateLocalToCloudV2();
+    else{
+      if(legacyChanged) await saveCloudLegacy();
+      updateSyncStatus('Sincronizado · nube heredada','ok');
     }
-    if(useLocal) await saveToFirebase();
-    else { applyCloud(cloud,cloudStamp); updateSyncStatus('Sincronizado','ok'); }
     return true;
-  }catch(e){
-    lastSyncError=(e&&((e.code?e.code+': ':'')+(e.message||'')))||String(e||'Error de sincronización');
-    console.error('Error de sincronización:',e);
+  }catch(e){lastSyncError=(e&&((e.code?e.code+': ':'')+(e.message||'')))||String(e||'Error de sincronización');console.error('Error de sincronización:',e);return false;}
+  finally{syncing=false;}
+}
+
+
+window.tryMigrateCloudV2=async function(){
+  if(cloudMode==='v2'){toast('Ya estás usando la nube v2');return true;}
+  updateSyncStatus('Preparando nube v2…','saving');
+  if(!(await connectFirebase())||!DOC_ID){await appAlert('No hay una sesión de Firebase disponible.','Nube v2');return false;}
+  if(!(await cloudV2PermissionsAvailable())){
+    updateSyncStatus('Sincronizado · nube heredada','ok');
+    await appAlert(`La migración aún no puede activarse porque las reglas de Firestore publicadas no permiten la subcolección de días. Publica el archivo firestore.rules incluido en LiftEngine v${APP_VERSION} y vuelve a intentarlo.`,'Falta actualizar Firestore');
     return false;
   }
-  finally{ syncing=false; }
-}
+  const ok=await migrateLocalToCloudV2();
+  if(ok){renderSettingsModal();toast('Nube v2 activada');}
+  else await appAlert('No se pudo completar la migración. Tus datos locales y la nube heredada se conservaron.','Migración no completada');
+  return ok;
+};
 
 function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function syncFromCloudWithRetry(attempts=2){

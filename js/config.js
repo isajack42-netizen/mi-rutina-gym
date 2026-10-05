@@ -3,8 +3,9 @@
 const FB_APP_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 const FB_FS_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 const FB_AUTH_URL="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-const APP_VERSION=globalThis.LIFTENGINE_VERSION || '5.4.0';
-const DATA_SCHEMA_VERSION=2;
+const APP_VERSION=globalThis.LIFTENGINE_VERSION || 'dev';
+const DATA_SCHEMA_VERSION=4;
+const CLOUD_SCHEMA_VERSION=2;
 
 const firebaseConfig = {
   apiKey: "AIzaSyB01Yx5QD_9i89i1CX3SpFyD6W3MzKmxUE",

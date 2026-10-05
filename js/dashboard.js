@@ -49,21 +49,22 @@ function latestMetricDelta(arr,key,days){
   const candidates=valid.filter(x=>new Date(x.date+'T12:00:00')<=cutoff);
   const base=candidates.at(-1)||valid[0];
   if(base===latest)return null;
-  return {delta:latest[key]-base[key],from:base.date,to:latest.date};
+  const actualDays=Math.round((new Date(latest.date+'T12:00:00')-new Date(base.date+'T12:00:00'))/86400000);
+  return {delta:latest[key]-base[key],from:base.date,to:latest.date,actualDays,fullWindow:actualDays>=Math.max(1,days-3)};
 }
-function renderPerformanceOverview(){
+function renderPerformanceOverview(prs=null){
   const box=document.getElementById('performanceOverview');if(!box)return;
   const currentStart=weekStart(),previousStart=new Date(currentStart);previousStart.setDate(previousStart.getDate()-7);
   const cur=weekPerformanceSnapshot(currentStart),prev=weekPerformanceSnapshot(previousStart);
   const sessions=dashboardDelta(cur.sessions,prev.sessions,v=>String(v));
   const sets=dashboardDelta(cur.sets,prev.sets,v=>String(v));
   const volume=dashboardDelta(cur.volume,prev.volume,v=>`${Math.round(fromKg(v)).toLocaleString()} ${unitLabel()}`);
-  const weekPRs=findPRs().filter(p=>cur.days.includes(p.date));
+  const weekPRs=(prs||findPRs()).filter(p=>cur.days.includes(p.date));
   const uniquePRExercises=new Set(weekPRs.map(p=>p.name)).size;
   const weight30=latestMetricDelta(weights,'weight',30),waist30=latestMetricDelta(measurements,'waist',30);
   const body=[];
-  if(weight30)body.push(`Peso 30 d: <b>${weight30.delta>=0?'+':''}${Math.round(fromKg(weight30.delta)*10)/10} ${unitLabel()}</b>`);
-  if(waist30)body.push(`Cintura 30 d: <b>${waist30.delta>=0?'+':''}${waist30.delta.toFixed(1)} cm</b>`);
+  if(weight30){const label=weight30.fullWindow?'Peso 30 d':`Peso desde ${fmtDate(weight30.from)}`;body.push(`${label}: <b>${weight30.delta>=0?'+':''}${Math.round(fromKg(weight30.delta)*10)/10} ${unitLabel()}</b>`);}
+  if(waist30){const label=waist30.fullWindow?'Cintura 30 d':`Cintura desde ${fmtDate(waist30.from)}`;body.push(`${label}: <b>${waist30.delta>=0?'+':''}${waist30.delta.toFixed(1)} cm</b>`);}
   let headline='Aún faltan datos para comparar tu rendimiento semanal.';
   if(cur.sessions){
     if(weekPRs.length)headline=`Esta semana lograste <b>${weekPRs.length} PR${weekPRs.length===1?'':'s'}</b> en ${uniquePRExercises} ejercicio${uniquePRExercises===1?'':'s'}.`;
@@ -82,7 +83,8 @@ function renderPerformanceOverview(){
 }
 function renderDashboard(){
   renderWeek();
-  renderPerformanceOverview();
+  const prs=findPRs();
+  renderPerformanceOverview(prs);
   const dates=Object.keys(data).filter(d=>(data[d]||[]).some(entryHasData)).sort(),workouts=dates.filter(d=>(data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))).length;
   const allSets=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:e.sets.filter(setCountsForWork).length),0),0);
   const totalVolKg=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:sessionVolume(e)),0),0);
@@ -96,7 +98,6 @@ function renderDashboard(){
       return `<div class="progress-item" onclick="goToDate('${d}')" style="cursor:pointer"><div><b>${fmtDate(d)}</b><br><small>${escapeHtml(categories[d]||'Sin etiqueta')} · ${(data[d]||[]).filter(e=>!e.isCardio&&entryHasData(e)).length} ejercicios</small></div><b>${vol} ${unitLabel()}</b></div>`;
   }).join(''):'<div class="empty">Todavía no hay entrenamientos.</div>';
   
-  const prs=findPRs();
   document.getElementById('recentPRs').innerHTML=prs.slice(-9).reverse().map(p=>{
     const value=p.type==='reps'?`${p.value} reps`:formatKgValue(p.value);
     const detail=p.previous?(p.type==='reps'?`antes ${p.previous} reps`:`antes ${formatKgValue(p.previous)}`):'';
@@ -131,7 +132,7 @@ function getExerciseRecords(name,beforeDate=null){
   const best={weight:0,reps:0,e1rm:0,weightDate:'',repsDate:'',e1rmDate:''};
   Object.keys(data).sort().forEach(date=>{
     if(beforeDate&&date>=beforeDate)return;
-    (data[date]||[]).filter(e=>!e.isCardio&&e.name===name).forEach(e=>(e.sets||[]).filter(s=>!isWarmupSet(s)).forEach(s=>{
+    (data[date]||[]).filter(e=>!e.isCardio&&e.name===name).forEach(e=>(e.sets||[]).filter(setCountsForHistory).forEach(s=>{
       const w=parseFloat(s.weight)||0, r=parseFloat(s.reps)||0;
       if(w>best.weight){best.weight=w;best.weightDate=date}
       if(r>best.reps){best.reps=r;best.repsDate=date}
@@ -143,7 +144,7 @@ function getExerciseRecords(name,beforeDate=null){
 }
 function sessionExerciseBest(e){
   const out={weight:0,reps:0,e1rm:0,weightSet:null,repsSet:null,e1rmSet:null};
-  (e.sets||[]).filter(s=>!isWarmupSet(s)).forEach(s=>{
+  (e.sets||[]).filter(setCountsForHistory).forEach(s=>{
     const w=parseFloat(s.weight)||0,r=parseFloat(s.reps)||0;
     if(w>out.weight){out.weight=w;out.weightSet=s}
     if(r>out.reps){out.reps=r;out.repsSet=s}
@@ -152,29 +153,42 @@ function sessionExerciseBest(e){
   });
   return out;
 }
+function weightRepKey(weight){ return (Math.round((Number(weight)||0)*10)/10).toFixed(1); }
 function findPRs(){
-  const out=[];
+  const out=[], bestByExercise=new Map();
   Object.keys(data).sort().forEach(date=>{
-    const names=[...new Set((data[date]||[]).filter(e=>!e.isCardio&&entryHasData(e)).map(e=>e.name))];
-    names.forEach(name=>{
-      const current=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name).reduce((acc,e)=>{
-        const b=sessionExerciseBest(e);
-        return {weight:Math.max(acc.weight,b.weight),reps:Math.max(acc.reps,b.reps),e1rm:Math.max(acc.e1rm,b.e1rm)};
-      },{weight:0,reps:0,e1rm:0});
-      const prev=getExerciseRecords(name,date);
-      if(prev.weight>0&&current.weight>prev.weight) out.push({name,date,type:'weight',label:'Peso',value:current.weight,previous:prev.weight});
-      if(prev.reps>0&&current.reps>prev.reps) out.push({name,date,type:'reps',label:'Reps',value:current.reps,previous:prev.reps});
-      if(prev.e1rm>0&&current.e1rm>prev.e1rm) out.push({name,date,type:'e1RM',label:'e1RM',value:current.e1rm,previous:prev.e1rm});
+    const today=new Map();
+    (data[date]||[]).filter(e=>!e.isCardio&&entryHasData(e)).forEach(e=>{
+      let cur=today.get(e.name); if(!cur){cur={weight:0,e1rm:0,repsByWeight:new Map()};today.set(e.name,cur);}
+      (e.sets||[]).filter(setCountsForHistory).forEach(s=>{
+        const w=parseFloat(s.weight)||0,r=parseFloat(s.reps)||0;if(r<=0)return;
+        cur.weight=Math.max(cur.weight,w);cur.e1rm=Math.max(cur.e1rm,e1rm(w,r));
+        const key=weightRepKey(w), old=cur.repsByWeight.get(key)||{reps:0,weight:w}; if(r>old.reps)cur.repsByWeight.set(key,{reps:r,weight:w});
+      });
+    });
+    today.forEach((current,name)=>{
+      let prev=bestByExercise.get(name);if(!prev)prev={weight:0,e1rm:0,repsByWeight:new Map()};
+      if(prev.weight>0&&current.weight>prev.weight)out.push({name,date,type:'weight',label:'Peso',value:current.weight,previous:prev.weight});
+      if(prev.e1rm>0&&current.e1rm>prev.e1rm)out.push({name,date,type:'e1RM',label:'e1RM',value:current.e1rm,previous:prev.e1rm});
+      current.repsByWeight.forEach((rec,key)=>{
+        const before=prev.repsByWeight.get(key);
+        if(before&&before.reps>0&&rec.reps>before.reps)out.push({name,date,type:'reps',label:'Reps @ carga',value:rec.reps,previous:before.reps,weight:rec.weight});
+        if(!before||rec.reps>before.reps)prev.repsByWeight.set(key,{...rec});
+      });
+      prev.weight=Math.max(prev.weight,current.weight);prev.e1rm=Math.max(prev.e1rm,current.e1rm);bestByExercise.set(name,prev);
     });
   });
   return out;
+}
+function latestRepPR(name){
+  const a=findPRs().filter(p=>p.name===name&&p.type==='reps');return a[a.length-1]||null;
 }
 function latestPRsByExercise(name){
   return findPRs().filter(p=>p.name===name).slice(-20);
 }
 
 window.goToDate = function(d){document.getElementById('routineDate').value=d;loadDay();switchTab('registro',document.querySelectorAll('.tab-btn')[1])}
-window.copyLastWorkout = function(){
+window.copyLastWorkout = async function(){
   const date=document.getElementById('routineDate').value;
   if(!date){toast('Selecciona una fecha');return}
   const dates=Object.keys(data).filter(d=>d<date&&data[d]&&data[d].some(e=>!e.isCardio&&entryHasData(e))).sort();
@@ -182,7 +196,7 @@ window.copyLastWorkout = function(){
   if(!last){toast('No hay sesión anterior');return}
   const source=(data[last]||[]).filter(e=>!e.isCardio&&entryHasData(e));
   if(!source.length){toast('La última sesión no tiene ejercicios válidos');return}
-  if(data[date]?.length && !confirm(`El día ${fmtDate(date)} ya tiene registros.\n\nSe añadirán ${source.length} ejercicios de ${fmtDate(last)} sin borrar lo existente.\n\n¿Continuar?`)) return;
+  if(data[date]?.length && !(await appConfirm(`El día ${fmtDate(date)} ya tiene registros.\n\nSe añadirán ${source.length} ejercicios de ${fmtDate(last)} sin borrar lo existente.`,{title:'Copiar última sesión',confirmText:'Añadir'}))) return;
   if(!data[date]) data[date]=[];
   source.forEach((e,exerciseIndex)=>{
     const cloned={
@@ -231,12 +245,12 @@ window.renderCalendar = function(){
   const grid=document.getElementById('calendarGrid'),name=document.getElementById('monthYear');grid.innerHTML='';name.textContent=new Date(currentYear,currentMonth,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(x=>grid.innerHTML+=`<div class="day-name">${x}</div>`);
   const first=new Date(currentYear,currentMonth,1).getDay(),days=new Date(currentYear,currentMonth+1,0).getDate();for(let i=0;i<first;i++)grid.innerHTML+='<div class="cal-day empty"></div>';
-  for(let i=1;i<=days;i++){const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,has=!!(data[d]||categories[d]);const el=document.createElement('div');el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');el.innerHTML=`<div class="cal-num">${i}</div><div class="cal-cat">${escapeHtml(categories[d]||((data[d]||[]).length?' Entreno':''))}</div>`;el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};grid.appendChild(el)}
+  for(let i=1;i<=days;i++){const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData));const el=document.createElement('div');el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');el.innerHTML=`<div class="cal-num">${i}</div><div class="cal-cat">${escapeHtml(categories[d]||((data[d]||[]).length?' Entreno':''))}</div>`;el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};grid.appendChild(el)}
   if(selectedDate)showDaySummary(selectedDate)
 }
 
 function showDaySummary(d){
-  const box=document.getElementById('calendarSummary'),arr=data[d]||[];if(!arr.length&&!categories[d]){box.innerHTML='<div class="empty">Selecciona un día.</div>';return}
+  const box=document.getElementById('calendarSummary'),arr=(data[d]||[]).filter(entryHasData);if(!arr.length&&!categories[d]&&!notes[d]){box.innerHTML='<div class="empty">Selecciona un día.</div>';return}
   box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${escapeHtml(categories[d]||'')} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">${ic('pulse')} ${escapeHtml(e.name)} ·${escapeHtml(e.time)} min</div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}</div>`
 }
 window.changeMonth = function(n){currentMonth+=n;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
@@ -306,7 +320,7 @@ window.saveMeasurements=function(){
   if(!has){toast('Registra al menos una medida');return;}
   measurements=measurements.filter(x=>x.date!==date);measurements.push(entry);saveToFirebase();closeModal();renderBodyWeights();toast('Medidas guardadas OK');
 }
-window.deleteMeasurement=function(date){if(!confirm('¿Eliminar las medidas del '+fmtDate(date)+'?'))return;measurements=measurements.filter(x=>x.date!==date);saveToFirebase();renderBodyWeights();toast('Medición eliminada')}
+window.deleteMeasurement=async function(date){if(!(await appConfirm('¿Eliminar las medidas del '+fmtDate(date)+'?',{title:'Eliminar medición',confirmText:'Eliminar',danger:true})))return;measurements=measurements.filter(x=>x.date!==date);saveToFirebase();renderBodyWeights();toast('Medición eliminada')}
 
 window.openWeightModal = function(){
     const modalEl=document.getElementById('modal');
@@ -323,8 +337,8 @@ window.saveBodyWeight = function(){
     saveToFirebase(); closeModal(); renderBodyWeights(); toast('Peso guardado OK');
 }
 
-window.deleteBodyWeight = function(date){
-    if(!confirm('¿Eliminar el peso del '+fmtDate(date)+'?')) return;
+window.deleteBodyWeight = async function(date){
+    if(!(await appConfirm('¿Eliminar el peso del '+fmtDate(date)+'?',{title:'Eliminar peso',confirmText:'Eliminar',danger:true}))) return;
     weights=weights.filter(x=>x.date!==date);
     saveToFirebase(); renderBodyWeights(); toast('Peso eliminado');
 }

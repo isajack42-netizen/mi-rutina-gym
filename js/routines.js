@@ -60,18 +60,20 @@ window.addRoutineExerciseRow = function(ex = null) {
     document.getElementById('editRoutineExercises').appendChild(div);
 }
 
-window.saveRoutine = function() {
+window.saveRoutine = async function() {
     const nameInput = document.getElementById('editRoutineName');
     const newName = nameInput.value.trim();
     const origName = nameInput.getAttribute('data-orig');
 
-    if(!newName) { alert('Ingresa un nombre para la rutina.'); return; }
+    if(!newName) { toast('Ingresa un nombre para la rutina'); return; }
 
     if(origName && origName !== newName) {
-        if(customRoutines[newName] && !confirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?')) return;
+        if(customRoutines[newName] && !(await appConfirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true}))) return;
         delete customRoutines[origName];
+        Object.keys(categories).forEach(d=>{ if(categories[d]===origName) categories[d]=newName; });
+        if(train&&train.routine===origName){ train.routine=newName; saveTrain(); }
     } else if(!origName && customRoutines[newName]) {
-        if(!confirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?')) return;
+        if(!(await appConfirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true}))) return;
     }
 
     const rows = document.querySelectorAll('.routine-edit-row');
@@ -88,7 +90,7 @@ window.saveRoutine = function() {
         }
     });
 
-    if(newExercises.length === 0) { alert('Agrega al menos un ejercicio con series válidas.'); return; }
+    if(newExercises.length === 0) { toast('Agrega al menos un ejercicio con series válidas'); return; }
 
     customRoutines[newName] = newExercises;
     saveToFirebase();
@@ -98,8 +100,8 @@ window.saveRoutine = function() {
     toast('Rutina guardada');
 }
 
-window.deleteRoutine = function(name) {
-    if(!confirm(`¿Estás seguro de eliminar la rutina "${name}"?`)) return;
+window.deleteRoutine = async function(name) {
+    if(!(await appConfirm(`¿Estás seguro de eliminar la rutina "${name}"?`,{title:'Eliminar rutina',confirmText:'Eliminar',danger:true}))) return;
     delete customRoutines[name];
     saveToFirebase();
     updateCategorySelect();

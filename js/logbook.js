@@ -70,12 +70,12 @@ window.saveNote = function(){
   clearTimeout(window.noteT); window.noteT=setTimeout(saveToFirebase,900);
 }
 
-window.loadTemplate = function() {
+window.loadTemplate = async function() {
     const date = document.getElementById('routineDate').value;
     const cat = document.getElementById('dayCategory').value;
     if (!cat || !customRoutines[cat]) { toast('Selecciona una rutina de tu lista.'); return; }
     if (!data[date]) data[date] = [];
-    if (data[date].length > 0 && !confirm('¿Añadir rutina completa de todos modos?')) return;
+    if (data[date].length > 0 && !(await appConfirm('¿Añadir la rutina completa de todos modos?',{title:'Añadir rutina',confirmText:'Añadir'}))) return;
 
     customRoutines[cat].forEach(exInfo => {
         const name = exInfo.name;
@@ -99,19 +99,19 @@ window.saveEntry = function(){
   
   let newEntry = null;
   if(logType==='pesas'){
-    let name=document.getElementById('exerciseName').value.trim();if(!name){alert('Ingresa el nombre del ejercicio.');return}
+    let name=document.getElementById('exerciseName').value.trim();if(!name){toast('Ingresa el nombre del ejercicio');return}
     const sets=[...document.querySelectorAll('.set-row')].map((r,i)=>({
         setNumber:i+1,
         reps:r.querySelector('.set-reps').value||'-',
         weight:toKg(r.querySelector('.set-weight').value),
         rir:r.querySelector('.set-rir').value||'-',
         rest:r.querySelector('.set-rest').value||'-', type:normalizeSetType(r.querySelector('.set-type')?.value),...(r.dataset.restused?{restUsed:Number(r.dataset.restused)}:{})
-    })).filter(s=>s.reps!=='-'||s.weight!==0);
-    if(!sets.length){alert('Registra al menos una serie.');return}
+    })).filter(s=>(parseFloat(s.reps)||0)>0);
+    if(!sets.length){toast('Registra al menos una serie con repeticiones');return}
     newEntry = {id: window.editingId || Date.now(), isCardio:false, name:normalizeName(name), sets:sets};
   }else{
     const time=document.getElementById('cardioTime').value,dist=document.getElementById('cardioDist').value;
-    if(!time&&!dist){alert('Registra tiempo o distancia.');return}
+    if(!time&&!dist){toast('Registra tiempo o distancia');return}
     newEntry = {id: window.editingId || Date.now(), isCardio:true, name:document.getElementById('cardioType').value, time:time||'-', distance:dist||'-'};
   }
   
@@ -196,17 +196,18 @@ function renderExerciseCard(e,date){
   return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}${e.substitutedFrom?` <small class="muted">· sustituyó a ${escapeHtml(e.substitutedFrom)}</small>`:''}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log ${isWarmupSet(s)?'warmup-set':''}"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>${isWarmupSet(s)?'Calent.':isFailureSet(s)?'Fallo':'RIR '+escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?fmtRest(s.restUsed):normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
-window.deleteEntry = function(date,id){if(!confirm('¿Eliminar este registro?'))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
-function sessionVolume(e){return (e.sets||[]).filter(s=>!isWarmupSet(s)).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}
-function setHasData(s){return (parseFloat(s.reps)||0)>0||(parseFloat(s.weight)||0)>0}
-function entryHasData(e){return e.isCardio?true:(e.sets||[]).some(setHasData)}
-function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>(data[date]||[]).forEach(e=>{if(!e.isCardio&&e.name===name)out.push({date,e})}));return out}
+window.deleteEntry = async function(date,id){if(!(await appConfirm('¿Eliminar este registro?',{title:'Eliminar registro',confirmText:'Eliminar',danger:true})))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
+function setHasData(s){return !!s && s.done!==false && (parseFloat(s.reps)||0)>0}
+function setCountsForHistory(s){return setHasData(s)&&!isWarmupSet(s)}
+function sessionVolume(e){return (e.sets||[]).filter(setCountsForHistory).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}
+function entryHasData(e){return e.isCardio?((parseFloat(e.time)||0)>0||(parseFloat(e.distance)||0)>0):(e.sets||[]).some(setHasData)}
+function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>(data[date]||[]).forEach(e=>{if(!e.isCardio&&e.name===name&&entryHasData(e))out.push({date,e})}));return out}
 function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps||reps<=0)return 0;return weight*(1+reps/30)} // Epley
 function bestForDate(name,date,metric){
   const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);if(!es.length)return 0;
-  if(metric==='weight')return Math.max(0,...es.flatMap(e=>e.sets.filter(s=>!isWarmupSet(s)).map(s=>parseFloat(s.weight)||0)));
+  if(metric==='weight')return Math.max(0,...es.flatMap(e=>e.sets.filter(setCountsForHistory).map(s=>parseFloat(s.weight)||0)));
   if(metric==='volume')return es.reduce((a,e)=>a+sessionVolume(e),0);
-  return Math.max(0,...es.flatMap(e=>e.sets.filter(s=>!isWarmupSet(s)).map(s=>e1rm(s.weight,s.reps))))
+  return Math.max(0,...es.flatMap(e=>e.sets.filter(setCountsForHistory).map(s=>e1rm(s.weight,s.reps))))
 }
 
 window.updateChart = function(){
@@ -228,27 +229,36 @@ function parseRepRange(range){
   const min=parseInt(nums[0],10), max=parseInt(nums[nums.length-1],10);
   return {min,max:Math.max(min,max)};
 }
-function routineTargetFor(name){
-  for(const rows of Object.values(customRoutines)){
-    const row=rows.find(r=>r.name===name);
-    if(row){
-      const rr=parseRepRange(row.reps);
-      return {sets:row.sets,repRange:rr,rir:String(row.rir),rest:row.rest};
-    }
-  }
-  return null;
+function targetFromRoutineRow(row,routine){
+  if(!row) return null;
+  return {routine,sets:row.sets,repRange:parseRepRange(row.reps),rir:String(row.rir),rest:row.rest};
+}
+function routineTargetFor(name,routineName=null,date=null){
+  const candidates=[];
+  Object.entries(customRoutines).forEach(([routine,rows])=>{
+    const row=(rows||[]).find(r=>r.name===name); if(row)candidates.push(targetFromRoutineRow(row,routine));
+  });
+  if(!candidates.length)return null;
+  const preferred=routineName || (date&&categories[date]) || ((typeof train!=='undefined'&&train&&train.routine)?train.routine:'');
+  if(preferred){const exact=candidates.find(x=>x.routine===preferred);if(exact)return exact;}
+  if(candidates.length===1)return candidates[0];
+  // Sin contexto explícito, usa la rutina asociada a la sesión más reciente
+  // del ejercicio. Si no existe, no inventamos un objetivo único.
+  const recent=Object.keys(data).sort().reverse().find(d=>(data[d]||[]).some(e=>!e.isCardio&&e.name===name&&entryHasData(e))&&categories[d]&&candidates.some(x=>x.routine===categories[d]));
+  if(recent){const exact=candidates.find(x=>x.routine===categories[recent]);if(exact)return exact;}
+  return {ambiguous:true,routines:candidates.map(x=>x.routine),candidates};
 }
 function getExerciseSessions(name){
   const out=[];
   Object.keys(data).sort().forEach(date=>{
     const entries=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);
     entries.forEach(e=>{
-      const sets=(e.sets||[]).filter(s=>!isWarmupSet(s)).map(s=>({
+      const sets=(e.sets||[]).filter(setCountsForHistory).map(s=>({
         reps:parseFloat(s.reps)||0,
         weight:parseFloat(s.weight)||0,
         rir:s.rir==='-'||s.rir===''?null:parseFloat(s.rir),
         rest:s.rest
-      })).filter(s=>s.reps>0||s.weight>0);
+      })).filter(s=>s.reps>0);
       if(sets.length) out.push({date,sets});
     });
   });
@@ -330,18 +340,19 @@ function renderProgressionPanel(){
   if(!name){box.innerHTML='<div class="empty">Selecciona un ejercicio para ver su progresión.</div>';return}
   const sessions=getExerciseSessions(name);
   if(!sessions.length){box.innerHTML='<div class="empty">Todavía no hay registros para este ejercicio.</div>';return}
-  const target=routineTargetFor(name);
   const last=sessions[sessions.length-1];
+  const target=routineTargetFor(name,categories[last.date]||null,last.date);
   const lastSum=summarizeSession(last);
   const prev=sessions.length>1?summarizeSession(sessions[sessions.length-2]):null;
   const rec=progressionRecommendation(name,sessions,target);
-  const targetText=target&&target.repRange?`${target.repRange.min}–${target.repRange.max} reps · RIR ${escapeHtml(target.rir)}`:'Sin rango definido en rutina';
+  const targetText=target?.ambiguous?`Objetivo variable entre: ${escapeHtml(target.routines.join(', '))}`:(target&&target.repRange?`${target.repRange.min}–${target.repRange.max} reps · RIR ${escapeHtml(target.rir)}`:'Sin rango definido en rutina');
   const allRecords=getExerciseRecords(name);
+  const repPr=latestRepPR(name);
   const recordCards=[
     {label:'PR de peso',value:allRecords.weight?formatKgValue(allRecords.weight):'—',date:allRecords.weightDate},
-    {label:'PR de reps',value:allRecords.reps?`${allRecords.reps} reps`:'—',date:allRecords.repsDate},
+    {label:'Último PR de reps @ carga',value:repPr?`${repPr.value} reps${repPr.weight>0?` @ ${formatKgValue(repPr.weight)}`:''}`:'—',date:repPr?.date},
     {label:'PR de e1RM',value:allRecords.e1rm?formatKgValue(allRecords.e1rm):'—',date:allRecords.e1rmDate}
-  ].map(r=>`<div class="record-mini"><div class="label">${r.label}</div><div class="value">${r.value}</div><small>${r.date?fmtDate(r.date):'Sin registro'}</small></div>`).join('');
+  ].map(r=>`<div class="record-mini"><div class="label">${r.label}</div><div class="value">${r.value}</div><small>${r.date?fmtDate(r.date):'Sin registro comparable'}</small></div>`).join('');
   const weightDelta=prev&&lastSum.bestWeight&&prev.bestWeight?lastSum.bestWeight-prev.bestWeight:0;
   const e1Delta=prev&&lastSum.e1rm&&prev.e1rm?lastSum.e1rm-prev.e1rm:0;
   const deltaText=prev&&weightDelta!==0?`${weightDelta>0?'+':''}${Math.round(fromKg(weightDelta)*10)/10} ${unitLabel()}`:'—';
@@ -361,13 +372,13 @@ function renderProgressionPanel(){
     </div>
     <div class="record-grid">${recordCards}</div>
     <div class="progression-message"><strong class="${rec.className}">${escapeHtml(rec.title)}</strong><span>${escapeHtml(rec.text)}</span></div>
-    <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target?` · ${target.sets} series · descanso ${escapeHtml(normalizeRestLabel(target.rest))}`:''}</div>
+    <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target&&!target.ambiguous?` · ${target.sets} series · descanso ${escapeHtml(normalizeRestLabel(target.rest))}`:''}</div>
     <div style="overflow:auto"><table class="progression-table"><thead><tr><th>Fecha</th><th>Series</th><th>Mejor peso</th><th>Máx. reps</th><th>e1RM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderExerciseDetail(name){
   const es=allWeightEntries(name);if(!es.length){document.getElementById('exerciseDetail').innerHTML='<div class="empty">Sin registros.</div>';return}
-  let maxW=0,bestE=0,totalVol=0;es.forEach(x=>x.e.sets.filter(s=>!isWarmupSet(s)).forEach(s=>{maxW=Math.max(maxW,parseFloat(s.weight)||0);bestE=Math.max(bestE,e1rm(s.weight,s.reps));}));es.forEach(x=>totalVol+=sessionVolume(x.e));
+  let maxW=0,bestE=0,totalVol=0;es.forEach(x=>x.e.sets.filter(setCountsForHistory).forEach(s=>{maxW=Math.max(maxW,parseFloat(s.weight)||0);bestE=Math.max(bestE,e1rm(s.weight,s.reps));}));es.forEach(x=>totalVol+=sessionVolume(x.e));
   const last=es[es.length-1],prev=es.length>1?es[es.length-2]:null;let delta='—';
   if(prev){const a=fromKg(bestForDate(name,last.date,'weight')),b=fromKg(bestForDate(name,prev.date,'weight'));delta=(a-b>=0?'+':'')+(a-b).toFixed(1)+' '+unitLabel()}
   document.getElementById('exerciseDetail').innerHTML=`<div class="stat-grid"><div class="stat"><div class="label">Peso máximo</div><div class="value">${Math.round(fromKg(maxW)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">e1RM máximo</div><div class="value">${Math.round(fromKg(bestE)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">Sesiones</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Cambio vs anterior</div><div class="value">${delta}</div></div></div><p class="muted" style="margin-bottom:0">Volumen acumulado: <b style="color:var(--accent)">${Math.round(fromKg(totalVol)).toLocaleString()} ${unitLabel()}</b>.</p>`

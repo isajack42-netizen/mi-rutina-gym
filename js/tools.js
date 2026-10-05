@@ -147,7 +147,7 @@ window.exportCSV = function() {
             }
         });
 
-        if(!wEntry && arr.length === 0 && (cat || note)) {
+        if(!wEntry && arr.length === 0 && (cat || note || mEntry)) {
             addRow([date,cat,"Info","-","-","-","-","-","-","-","-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
         }
     });
@@ -204,7 +204,7 @@ window.importCSV=async function(event){
       if(bodyW!=null&&bodyW>0){ const kg=bodyUnit.includes('lb')?bodyW/2.20462:bodyW; stagedWeights.push({date,weight:kg}); }
       const mm={date}; let hasM=false; for(const [col,key] of [['Cintura_cm','waist'],['Pecho_cm','chest'],['Brazo_cm','arm'],['Muslo_cm','thigh'],['Cadera_cm','hip']]){const n=csvNum(val(r,col));if(n!=null&&n>0){mm[key]=n;hasM=true;}} if(hasM) stagedMeasures.push(mm);
       if(type==='pesas'){
-        const name=String(val(r,'Ejercicio')).trim(); const reps=String(val(r,'Reps')).trim(); const weight=csvNum(val(r,'Peso'))??0; const unit=String(val(r,'Unidad')).toLowerCase(); if(!name){skipped++;continue;}
+        const rawName=String(val(r,'Ejercicio')).trim(); const name=rawName?normalizeName(rawName):''; const reps=String(val(r,'Reps')).trim(); const repsN=csvNum(reps); const weight=csvNum(val(r,'Peso'))??0; const unit=String(val(r,'Unidad')).toLowerCase(); if(!name||repsN==null||repsN<=0){skipped++;continue;}
         const kg=unit.includes('lb')?weight/2.20462:weight, setNo=Math.max(1,Math.round(csvNum(val(r,'Serie'))||1));
         stagedData[date] ||= []; let ex=stagedData[date].find(e=>!e.isCardio&&e.name===name); if(!ex){ex={id:Date.now()+Math.random(),isCardio:false,name,sets:[]};stagedData[date].push(ex);}
         ex.sets.push({setNumber:setNo,reps:reps||'-',weight:kg,rir:String(val(r,'RIR')).trim()||'-',rest:normalizeRestLabel(val(r,'Descanso')||'90 s'),type:normalizeSetType(val(r,'Tipo_serie')),...(csvNum(val(r,'Descanso_real_seg'))!=null?{restUsed:Math.round(csvNum(val(r,'Descanso_real_seg')))}:{})}); const exNote=String(val(r,'Nota_ejercicio')).trim(); if(exNote) stagedExerciseNotes[name]=exNote.slice(0,1200); valid++;
@@ -214,15 +214,38 @@ window.importCSV=async function(event){
     }
     if(!valid) throw new Error('No encontré registros válidos para importar.');
     const dates=Object.keys(stagedData), existing=dates.filter(d=>(data[d]||[]).length).length;
-    const mode=existing?confirm(`Se encontraron ${valid} registros válidos${skipped?` y ${skipped} filas omitidas`:''}.\n\n${existing} fecha(s) ya tienen entrenamientos.\n\nAceptar = REEMPLAZAR los entrenamientos de esas fechas con el CSV.\nCancelar = AGREGAR los registros del CSV sin borrar los existentes.`):false;
-    if(existing && !confirm(`¿Confirmas la importación? ${mode?'Se reemplazarán':'Se agregarán'} los entrenamientos en las fechas coincidentes.`)){ input.value=''; return; }
+    const mode=existing?await appConfirm(`Se encontraron ${valid} registros válidos${skipped?` y ${skipped} filas omitidas`:''}.\n\n${existing} fecha(s) ya tienen entrenamientos.\n\n¿Quieres REEMPLAZAR los entrenamientos de esas fechas?`,{title:'Importar CSV',confirmText:'Reemplazar',cancelText:'Agregar sin borrar',danger:true}):false;
+    if(existing && !(await appConfirm(`¿Confirmas la importación? ${mode?'Se reemplazarán':'Se agregarán'} los entrenamientos en las fechas coincidentes.`,{title:'Confirmar importación',confirmText:'Importar'}))){ input.value=''; return; }
+    try{ localStorage.setItem('gymBackupBeforeCSVImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo al CSV:',e); }
     for(const [d,arr] of Object.entries(stagedData)){ data[d]=mode?arr:[...(data[d]||[]),...arr]; }
     Object.assign(categories,stagedCats); Object.assign(notes,stagedNotes); Object.assign(exerciseNotes,stagedExerciseNotes);
     const byDate=(arr)=>{const m=new Map();arr.forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
     weights=byDate([...weights,...stagedWeights]); measurements=byDate([...measurements,...stagedMeasures]);
     persistLocal(); await saveToFirebase(); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
-  }catch(err){ alert('No se pudo importar el CSV: '+(err&&err.message?err.message:err)); }
+  }catch(err){ await appAlert('No se pudo importar el CSV: '+(err&&err.message?err.message:err),'Error de importación'); }
   finally{ input.value=''; }
+}
+
+function recoverableMeasurementsFromLocalBackup(){
+  try{
+    const backup=safeParse(localStorage.getItem('gymRecoveryBackup'),{}), item=backup&&backup[MEASURE];
+    if(!item||typeof item.raw!=='string') return [];
+    return sanitizeMeasurements(JSON.parse(item.raw));
+  }catch(e){ return []; }
+}
+window.restoreMeasurementsFromRecovery=async function(){
+  const recovered=recoverableMeasurementsFromLocalBackup();
+  if(!recovered.length){toast('No hay medidas recuperables en este dispositivo');return;}
+  if(!(await appConfirm(`Se encontraron ${recovered.length} fecha(s) con medidas en la copia de recuperación local.
+
+Se combinarán con tus medidas actuales sin borrar registros más recientes.`,{title:'Recuperar medidas',confirmText:'Recuperar'})))return;
+  const byDate=new Map();recovered.forEach(x=>byDate.set(x.date,x));measurements.forEach(x=>byDate.set(x.date,x));
+  measurements=[...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date));
+  try{
+    const backup=safeParse(localStorage.getItem('gymRecoveryBackup'),{});delete backup[MEASURE];
+    if(Object.keys(backup).length)localStorage.setItem('gymRecoveryBackup',JSON.stringify(backup));else localStorage.removeItem('gymRecoveryBackup');
+  }catch(e){}
+  persistLocal();await saveToFirebase();renderBodyWeights();renderSettingsModal();toast('Medidas recuperadas y sincronizadas');
 }
 
 function renderSettingsModal(){
@@ -246,8 +269,10 @@ function renderSettingsModal(){
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
             <p class="muted" style="font-size:.72rem;margin:-4px 0 14px">Los avisos actuales son locales y dependen de que iOS/Android mantenga activa la PWA. Un aviso garantizado con pantalla bloqueada requiere Push desde un servidor.</p>
             
-            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.</p>
+            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.<br><span class="cloud-badge ${cloudMode==='v2'?'v2':''}">${ic('cloud')} ${escapeHtml(cloudModeLabel())}</span></p>
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="retryCloudSync()">${ic('cloud')} Reintentar sincronización</button>
+            ${cloudMode!=='v2'?`<button class="btn btn-secondary full" style="margin-bottom:12px;border-style:dashed" onclick="tryMigrateCloudV2()">${ic('trend')} Activar nube v2</button>`:''}
+            ${recoverableMeasurementsFromLocalBackup().length?`<button class="btn btn-secondary full" style="margin-bottom:12px;border-color:#f2c96d" onclick="restoreMeasurementsFromRecovery()">${ic('trend')} Recuperar medidas desde copia local</button>`:''}
             <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:10px;" onclick="exportCSV()">${ic('table')} Exportar datos a Excel (CSV)</button>
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="document.getElementById('importCSVFile').click()">${ic('upload')} Importar datos desde Excel (CSV)</button>
             <input id="importCSVFile" type="file" accept=".csv,text/csv" style="display:none" onchange="importCSV(event)">
@@ -340,8 +365,8 @@ window.addAlias = function() {
     toast('Regla de alias añadida');
 }
 
-window.deleteAlias = function(alias) {
-    if(!confirm('¿Eliminar esta regla de alias?')) return;
+window.deleteAlias = async function(alias) {
+    if(!(await appConfirm('¿Eliminar esta regla de alias?',{title:'Eliminar alias',confirmText:'Eliminar',danger:true}))) return;
     delete customAliases[alias];
     saveToFirebase();
     openCatalogsModal('alias');
@@ -397,7 +422,7 @@ window.exportData = function(){
 
 window.importData = function(ev){
   const file=ev.target.files[0]; if(!file) return;
-  if(file.size>10*1024*1024){ alert('El archivo es demasiado grande (máximo 10 MB).'); ev.target.value=''; return; }
+  if(file.size>10*1024*1024){ appAlert('El archivo es demasiado grande (máximo 10 MB).','Archivo demasiado grande'); ev.target.value=''; return; }
   const r=new FileReader();
   r.onload=async()=>{
     try{
@@ -420,7 +445,7 @@ window.importData = function(ev){
       const days=Object.keys(clean.data).length;
       const sourceDays=Object.keys(x.data).length;
       const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
-      if(!confirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.\n\n¿Continuar?`)) return;
+      if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
       try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
       data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes; exerciseNotes=clean.exerciseNotes;
       customRoutines=Object.keys(clean.customRoutines).length?clean.customRoutines:JSON.parse(JSON.stringify(defaultPPL));
@@ -432,7 +457,7 @@ window.importData = function(ev){
       await saveToFirebase();
       closeModal(); refreshAll();
       toast('Importado y validado correctamente');
-    }catch(e){ alert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.')); }
+    }catch(e){ await appAlert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.'),'No se pudo restaurar'); }
     finally{ ev.target.value=''; }
   };
   r.readAsText(file);
