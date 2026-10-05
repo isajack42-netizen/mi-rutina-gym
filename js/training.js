@@ -10,7 +10,34 @@ if(train){
   window.timerAlarmed=!!train.__timerAlarmed;
   delete train.__restCtx; delete train.__timerEndAt; delete train.__timerAlarmed;
 }
+// <train-helpers>
 const isDone=s=>s?.done===true||(s?.done===undefined&&(parseFloat(s.reps)||0)>0);
+const hasTypedReps=s=>(parseFloat(s?.reps)||0)>0;
+// Series con repeticiones escritas pero sin marcar como hechas (borrador).
+function trainPendingSets(entries){
+  return (entries||[]).flatMap(e=>e.isCardio?[]:(e.sets||[]).filter(s=>!isDone(s)&&hasTypedReps(s)));
+}
+// Cierra la sesión: conserva las series hechas y, según lo que elija el usuario,
+// guarda o descarta las pendientes. Nunca descarta nada en silencio.
+function trainApplyEnd(entries,savePending){
+  let saved=0,dropped=0;
+  (entries||[]).forEach(e=>{
+    if(e.isCardio) return;
+    (e.sets||[]).forEach(s=>{
+      if(!isDone(s)&&hasTypedReps(s)){ if(savePending===true){ s.done=true; saved++; } else dropped++; }
+    });
+    e.sets=(e.sets||[]).filter(isDone);
+    e.sets.forEach((s,i)=>{ s.setNumber=i+1; });
+    delete e.trainingDraft;
+  });
+  return {saved,dropped};
+}
+// Descanso: «medido» si el usuario pulsó Empezar; «estimado» si marcó la serie directamente.
+function trainRestResult(startAt,endAt,measured){
+  const secs=Math.round((endAt-startAt)/1000);
+  return secs>=5?{restUsed:secs,estimated:!measured}:null;
+}
+// </train-helpers>
 function saveTrain(){
   try{
     if(train){
@@ -22,14 +49,17 @@ function saveTrain(){
 function saveTrainingDraftLocal(){ try{if(train?.date)markDayDirty(train.date,{cloud:false,local:true});queuePersistLocal(60);saveTrain();}catch(e){console.warn('No se pudo guardar el borrador de entrenamiento:',e);} }
 const rd=v=>Math.round(fromKg(v)*10)/10;
 function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
-function restLabel(s){ return s.restUsed?fmtRest(s.restUsed):s.rest; }
-function trainRestEnded(){
+function restLabel(s){ return s.restUsed?(s.restEstimated?'≈ ':'')+fmtRest(s.restUsed):s.rest; }
+function trainRestEnded(measured=true){
   if(!restCtx) return; const c=restCtx; restCtx=null;
-  const end=Date.now();
-  const secs=Math.round((end-c.startAt)/1000);
+  const r=trainRestResult(c.startAt,Date.now(),measured);
   const e=(data[c.date]||[]).find(x=>x.id===c.id), st=e&&e.sets[c.i];
   saveTrain();
-  if(st&&secs>=5&&isDone(st)){ st.restUsed=secs; saveToFirebase({days:[c.date]}); renderTrain(); }
+  if(st&&r&&isDone(st)){
+    st.restUsed=r.restUsed;
+    if(r.estimated) st.restEstimated=true; else delete st.restEstimated;
+    saveToFirebase({days:[c.date]}); renderTrain();
+  }
 }
 function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[]).find(x=>x.id===id)).filter(Boolean):[]; }
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
@@ -156,7 +186,7 @@ function renderTrain(){
       <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
       <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">
       <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?ic('check'):ic('circle')}</button>
-      <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${!dn&&restCtx?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">${train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i?'En curso':'Empezar'}</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${fmtRest(s.restUsed)}</span>`:'<span></span>')}</div></div>`;
+      <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${!dn&&restCtx?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">${train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i?'En curso':'Empezar'}</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${restLabel(s)}</span>`:'<span></span>')}</div></div>`;
   }).join('');
   const exNote=exerciseNotes[e.name]||'';
   body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
@@ -186,11 +216,12 @@ window.trainStartSet=function(i){
 }
 window.trainToggle=function(i){
   const es=trainEntries(), e=es[train.idx]; if(!e) return; const s=e.sets[i];
-  if(isDone(s)){ s.done=false; delete s.restUsed; saveToFirebase({days:[train.date]}); renderTrain(); return; }
+  if(isDone(s)){ s.done=false; delete s.restUsed; delete s.restEstimated; saveToFirebase({days:[train.date]}); renderTrain(); return; }
   const v=trainRead(i,true);
   if(!(parseFloat(v.r)>0)){ toast('Escribe las repeticiones'); return; }
-  if(restCtx&&!(train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i)){toast('Pulsa “Empezar” al iniciar la serie para cerrar el descanso correctamente.');return;}
-  if(restCtx)trainRestEnded(); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase({days:[train.date]});
+  const measured=!!(train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i);
+  if(restCtx&&!measured&&!train.estimateHint){ train.estimateHint=true; toast('Descanso guardado como estimado (≈). Pulsa “Empezar” al iniciar cada serie para medirlo con precisión.'); }
+  if(restCtx)trainRestEnded(measured); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase({days:[train.date]});
   if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; window.timerAlarmed=false; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; train.activeSet=null; saveTrain(); ensureTimerRunning(); }
   if(navigator.vibrate) navigator.vibrate(30);
   renderTrain();
@@ -272,8 +303,17 @@ window.trainNav=function(n){
   if(train.idx+n>=len){ trainFinish(); return; }
   if(train.idx+n<0) return; train.idx+=n; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0;
 }
+// Si el usuario escribió reps y pulsó «Finalizar» sin salir del campo, guardamos lo visible como borrador.
+function trainFlushInputs(){
+  const e=trainCur(); if(!e) return;
+  document.querySelectorAll('#trainBody .tr-row').forEach((row,i)=>{
+    const s=e.sets[i]; if(!s||isDone(s)) return;
+    const r=row.querySelector('.tr-r'); if(r&&r.value!=='') trainSave(i);
+  });
+}
 window.trainFinish=function(){
-  const es=trainEntries(), done=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&!isWarmupSet(s)).length,0), warmups=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&isWarmupSet(s)).length,0);
+  trainFlushInputs();
+  const es=trainEntries(), pend=trainPendingSets(es).length, done=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&!isWarmupSet(s)).length,0), warmups=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&isWarmupSet(s)).length,0);
   const vol=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&!isWarmupSet(s)).reduce((b,s)=>b+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0),0);
   const mins=Math.max(1,Math.round((Date.now()-train.startedAt)/60000)), rv=es.flatMap(e=>e.sets.map(z=>z.restUsed).filter(Boolean));
   const prs=findPRs().filter(p=>p.date===train.date);
@@ -284,17 +324,17 @@ window.trainFinish=function(){
   document.getElementById('modal').innerHTML=`<h2>Resumen del entrenamiento</h2>
     <div class="stat-grid" style="margin-bottom:12px"><div class="stat"><div class="label">Duración</div><div class="value">${mins} min</div></div><div class="stat"><div class="label">Series efectivas</div><div class="value">${done}</div></div><div class="stat"><div class="label">Ejercicios</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Volumen</div><div class="value">${Math.round(fromKg(vol)).toLocaleString()} ${unitLabel()}</div></div></div>
     ${prHtml?`<div class="progress-list" style="margin-bottom:12px">${prHtml}</div>`:''}
-    ${rv.length?`<p class="muted">Descanso promedio: <b>${fmtRest(Math.round(rv.reduce((a,b)=>a+b,0)/rv.length))}</b></p>`:''}${warmups?`<p class="muted">Calentamientos registrados: <b>${warmups}</b> · no cuentan para volumen ni PR.</p>`:''}<p class="muted">Las series sin datos se descartan al terminar.</p>
-    <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Seguir</button><button class="btn btn-primary" onclick="trainEnd()">Terminar y guardar</button></div>`;
+    ${rv.length?`<p class="muted">Descanso promedio: <b>${fmtRest(Math.round(rv.reduce((a,b)=>a+b,0)/rv.length))}</b></p>`:''}${warmups?`<p class="muted">Calentamientos registrados: <b>${warmups}</b> · no cuentan para volumen ni PR.</p>`:''}${pend?`<div class="train-pending" role="alert"><b>${pend} serie${pend===1?'':'s'} sin marcar</b><span>Escribiste repeticiones, pero no marcaste ${pend===1?'esa serie':'esas series'} como hecha${pend===1?'':'s'}. ¿Quieres guardarla${pend===1?'':'s'}?</span></div>`:'<p class="muted">Las series vacías se descartan al terminar.</p>'}
+    <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Seguir</button>${pend?`<button class="btn btn-secondary" onclick="trainEnd(false)">Descartar</button><button class="btn btn-primary" onclick="trainEnd(true)">Guardar y terminar</button>`:`<button class="btn btn-primary" onclick="trainEnd(false)">Terminar y guardar</button>`}</div>`;
   openEl();
 }
-window.trainEnd=function(){
+window.trainEnd=function(savePending){
   if(restCtx)trainRestEnded();stopTimer();
   const d=train.date, routine=train.routine;
-  trainEntries().forEach(e=>{ e.sets=e.sets.filter(isDone); e.sets.forEach((s,i)=>s.setNumber=i+1); delete e.trainingDraft; });
+  const endResult=trainApplyEnd(trainEntries(),savePending===true);
   data[d]=(data[d]||[]).filter(e=>e.isCardio||entryHasData(e));
   if((data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))&&routine)categories[d]=routine;
   if(!data[d]?.length) delete data[d];
-  train=null; restCtx=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase({days:[d]}); refreshAll(); toast('¡Entrenamiento guardado!');
+  train=null; restCtx=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase({days:[d]}); refreshAll(); toast(endResult.saved?`¡Entrenamiento guardado! Se incluyeron ${endResult.saved} serie${endResult.saved===1?'':'s'} pendiente${endResult.saved===1?'':'s'}.`:endResult.dropped?`Entrenamiento guardado. Se descartaron ${endResult.dropped} serie${endResult.dropped===1?'':'s'} sin marcar.`:'¡Entrenamiento guardado!');
 }
 
