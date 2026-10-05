@@ -171,4 +171,36 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   assert.equal(x.plan.weightKg,40);
 }
 
-console.log('LiftEngine regression OK · settings/goals · metrics · training intelligence');
+// ===== Entrenamiento: series pendientes y descanso estimado (v6.1.2) =====
+{
+  const src=read('js/training.js');
+  const a=src.indexOf('// <train-helpers>'), z=src.indexOf('// </train-helpers>');
+  assert.ok(a>=0&&z>a,'faltan los marcadores de helpers de entrenamiento');
+  const ctx=context();
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__h={isDone,trainPendingSets,trainApplyEnd,trainRestResult};',ctx);
+  const h=ctx.__h, J=x=>JSON.parse(JSON.stringify(x));
+  const mkEntries=()=>[{id:1,isCardio:false,name:'Remo',trainingDraft:true,sets:[
+    {reps:'8',weight:50,done:true},{reps:'8',weight:50,done:false},{reps:'-',weight:0,done:false}]}];
+
+  assert.equal(h.trainPendingSets(mkEntries()).length,1,'detecta 1 serie con reps sin marcar');
+
+  let es=mkEntries(), r=h.trainApplyEnd(es,false);
+  assert.deepEqual(J(r),{saved:0,dropped:1});
+  assert.equal(es[0].sets.length,1,'descartar conserva solo la serie hecha');
+  assert.equal(es[0].trainingDraft,undefined);
+
+  es=mkEntries(); r=h.trainApplyEnd(es,true);
+  assert.equal(r.saved,1);
+  assert.equal(es[0].sets.length,2,'guardar conserva hecha + pendiente y descarta la vacía');
+  assert.ok(es[0].sets.every(s=>s.done===true));
+  assert.deepEqual(J(es[0].sets.map(s=>s.setNumber)),[1,2]);
+
+  es=mkEntries(); r=h.trainApplyEnd(es,undefined);
+  assert.equal(r.saved,0,'sin decisión explícita nunca se guarda automáticamente');
+
+  assert.equal(h.trainRestResult(0,3000,true),null,'descansos de menos de 5 s se ignoran');
+  assert.deepEqual(J(h.trainRestResult(0,95000,true)),{restUsed:95,estimated:false});
+  assert.deepEqual(J(h.trainRestResult(0,95000,false)),{restUsed:95,estimated:true});
+}
+
+console.log('LiftEngine regression OK · settings/goals · metrics · training intelligence · cierre de entrenamiento');
