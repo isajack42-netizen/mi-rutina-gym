@@ -293,12 +293,21 @@ function renderSettingsModal(){
             </div>
 
             <section class="settings-section">
-                <div class="settings-section-head"><div><h3>Apariencia</h3><p>Elige la paleta visual de la aplicación.</p></div></div>
-                <div class="theme-grid settings-theme-grid">
-                    <button class="btn-theme ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="--theme-swatch:#d8dde5">Gris Clásico</button>
-                    <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="--theme-swatch:#60a5fa">Océano Profundo</button>
-                    <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="--theme-swatch:#4ade80">Verde Bosque</button>
-                    <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="--theme-swatch:#fbbf24">Café/Ámbar</button>
+                <div class="settings-section-head"><div><h3>Apariencia</h3><p>Elige cómo se adapta LiftEngine a tu dispositivo.</p></div></div>
+                <div class="settings-appearance-grid">
+                    <button class="btn-theme settings-theme-mode ${currentTheme==='auto'?'active':''}" onclick="setTheme('auto')" style="--theme-swatch:linear-gradient(90deg,#f5f7fa 0 50%,#171a1f 50%)"><b>Automático</b><small>Sigue claro/oscuro del sistema</small></button>
+                    <button class="btn-theme settings-theme-mode ${currentTheme==='light'?'active':''}" onclick="setTheme('light')" style="--theme-swatch:#f4f6f8"><b>Claro</b><small>Fondo luminoso</small></button>
+                    <button class="btn-theme settings-theme-mode ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="--theme-swatch:#171a1f"><b>Oscuro</b><small>Contraste clásico</small></button>
+                </div>
+                <div class="settings-palette-label">Paletas oscuras</div>
+                <div class="theme-grid settings-theme-grid settings-palette-grid">
+                    <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="--theme-swatch:#60a5fa">Océano</button>
+                    <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="--theme-swatch:#4ade80">Bosque</button>
+                    <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="--theme-swatch:#fbbf24">Café</button>
+                </div>
+                <div class="settings-unit-row">
+                  <div><span>Unidad de carga</span><b>${unitLabel()}</b></div>
+                  <button class="btn btn-secondary" onclick="toggleUnit();renderSettingsModal()">Cambiar a ${currentUnit==='kg'?'LBS':'KG'}</button>
                 </div>
             </section>
 

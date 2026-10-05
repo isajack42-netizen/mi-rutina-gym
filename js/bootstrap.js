@@ -4,7 +4,7 @@
 // Orquestador neutral de UI. Los módulos de dominio exponen sus renderers,
 // pero ninguno debe ser responsable de refrescar toda la aplicación.
 function refreshAll(){
-    document.documentElement.setAttribute('data-theme', currentTheme);
+    applyTheme();
     populateExercises();
     loadDay();
     renderDashboard();
@@ -17,12 +17,42 @@ function refreshAll(){
     renderTrainCTA();
     renderTrain();
 }
+let activeProgressView='performance';
+window.setProgressView=function(view,btn=null){
+    const allowed=['performance','intelligence','analytics','body'];
+    activeProgressView=allowed.includes(view)?view:'performance';
+    document.querySelectorAll('#progreso .progress-view').forEach(el=>el.classList.toggle('active',el.dataset.progressView===activeProgressView));
+    document.querySelectorAll('#progreso .progress-nav-btn').forEach(el=>{
+      const on=el.dataset.view===activeProgressView;
+      el.classList.toggle('active',on);
+      el.setAttribute('aria-selected',on?'true':'false');
+    });
+    requestAnimationFrame(()=>{
+      if(activeProgressView==='performance'&&typeof updateChart==='function')updateChart();
+      if(activeProgressView==='analytics'&&typeof renderAnalytics==='function')renderAnalytics();
+      if(activeProgressView==='body'){
+        if(typeof renderBodyWeights==='function')renderBodyWeights();
+        if(typeof renderMeasurementChart==='function')renderMeasurementChart();
+      }
+    });
+};
+let themePreferenceBound=false;
+function initThemePreferenceListener(){
+    if(themePreferenceBound||typeof matchMedia!=='function')return;
+    themePreferenceBound=true;
+    const mq=matchMedia('(prefers-color-scheme: light)');
+    const onChange=()=>{if(currentTheme==='auto'){applyTheme();refreshAll();}};
+    if(typeof mq.addEventListener==='function')mq.addEventListener('change',onChange);
+    else if(typeof mq.addListener==='function')mq.addListener(onChange);
+}
 async function initApp() {
     if(DOC_ID) setTimeout(()=>{ document.getElementById('loadingOverlay').style.display='none'; },4000);
     document.getElementById('routineDate').value=todayStr();
     await load();
     if(migrateNames()) await persistLocal();
-    document.documentElement.setAttribute('data-theme', currentTheme);
+    applyTheme();
+    initThemePreferenceListener();
+    setProgressView('performance');
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
     renderTrainCTA(); resumeTrainingIfAny();
@@ -78,6 +108,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape' && document.getEleme
 const settingsBtn = document.getElementById('settingsBtn');
 if(settingsBtn){
     settingsBtn.addEventListener('click', () => renderSettingsModal());
+}
+const summaryMore=document.getElementById('summaryMore');
+if(summaryMore){
+    summaryMore.addEventListener('toggle',()=>{if(summaryMore.open&&typeof renderDashboard==='function')requestAnimationFrame(()=>renderDashboard());});
 }
 
 const accessibilityObserver=new MutationObserver(()=>improveFormAccessibility(document));

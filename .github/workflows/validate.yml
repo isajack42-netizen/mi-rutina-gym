@@ -2,7 +2,7 @@ name: LiftEngine Validation
 
 on:
   push:
-    branches: [ main, "v6.0.0-consolidation" ]
+    branches: [ main, "v*" ]
   pull_request:
     branches: [ main ]
 

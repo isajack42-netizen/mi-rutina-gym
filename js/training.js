@@ -135,14 +135,16 @@ function renderTrain(){
     const x=intel&&typeof window.intelligenceSuggestionForSet==='function'?window.intelligenceSuggestionForSet(intel,i):null;
     return x?{w:x.weightKg,r:x.reps}:null;
   };
-  let lastHtml='<div class="train-last muted">Primera vez con este ejercicio: registra tus series.</div>';
+  let lastHtml='<div class="train-context-empty">Primera vez con este ejercicio · registra tus series para crear una referencia.</div>';
   if(last){
     const best=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>Number(z.weight)||0)));
     const bestReps=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>Number(z.reps)||0)));
     const setText=last.sets.map(z=>`${Number(z.weight)>0?rd(z.weight)+'×':''}${z.reps}`).join(' · ');
-    lastHtml=`<div class="train-last"><b>Última vez · ${fmtDate(last.date)}</b><br>${setText}<br><span class="muted">${best>0?`Récord de carga: ${rd(best)} ${unitLabel()}`:`Mejor registro: ${bestReps} reps`}</span></div>`;
+    lastHtml=`<details class="train-context"><summary><span><small>Última sesión · ${fmtDate(last.date)}</small><b>${escapeHtml(setText)}</b></span><span class="train-context-link">Ver</span></summary><div class="train-context-detail">${best>0?`Récord de carga: ${rd(best)} ${unitLabel()}`:`Mejor registro: ${bestReps} reps`}</div></details>`;
   }
   const intelHtml=intel&&typeof window.renderIntelligenceCard==='function'?window.renderIntelligenceCard(intel,{compact:true,whyAction:'openTrainIntelligenceWhy()'}):'';
+  const intelPlan=intel&&typeof intelligencePlanText==='function'?intelligencePlanText(intel):'';
+  const intelShell=intel?`<details class="train-context train-context-intel"><summary><span><small>Objetivo sugerido</small><b>${escapeHtml(intelPlan||intel.title||'Revisar propuesta')}</b></span><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span></summary><div class="train-context-card">${intelHtml}</div></details>`:'';
   const rph=tg?parseFloat(tg.rir):NaN;
   const rows=e.sets.map((s,i)=>{
     const sg=sug?sug(i):null, dn=isDone(s), has=parseFloat(s.reps)>0;
@@ -159,8 +161,9 @@ function renderTrain(){
   const exNote=exerciseNotes[e.name]||'';
   body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
     <div class="train-tags">${tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>
-    <button class="train-ex-note ${exNote?'has-note':''}" onclick="trainEditExerciseNote()">${ic('edit')} <span>${exNote?escapeHtml(exNote):'Añadir nota del ejercicio (asiento, agarre, ajuste...)'}</span></button>
-    ${lastHtml}${intelHtml}
+    ${intelShell}
+    ${lastHtml}
+    <button class="train-ex-note ${exNote?'has-note':''}" onclick="trainEditExerciseNote()">${ic('edit')} <span>${exNote?escapeHtml(exNote):'Nota del ejercicio'}</span></button>
     <div class="tr-head"><span>#</span><span>Peso (${unitLabel()})</span><span>Reps</span><span>RIR</span><span></span></div>${rows}
     <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><button class="btn btn-secondary" onclick="trainSubstitute()">Sustituir ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
   body.scrollTop=keep;
