@@ -52,7 +52,7 @@ window.loginConGoogle = async function() {
 };
 
 async function wipeLocalData(){
-    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymLastUid']
+    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,BODY_GOAL_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymLastUid']
       .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
     try{
       for(let i=localStorage.length-1;i>=0;i--){
@@ -76,7 +76,7 @@ window.logout = async function() {
     }
 };
 
-const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines', EX_NOTES_KEY='gymExerciseNotes', ANALYTICS_TARGET_KEY='gymWeeklySessionTarget';
+const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines', EX_NOTES_KEY='gymExerciseNotes', ANALYTICS_TARGET_KEY='gymWeeklySessionTarget', BODY_GOAL_KEY='gymBodyGoalV1';
 
 const defaultPPL = {
     "Push": [
@@ -130,7 +130,7 @@ const defaultMuscles = {
 };
 
 // Variables globales del sistema
-let data={}, categories={}, weights=[], measurements=[], notes={}, exerciseNotes={}, customRoutines={}, currentUnit='kg', currentTheme='default', weeklySessionTarget=6, setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, analyticsWeeklyChart=null, saveInFlight=false, saveQueued=false;
+let data={}, categories={}, weights=[], measurements=[], notes={}, exerciseNotes={}, customRoutines={}, currentUnit='kg', currentTheme='default', weeklySessionTarget=6, bodyGoal={mode:'neutral',targetWeightKg:null,targetWaistCm:null}, setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, analyticsWeeklyChart=null, saveInFlight=false, saveQueued=false;
 let customAliases={}, customMuscles={};
 let localRecoveryDetected=false; // Solo para corrupción real (JSON ilegible o pérdida estructural grave)
 let localNormalizationDetected=false; // Migraciones/normalizaciones compatibles, sin alarmar al usuario
@@ -415,6 +415,7 @@ function loadLegacyLocal(){
   currentUnit=localStorage.getItem(UNIT_KEY)==='lbs'?'lbs':'kg';
   currentTheme=cleanString(localStorage.getItem(THEME_KEY),'default')||'default';
   weeklySessionTarget=Math.min(7,Math.max(1,parseInt(localStorage.getItem(ANALYTICS_TARGET_KEY),10)||6));
+  bodyGoal=sanitizeBodyGoal(safeParse(localStorage.getItem(BODY_GOAL_KEY),{}));
   customAliases = aliasesStored ? sanitizeAliases(readLocal('gymAliases', {}, x=>x)) : JSON.parse(JSON.stringify(defaultAliases));
   customMuscles = musclesStored ? sanitizeMuscles(readLocal('gymMuscles', {}, x=>x)) : JSON.parse(JSON.stringify(defaultMuscles));
 }
@@ -432,6 +433,7 @@ function persistLegacySnapshot(){
   localStorage.setItem(UNIT_KEY,currentUnit);
   localStorage.setItem(THEME_KEY,currentTheme);
   localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget));
+  localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal)));
 }
 
 function dirtyDaysKey(){ return DIRTY_DAYS_PREFIX+(DOC_ID||'anonymous'); }
@@ -481,16 +483,7 @@ function buildLocalDayRecord(date){
   return has?record:null;
 }
 function buildLocalSettingsRecord(){
-  return {
-    schemaVersion:DATA_SCHEMA_VERSION,
-    exerciseNotes:sanitizeExerciseNotes(exerciseNotes),
-    customRoutines:sanitizeRoutines(customRoutines),
-    customAliases:sanitizeAliases(customAliases),
-    customMuscles:sanitizeMuscles(customMuscles),
-    currentUnit:currentUnit==='lbs'?'lbs':'kg',
-    currentTheme:cleanString(currentTheme,'default')||'default',
-    weeklySessionTarget:Math.min(7,Math.max(1,parseInt(weeklySessionTarget,10)||6))
-  };
+  return {schemaVersion:DATA_SCHEMA_VERSION,...buildSettingsSnapshot()};
 }
 function applyLocalDayRecord(date,raw){
   delete data[date]; delete categories[date]; delete notes[date];
@@ -507,14 +500,7 @@ function applyLocalDayRecord(date,raw){
 }
 function applyLocalSettingsRecord(raw){
   if(!isPlainObject(raw)) return;
-  const has=k=>Object.prototype.hasOwnProperty.call(raw,k);
-  exerciseNotes=sanitizeExerciseNotes(raw.exerciseNotes||{});
-  customRoutines=has('customRoutines')?sanitizeRoutines(raw.customRoutines):JSON.parse(JSON.stringify(defaultPPL));
-  customAliases=has('customAliases')?sanitizeAliases(raw.customAliases):JSON.parse(JSON.stringify(defaultAliases));
-  customMuscles=has('customMuscles')?sanitizeMuscles(raw.customMuscles):JSON.parse(JSON.stringify(defaultMuscles));
-  currentUnit=raw.currentUnit==='lbs'?'lbs':'kg';
-  currentTheme=cleanString(raw.currentTheme,'default')||'default';
-  weeklySessionTarget=Math.min(7,Math.max(1,parseInt(raw.weeklySessionTarget,10)||6));
+  applySettingsSnapshot(raw);
 }
 
 async function load(){
@@ -558,7 +544,7 @@ async function load(){
 
 function persistLocal({forceAll=false,replaceDays=false,settings=false}={}){
   if(localPersistTimer){clearTimeout(localPersistTimer);localPersistTimer=null;}
-  try{ localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme); localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); }catch(e){}
+  try{ localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme); localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal))); }catch(e){}
   if(!localStoreReady||!globalThis.LiftLocalDB){
     try{persistLegacySnapshot();}catch(e){console.warn('No se pudo guardar localmente:',e);}
     return Promise.resolve(false);
@@ -741,31 +727,15 @@ function applyCloudDay(date,raw){
   markDayDirty(date,{cloud:false,local:true});
 }
 function buildSettingsContent(){
-  return {
-    exerciseNotes:sanitizeExerciseNotes(exerciseNotes),
-    customRoutines:sanitizeRoutines(customRoutines),
-    customAliases:sanitizeAliases(customAliases),
-    customMuscles:sanitizeMuscles(customMuscles),
-    currentUnit:currentUnit==='lbs'?'lbs':'kg',
-    currentTheme:cleanString(currentTheme,'default')||'default',
-    weeklySessionTarget:Math.min(7,Math.max(1,parseInt(weeklySessionTarget,10)||6))
-  };
+  return buildSettingsSnapshot();
 }
 function settingsHash(){ return fingerprint(buildSettingsContent()); }
 function applyCloudSettings(cloud){
-  const has=(k)=>Object.prototype.hasOwnProperty.call(cloud||{},k);
-  const needsAnalyticsSetting=!has('weeklySessionTarget');
-  exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||{});
-  customRoutines=has('customRoutines')?sanitizeRoutines(cloud.customRoutines):JSON.parse(JSON.stringify(defaultPPL));
-  customAliases=has('customAliases')?sanitizeAliases(cloud.customAliases):JSON.parse(JSON.stringify(defaultAliases));
-  customMuscles=has('customMuscles')?sanitizeMuscles(cloud.customMuscles):JSON.parse(JSON.stringify(defaultMuscles));
-  currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg'; currentTheme=cleanString(cloud.currentTheme,'default')||'default';
-  weeklySessionTarget=Math.min(7,Math.max(1,parseInt(cloud.weeklySessionTarget,10)||6));
-  document.getElementById('unitBtn').innerText=currentUnit.toUpperCase(); document.documentElement.setAttribute('data-theme',currentTheme);
-  // v5.7 añade la meta semanal a la configuración raíz. En una nube v5.6
-  // la sembramos una sola vez con el valor por defecto para evitar hashes
-  // permanentemente distintos entre dispositivos.
-  markSettingsDirty({cloud:needsAnalyticsSetting,local:true});
+  const needsSeed=settingsNeedSeed(cloud);
+  applySettingsSnapshot(cloud);
+  // Campos introducidos en versiones posteriores se siembran una sola vez
+  // para que todos los dispositivos converjan al mismo contrato de settings.
+  markSettingsDirty({cloud:needsSeed,local:true});
 }
 function cloudModeLabel(){ return cloudMode==='v2'?'Nube v2 · datos por día':cloudMode==='legacy'?'Nube heredada · documento único':'Conectando'; }
 window.cloudModeLabel=cloudModeLabel;
@@ -777,7 +747,7 @@ async function cloudV2PermissionsAvailable(){
   catch(e){ if(e?.code==='permission-denied') lastSyncError='Las reglas de Firestore aún no permiten la nube v2. Publica firestore.rules de esta versión.'; return false; }
 }
 function localCloudMigrationBackup(){
-  try{ localStorage.setItem('gymBackupBeforeCloudV2',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,exerciseNotes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme,weeklySessionTarget})); }catch(e){console.warn('No se pudo crear backup de migración',e);}
+  try{ localStorage.setItem('gymBackupBeforeCloudV2',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,...buildSettingsSnapshot()})); }catch(e){console.warn('No se pudo crear backup de migración',e);}
 }
 async function migrateLocalToCloudV2(){
   if(!(await cloudV2PermissionsAvailable())) return false;
@@ -804,17 +774,13 @@ async function migrateLocalToCloudV2(){
 
 async function saveCloudLegacy(){
   const stamp=updatedAt, cloudData=compactDataForCloud(data);
-  await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,exerciseNotes,customRoutines,customAliases,customMuscles,currentUnit,currentTheme,weeklySessionTarget,updatedAt:stamp }),10000);
+  await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,...buildSettingsSnapshot(),updatedAt:stamp }),10000);
 }
 async function applyLegacyCloud(cloud,stamp){
   const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
   const protectedContent=protectedDate?buildDayContent(protectedDate):null;
-  data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes); exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x));
-  const hasCfg=(k)=>Object.prototype.hasOwnProperty.call(cloud||{},k);
-  customRoutines=hasCfg('customRoutines')?sanitizeRoutines(cloud.customRoutines):JSON.parse(JSON.stringify(defaultPPL));
-  customAliases=hasCfg('customAliases')?sanitizeAliases(cloud.customAliases):JSON.parse(JSON.stringify(defaultAliases));
-  customMuscles=hasCfg('customMuscles')?sanitizeMuscles(cloud.customMuscles):JSON.parse(JSON.stringify(defaultMuscles));
-  currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg';currentTheme=cleanString(cloud.currentTheme,'default')||'default';weeklySessionTarget=Math.min(7,Math.max(1,parseInt(cloud.weeklySessionTarget,10)||6));document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
+  data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes);
+  applySettingsSnapshot({...cloud,exerciseNotes:cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x)});
   if(protectedDate&&protectedContent) applyLocalDayContent(protectedDate,protectedContent);
   const changed=migrateNames();
   markAllDaysDirty({cloud:false,local:true}); markSettingsDirty({cloud:false,local:true});

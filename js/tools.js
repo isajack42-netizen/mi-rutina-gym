@@ -271,6 +271,9 @@ function renderSettingsModal(){
     const notificationLabel=({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()];
     const accountEmail=(fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión';
     const recoverableCount=recoverableMeasurementsFromLocalBackup().length;
+    const goal=sanitizeBodyGoal(bodyGoal);
+    const goalWeight=goal.targetWeightKg?Math.round(fromKg(goal.targetWeightKg)*10)/10:'';
+    const weeklyOptions=[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${n===weeklySessionTarget?'selected':''}>${n} sesión${n===1?'':'es'}</option>`).join('');
     modal.innerHTML=`
         <div class="modal-content-wrapper settings-modal">
             <div class="settings-modal-head">
@@ -295,6 +298,24 @@ function renderSettingsModal(){
                     <button class="btn btn-secondary full settings-action" onclick="openCatalogsModal('musculos')">${ic('list')}<span><b>Gestionar músculos y alias</b><small>Clasificación muscular y nombres equivalentes.</small></span></button>
                     <button class="btn btn-secondary full settings-action" onclick="toggleNotifications()">${ic('bell')}<span><b>Avisos de descanso: ${notificationLabel}</b><small>Alertas locales mientras el sistema mantiene activa la PWA.</small></span></button>
                 </div>
+            </section>
+
+            <section class="settings-section">
+                <div class="settings-section-head"><div><h3>Objetivos</h3><p>Define la referencia con la que LiftEngine interpreta tu constancia y composición corporal.</p></div></div>
+                <div class="settings-goal-grid">
+                    <div><label for="settingsWeeklyTarget">Meta semanal</label><select id="settingsWeeklyTarget">${weeklyOptions}</select></div>
+                    <div><label for="settingsBodyGoalMode">Objetivo corporal</label><select id="settingsBodyGoalMode">
+                        <option value="neutral" ${goal.mode==='neutral'?'selected':''}>Sin objetivo</option>
+                        <option value="recomp" ${goal.mode==='recomp'?'selected':''}>Recomposición</option>
+                        <option value="cut" ${goal.mode==='cut'?'selected':''}>Pérdida de grasa</option>
+                        <option value="gain" ${goal.mode==='gain'?'selected':''}>Ganancia de masa</option>
+                        <option value="maintain" ${goal.mode==='maintain'?'selected':''}>Mantenimiento</option>
+                    </select></div>
+                    <div><label for="settingsTargetWeight">Peso objetivo (${unitLabel()}) · opcional</label><input id="settingsTargetWeight" type="number" step="0.1" min="0" value="${goalWeight}" placeholder="Sin objetivo"></div>
+                    <div><label for="settingsTargetWaist">Cintura objetivo (cm) · opcional</label><input id="settingsTargetWaist" type="number" step="0.1" min="0" value="${goal.targetWaistCm??''}" placeholder="Sin objetivo"></div>
+                </div>
+                <p class="settings-goal-note">Si eliges “Sin objetivo”, los cambios de peso y cintura se muestran de forma neutral: LiftEngine no asumirá que subir o bajar es mejor.</p>
+                <button class="btn btn-primary full" onclick="saveGoalSettings()">Guardar objetivos</button>
             </section>
 
             <section class="settings-section">
@@ -434,13 +455,7 @@ function buildBackupPayload(){
     weights:sanitizeWeights(weights),
     measurements:sanitizeMeasurements(measurements),
     notes:sanitizeNotes(notes),
-    exerciseNotes:sanitizeExerciseNotes(exerciseNotes),
-    customRoutines:sanitizeRoutines(customRoutines),
-    customAliases:sanitizeAliases(customAliases),
-    customMuscles:sanitizeMuscles(customMuscles),
-    currentUnit:currentUnit==='lbs'?'lbs':'kg',
-    currentTheme:cleanString(currentTheme,'default')||'default',
-    weeklySessionTarget:Math.min(7,Math.max(1,parseInt(weeklySessionTarget,10)||6))
+    ...buildSettingsSnapshot()
   };
 }
 
@@ -455,8 +470,8 @@ function validateBackupPayload(x){
   if(x.customRoutines!=null&&!isPlainObject(x.customRoutines)) return {ok:false,reason:'La sección de rutinas no es válida.'};
   if(x.customAliases!=null&&!isPlainObject(x.customAliases)) return {ok:false,reason:'La sección de alias no es válida.'};
   if(x.customMuscles!=null&&!isPlainObject(x.customMuscles)) return {ok:false,reason:'La sección de músculos no es válida.'};
-  if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return {ok:false,reason:'La unidad del archivo no es válida.'};
-  if(x.weeklySessionTarget!=null&&(!Number.isInteger(Number(x.weeklySessionTarget))||Number(x.weeklySessionTarget)<1||Number(x.weeklySessionTarget)>7)) return {ok:false,reason:'La meta semanal del archivo no es válida.'};
+  const settingsError=validateSettingsInput(x);
+  if(settingsError) return {ok:false,reason:settingsError};
   const cleanData=sanitizeData(x.data);
   const sourceDays=Object.keys(x.data).length,cleanDays=Object.keys(cleanData).length;
   if(sourceDays>0&&cleanDays===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
@@ -486,24 +501,15 @@ window.importData = function(ev){
         weights:sanitizeWeights(x.weights||[]),
         measurements:sanitizeMeasurements(x.measurements||[]),
         notes:sanitizeNotes(x.notes||{}),
-        exerciseNotes:sanitizeExerciseNotes(x.exerciseNotes||{}),
-        customRoutines:Object.prototype.hasOwnProperty.call(x,'customRoutines')?sanitizeRoutines(x.customRoutines):JSON.parse(JSON.stringify(defaultPPL)),
-        customAliases:Object.prototype.hasOwnProperty.call(x,'customAliases')?sanitizeAliases(x.customAliases):JSON.parse(JSON.stringify(defaultAliases)),
-        customMuscles:Object.prototype.hasOwnProperty.call(x,'customMuscles')?sanitizeMuscles(x.customMuscles):JSON.parse(JSON.stringify(defaultMuscles)),
-        currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
-        currentTheme:cleanString(x.currentTheme,'default')||'default',
-        weeklySessionTarget:Math.min(7,Math.max(1,parseInt(x.weeklySessionTarget,10)||6))
+        ...sanitizeSettingsSnapshot(x)
       };
       const days=Object.keys(clean.data).length;
       const sourceDays=Object.keys(x.data).length;
       const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
       if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
       try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
-      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes; exerciseNotes=clean.exerciseNotes;
-      customRoutines=clean.customRoutines;
-      customAliases=clean.customAliases;
-      customMuscles=clean.customMuscles;
-      currentUnit=clean.currentUnit; currentTheme=clean.currentTheme; weeklySessionTarget=clean.weeklySessionTarget;
+      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes;
+      applySettingsSnapshot(clean);
       markAllDaysDirty({cloud:true,local:true}); markSettingsDirty({cloud:true,local:true});
       migrateNames();
       await saveToFirebase({allDays:true,settings:true});

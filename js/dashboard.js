@@ -8,8 +8,8 @@ function getMuscleGroup(name) {
     return 'Otros';
 }
 
-function weekStart(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
-function ymd(x){return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`}
+function weekStart(d=new Date()){return metricsWeekStart(d)}
+function ymd(x){return metricsYmd(x)}
 function renderWeek(){
   const box=document.getElementById('weekBody'); if(!box) return;
   const ws=weekStart(), days=[...Array(7)].map((_,i)=>{const x=new Date(ws);x.setDate(ws.getDate()+i);return ymd(x)});
@@ -25,33 +25,15 @@ function renderWeek(){
     <div class="muted" style="font-size:var(--fs-sm)"><b style="color:var(--text)">${trained.length}</b> entrenamientos esta semana · series por músculo:</div>
     ${rows.length?rows.map(([m,n])=>`<div class="mbar"><span>${escapeHtml(m)}</span><i><b style="width:${Math.round(n/mx*100)}%"></b></i><span>${n}</span></div>`).join(''):'<div class="empty" style="padding:12px">Aún no hay series esta semana.</div>'}`;
 }
-function weekPerformanceSnapshot(start){
-  const days=[...Array(7)].map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return ymd(d)});
-  let sessions=0,sets=0,volume=0;
-  days.forEach(date=>{
-    const entries=(data[date]||[]).filter(e=>!e.isCardio&&entryHasData(e));
-    if(entries.length)sessions++;
-    entries.forEach(e=>{sets+=(e.sets||[]).filter(setCountsForWork).length;volume+=sessionVolume(e)});
-  });
-  return {days,sessions,sets,volume};
-}
+function weekPerformanceSnapshot(start){ return metricsWeekSnapshot(start); }
 function dashboardDelta(current,previous,formatter=v=>String(v)){
   const delta=current-previous;
   if(!previous&&!current)return {value:formatter(current),sub:'Sin actividad en ambas semanas',cls:''};
-  if(!previous)return {value:formatter(current),sub:'Primera semana con datos comparables',cls:'positive'};
+  if(!previous)return {value:formatter(current),sub:'Primera semana con datos comparables',cls:''};
   const pct=Math.round((delta/previous)*100);
-  return {value:formatter(current),sub:`${delta>=0?'+':''}${pct}% vs. semana anterior`,cls:delta>0?'positive':delta<0?'negative':''};
+  return {value:formatter(current),sub:`${delta>=0?'+':''}${pct}% vs. semana anterior`,cls:''};
 }
-function latestMetricDelta(arr,key,days){
-  const valid=[...arr].filter(x=>x&&x.date&&x[key]!=null).sort((a,b)=>a.date.localeCompare(b.date));
-  if(valid.length<2)return null;
-  const latest=valid.at(-1), cutoff=new Date(latest.date+'T12:00:00');cutoff.setDate(cutoff.getDate()-days);
-  const candidates=valid.filter(x=>new Date(x.date+'T12:00:00')<=cutoff);
-  const base=candidates.at(-1)||valid[0];
-  if(base===latest)return null;
-  const actualDays=Math.round((new Date(latest.date+'T12:00:00')-new Date(base.date+'T12:00:00'))/86400000);
-  return {delta:latest[key]-base[key],from:base.date,to:latest.date,actualDays,fullWindow:actualDays>=Math.max(1,days-3)};
-}
+function latestMetricDelta(arr,key,days){ return metricsBodyDelta(arr,key,days); }
 function renderPerformanceOverview(prs=null){
   const box=document.getElementById('performanceOverview');if(!box)return;
   const currentStart=weekStart(),previousStart=new Date(currentStart);previousStart.setDate(previousStart.getDate()-7);
@@ -68,7 +50,7 @@ function renderPerformanceOverview(prs=null){
   let headline='Aún faltan datos para comparar tu rendimiento semanal.';
   if(cur.sessions){
     if(weekPRs.length)headline=`Esta semana lograste <b>${weekPRs.length} PR${weekPRs.length===1?'':'s'}</b> en ${uniquePRExercises} ejercicio${uniquePRExercises===1?'':'s'}.`;
-    else if(prev.sessions&&cur.volume>prev.volume)headline='Esta semana acumulaste más volumen que la anterior, aunque todavía no registras un PR nuevo.';
+    else if(prev.sessions&&cur.volume>prev.volume)headline='Esta semana acumulaste más volumen que la anterior. Tómalo como contexto junto con PR, RIR y recuperación.';
     else if(prev.sessions&&cur.sessions>=prev.sessions)headline='Mantienes o mejoras tu frecuencia de entrenamiento respecto a la semana anterior.';
     else headline='Ya tienes actividad esta semana; sigue registrando para construir una comparación más útil.';
   }
@@ -81,17 +63,91 @@ function renderPerformanceOverview(prs=null){
     </div>
     ${body.length?`<div class="body-trend-strip"><span>Composición corporal</span><div>${body.join(' <i>·</i> ')}</div></div>`:''}`;
 }
+function dashboardDecisionPlan(intel){
+  if(!intel)return '';
+  const p=intel.plan||{},bits=[];
+  if(Number(p.weightKg)>0)bits.push(formatKgValue(p.weightKg));
+  if(Number(p.sets)>0){
+    if(p.repMin&&p.repMax)bits.push(`${p.sets} × ${p.repMin}–${p.repMax}`);
+    else bits.push(`${p.sets} series`);
+  }
+  if(p.rir)bits.push(`RIR ${p.rir}`);
+  return bits.join(' · ');
+}
+function dashboardTopDecision(coverage){
+  if(typeof window.getTrainingIntelligence!=='function'||!coverage?.coverageDays)return null;
+  const names=new Set();
+  Object.keys(data).filter(d=>d>=coverage.coverageStart&&d<=coverage.endKey).forEach(d=>{
+    (data[d]||[]).forEach(e=>{if(!e.isCardio&&entryHasData(e))names.add(e.name);});
+  });
+  const warningRank={'possible-fatigue':0,'performance-down':1,'plateau':2,'':3};
+  const actionRank={decrease:0,increase:1,difficulty:2,reps:3,hold:4,reference:5};
+  return [...names].map(name=>window.getTrainingIntelligence(name,{})).filter(x=>x&&x.hasHistory).sort((a,b)=>
+    (warningRank[a.warning]??9)-(warningRank[b.warning]??9)||
+    (actionRank[a.action]??9)-(actionRank[b.action]??9)||
+    String(b.lastDate||'').localeCompare(String(a.lastDate||''))
+  )[0]||null;
+}
+function renderDashboardV6(prs=[]){
+  const box=document.getElementById('dashboardV6');if(!box)return;
+  const adherence=metricsAdherence(8,weeklySessionTarget);
+  if(!adherence.coverage.coverageDays){
+    box.innerHTML='<div class="empty"><b>Tu resumen aparecerá aquí</b><span>Registra tu primera sesión para empezar a medir adherencia, progreso y próximas decisiones.</span></div>';
+    return;
+  }
+  const current=metricsWeekSnapshot(metricsWeekStart());
+  const weekPRs=(prs||[]).filter(p=>current.days.includes(p.date));
+  const names=new Set();
+  Object.keys(data).filter(d=>d>=adherence.coverage.coverageStart&&d<=adherence.period.endKey).forEach(d=>{
+    (data[d]||[]).forEach(e=>{if(!e.isCardio&&entryHasData(e))names.add(e.name);});
+  });
+  const trends=[...names].map(name=>metricsExerciseTrend(name,adherence.coverage.coverageStart,adherence.period.endKey));
+  const improving=trends.filter(x=>x.improving).length;
+  const attention=trends.filter(x=>x.down||x.stagnant).length;
+  const pct=Math.round(adherence.pct);
+  const adherenceLabel=pct>=90?'Meta cubierta':pct>=70?'Buen ritmo':pct>=50?'Ritmo parcial':'Por debajo de la meta';
+  const decision=dashboardTopDecision(adherence.coverage);
+  const goal=sanitizeBodyGoal(bodyGoal);
+  const goalText=[bodyGoalLabel(goal.mode)];
+  if(goal.targetWeightKg)goalText.push(`peso ${formatKgValue(goal.targetWeightKg)}`);
+  if(goal.targetWaistCm)goalText.push(`cintura ${goal.targetWaistCm.toFixed(1)} cm`);
+  const decisionHtml=decision?`
+    <button class="dashboard-decision ${escapeHtml(decision.tone||'neutral')}" data-name="${escapeHtml(decision.name)}" onclick="openDashboardDecision(this.dataset.name)">
+      <span class="eyebrow">Próxima decisión</span>
+      <div class="dashboard-decision-head"><b>${escapeHtml(decision.name)}</b><span class="intelligence-action ${escapeHtml(decision.tone||'neutral')}">${escapeHtml(decision.label||'Revisar')}</span></div>
+      <strong>${escapeHtml(decision.title)}</strong>
+      ${dashboardDecisionPlan(decision)?`<small>${escapeHtml(dashboardDecisionPlan(decision))}</small>`:''}
+      <span class="dashboard-decision-link">Ver detalle →</span>
+    </button>`:'<div class="dashboard-decision empty"><b>Aún sin próxima decisión</b><span>Training Intelligence necesita al menos una sesión comparable por ejercicio.</span></div>';
+
+  box.innerHTML=`
+    <div class="dashboard-v6-grid">
+      <div class="dashboard-v6-hero">
+        <div><span class="eyebrow">Adherencia</span><div class="dashboard-v6-score">${pct}%</div><b>${adherenceLabel}</b><small>${adherence.sessions} sesiones · objetivo equivalente ${adherence.expected<10?adherence.expected.toFixed(1):Math.round(adherence.expected)} · meta ${weeklySessionTarget}/sem</small></div>
+        <div class="dashboard-v6-meter" aria-label="Adherencia ${pct}%"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="dashboard-v6-kpis">
+        <div><span>Esta semana</span><b>${current.sessions}/${weeklySessionTarget}</b><small>sesiones</small></div>
+        <div><span>PR esta semana</span><b>${weekPRs.length}</b><small>${new Set(weekPRs.map(x=>x.name)).size} ejercicios</small></div>
+        <div><span>En mejora</span><b>${improving}</b><small>${attention} para revisar</small></div>
+        <div><span>Objetivo corporal</span><b>${escapeHtml(bodyGoalLabel(goal.mode))}</b><small>${escapeHtml(goalText.slice(1).join(' · ')||'Interpretación neutral')}</small></div>
+      </div>
+    </div>
+    ${decisionHtml}`;
+}
+window.openDashboardDecision=function(name){
+  const btn=document.querySelectorAll('.tab-btn')[3];
+  switchTab('progreso',btn);
+  const sel=document.getElementById('chartExercise');
+  if(sel&&[...sel.options].some(o=>o.value===name)){sel.value=name;updateChart();}
+};
+
 function renderDashboard(){
   renderWeek();
   const prs=findPRs();
   renderPerformanceOverview(prs);
-  const dates=Object.keys(data).filter(d=>(data[d]||[]).some(entryHasData)).sort(),workouts=dates.filter(d=>(data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))).length;
-  const allSets=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:e.sets.filter(setCountsForWork).length),0),0);
-  const totalVolKg=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:sessionVolume(e)),0),0);
-  const displayVol = currentUnit === 'lbs' ? totalVolKg * 2.20462 : totalVolKg;
-  
-  document.getElementById('stats').innerHTML=`<div class="stat"><div class="label">Días registrados</div><div class="value">${dates.length}</div></div><div class="stat"><div class="label">Entrenamientos</div><div class="value">${workouts}</div></div><div class="stat"><div class="label">Series</div><div class="value">${allSets}</div></div><div class="stat"><div class="label">Volumen total</div><div class="value">${currentUnit==='lbs' ? Math.round(displayVol).toLocaleString()+' lb' : Math.round(displayVol).toLocaleString()+' kg'}</div></div>`;
-  
+  renderDashboardV6(prs);
+  const dates=Object.keys(data).filter(d=>(data[d]||[]).some(entryHasData)).sort();
   const recent=dates.slice(-6).reverse();
   document.getElementById('recentWorkouts').innerHTML=recent.length?recent.map(d=>{
       const vol = Math.round(fromKg((data[d]||[]).reduce((a,e)=>a+(e.isCardio?0:sessionVolume(e)),0))).toLocaleString();
@@ -307,18 +363,27 @@ function weightChangeDays(days){
 function latestMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null}
 function firstMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date))[0]||null}
 function measurementDelta(key){const arr=[...measurements].filter(x=>x[key]!=null).sort((a,b)=>a.date.localeCompare(b.date));if(arr.length<2)return null;return arr.at(-1)[key]-arr[0][key]}
-function trendClass(v){return v==null||Math.abs(v)<0.01?'trend-neutral':v<0?'trend-positive':'trend-negative'}
+function trendClass(v,metric='generic',currentValue=null){return typeof bodyMetricTrendClass==='function'?bodyMetricTrendClass(metric,v,currentValue):'trend-neutral'}
 function formatDelta(v,unit='cm'){if(v==null)return '—';return `${v>0?'+':''}${v.toFixed(1)} ${unit}`}
 function renderBodyCompSummary(){
     const box=document.getElementById('bodyCompSummary');if(!box)return;
-    const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));const latest=arr.at(-1);const avg7=avgWeight(7);const d30=weightChangeDays(30);const waist=measurementDelta('waist');
+    const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
+    const latest=arr.at(-1),latestM=latestMeasurement(),avg7=avgWeight(7),d30=weightChangeDays(30),waist=measurementDelta('waist');
+    const goal=sanitizeBodyGoal(bodyGoal);
+    const weightTargetSub=latest&&goal.targetWeightKg?`${formatKgValue(latest.weight-goal.targetWeightKg,true)} vs objetivo`:(latest?fmtDate(latest.date):'Sin registro');
+    const waistCurrent=latestM?.waist??null;
+    const waistTargetSub=waistCurrent!=null&&goal.targetWaistCm?`${(waistCurrent-goal.targetWaistCm)>=0?'+':''}${(waistCurrent-goal.targetWaistCm).toFixed(1)} cm vs objetivo`:'Desde la primera medición';
     const cards=[];
-    cards.push(`<div class="bodycomp-stat"><div class="label">Peso actual</div><div class="value">${latest?formatKgValue(latest.weight):'—'}</div><div class="sub">${latest?fmtDate(latest.date):'Sin registro'}</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Peso actual</div><div class="value">${latest?formatKgValue(latest.weight):'—'}</div><div class="sub">${weightTargetSub}</div></div>`);
     cards.push(`<div class="bodycomp-stat"><div class="label">Promedio 7 días</div><div class="value">${avg7!=null?formatKgValue(avg7):'—'}</div><div class="sub">Promedio de mediciones disponibles</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30)}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist)}">${formatDelta(waist)}</div><div class="sub">Desde la primera medición</div></div>`);
-    box.innerHTML=`<div class="bodycomp-grid">${cards.join('')}</div>`;
-}
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30,'weight',latest?.weight??null)}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist,'waist',waistCurrent)}">${formatDelta(waist)}</div><div class="sub">${waistTargetSub}</div></div>`);
+    const goalParts=[bodyGoalLabel(goal.mode)];
+    if(goal.targetWeightKg) goalParts.push(`Peso objetivo ${formatKgValue(goal.targetWeightKg)}`);
+    if(goal.targetWaistCm) goalParts.push(`Cintura objetivo ${goal.targetWaistCm.toFixed(1)} cm`);
+    box.innerHTML=`<div class="body-goal-strip"><span>Objetivo</span><b>${escapeHtml(goalParts.join(' · '))}</b></div><div class="bodycomp-grid">${cards.join('')}</div>`;
+  }
+
 function renderBodyWeights(){
     const box=document.getElementById('bodyWeightList');const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
     box.innerHTML=arr.slice(-10).reverse().map(x=>`<div class="progress-item"><span>${fmtDate(x.date)}</span><span style="display:flex;align-items:center;gap:10px"><b style="color:var(--accent)">${Math.round(fromKg(x.weight)*10)/10} ${unitLabel()}</b><button class="btn-delete-sm" aria-label="Eliminar peso" onclick="deleteBodyWeight('${x.date}')">${ic('trash')}</button></span></div>`).join('')||'<div class="empty">Sin peso corporal registrado.</div>';

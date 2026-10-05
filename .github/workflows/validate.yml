@@ -1,0 +1,36 @@
+name: LiftEngine Validation
+
+on:
+  push:
+    branches: [ main, "v6.0.0-consolidation" ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in app.js sw.js js/*.js; do
+            node --check "$file"
+          done
+
+      - name: Static application validation
+        run: node scripts/validate.mjs
+
+      - name: Regression suite
+        run: node scripts/regression.mjs

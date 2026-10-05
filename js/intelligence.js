@@ -1,4 +1,4 @@
-// LiftEngine · v5.8 Training Intelligence
+// LiftEngine · Training Intelligence: recomendaciones deterministas y explicables
 // Motor determinista y explicable para convertir historial + objetivo de rutina
 // en una recomendación prudente para la siguiente sesión.
 'use strict';
