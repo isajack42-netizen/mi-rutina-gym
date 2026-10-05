@@ -113,6 +113,10 @@ if(!css.includes('@media(min-width:1320px)')) fail.push('El explorador de ejerci
 if(!css.includes('--progress-workspace-min:calc(100vh - 40px)')||!css.includes('min-height:var(--progress-workspace-min)')||!css.includes('height:var(--progress-workspace-min)')) fail.push('El workspace de Progreso debe mantener una altura visual estable entre subpestañas.');
 if(!html.includes('id="summaryVersionLabel"')||!read('js/bootstrap.js').includes('summaryVersionLabel')) fail.push('La versión visible debe provenir de LIFTENGINE_VERSION y no quedar estática.');
 if(!css.includes('v6.3.2 · PROGRESS ALIGNMENT')||!css.includes('#progreso .progress-nav{')||!css.includes('top:0')||!css.includes('#progreso.active>.desktop-exercise-browser')) fail.push('Las columnas de Progreso deben compartir la misma línea superior en escritorio.');
+if(!html.includes('id="desktopExerciseComparison"')||!html.includes('id="desktopExerciseMilestones"')) fail.push('Faltan los paneles de perfil analítico v6.4.');
+if(!html.includes('<option value="reps">')||!html.includes('<option value="rir">')||!html.includes('<option value="sets">')) fail.push('Faltan métricas de reps/RIR/series en la gráfica de ejercicio.');
+if(!read('js/logbook.js').includes('function exercisePeriodComparison')||!read('js/logbook.js').includes('function exercisePrMilestones')) fail.push('Falta la lógica comparativa o de hitos del perfil v6.4.');
+if(!css.includes('.desktop-compare-grid')||!css.includes('.desktop-milestone-list')) fail.push('Faltan estilos del perfil analítico de ejercicio v6.4.');
 
 let depth=0;
 for(const ch of css){
