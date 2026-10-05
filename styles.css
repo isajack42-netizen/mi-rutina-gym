@@ -1416,3 +1416,148 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   #progreso.active>.desktop-exercise-browser,
   #progreso.active>.progress-view.active{margin-top:0}
 }
+
+
+/* ===== v6.5 · TRAINING HISTORY & COMPARE ===== */
+.desktop-progress-only{display:none!important}
+#progreso .desktop-history-view.active{display:none!important}
+
+@media(min-width:1200px){
+  .desktop-progress-only{display:block!important}
+  #progreso .desktop-history-view.active{display:block!important}
+  .history-title{margin-bottom:12px}
+  .history-subtitle{max-width:760px;margin-top:4px}
+  .history-controls{
+    display:grid;
+    grid-template-columns:minmax(150px,.8fr) minmax(170px,1fr) minmax(220px,1.35fr) auto;
+    gap:10px;
+    align-items:end;
+    margin-bottom:14px;
+    padding:12px;
+    background:var(--card2);
+    border:1px solid var(--line);
+    border-radius:11px;
+  }
+  .history-controls label{font-size:.7rem}
+  .history-controls select{height:40px;min-height:40px}
+  .history-clear-btn{height:40px;white-space:nowrap}
+  .history-compare-card{
+    padding:14px;
+    border:1px solid var(--line);
+    border-radius:11px;
+    background:var(--soft);
+  }
+  .history-compare-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:10px;
+  }
+  .history-compare-head h3{margin:0!important;font-size:1rem!important}
+  .history-range{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:2px;
+    color:var(--muted);
+    font-size:.66rem;
+    white-space:nowrap;
+  }
+  .history-range b{color:var(--text);font-size:.7rem}
+  .history-kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+  }
+  .history-kpi{
+    position:relative;
+    display:grid;
+    gap:3px;
+    min-height:82px;
+    padding:10px 11px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:9px;
+  }
+  .history-kpi small,.history-kpi span{color:var(--muted);font-size:.64rem}
+  .history-kpi b{font-size:.9rem;font-variant-numeric:tabular-nums}
+  .history-kpi em{
+    position:absolute;
+    top:9px;
+    right:9px;
+    font-size:.62rem;
+    font-style:normal;
+    font-weight:850;
+  }
+  .history-kpi em.up{color:var(--green)}
+  .history-kpi em.down{color:var(--yellow)}
+  .history-kpi em.flat{color:var(--muted)}
+  .history-compare-note{
+    margin-top:8px;
+    padding:8px 10px;
+    color:var(--muted);
+    font-size:.68rem;
+    line-height:1.45;
+    border:1px dashed var(--line);
+    border-radius:8px;
+  }
+  .history-table-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    margin:16px 0 8px;
+  }
+  .history-table-head h3{margin:0!important;font-size:.95rem!important}
+  .history-session-list{display:grid;gap:6px}
+  .history-session-row{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(120px,.9fr) minmax(190px,1.45fr) minmax(66px,.55fr) minmax(105px,.78fr) minmax(60px,.48fr) minmax(44px,.38fr);
+    gap:8px;
+    align-items:center;
+    padding:10px 11px;
+    color:var(--text);
+    background:var(--card2);
+    border:1px solid var(--line);
+    border-radius:9px;
+    text-align:left;
+  }
+  .history-session-row:hover{
+    border-color:color-mix(in srgb,var(--accent) 45%,var(--line));
+    background:var(--soft);
+  }
+  .history-session-row>span{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  .history-session-row>span:not(:first-child){align-items:flex-end;text-align:right}
+  .history-session-row b{
+    font-size:.74rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-variant-numeric:tabular-nums;
+  }
+  .history-session-row small,.history-session-row em{
+    color:var(--muted);
+    font-size:.61rem;
+    font-style:normal;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:100%;
+  }
+  .history-session-date b{font-size:.78rem}
+}
+
+@media(min-width:1200px) and (max-width:1399px){
+  .history-controls{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .history-clear-btn{grid-column:1/-1;justify-self:end}
+  .history-session-row{
+    grid-template-columns:minmax(110px,.9fr) minmax(160px,1.3fr) repeat(4,minmax(58px,.55fr));
+  }
+}

@@ -223,6 +223,7 @@
     <button class="progress-nav-btn active" id="progress-tab-performance" role="tab" aria-selected="true" aria-controls="progress-performance" tabindex="0" data-view="performance" onclick="setProgressView('performance',this)">Rendimiento</button>
     <button class="progress-nav-btn" id="progress-tab-intelligence" role="tab" aria-selected="false" aria-controls="progress-intelligence" tabindex="-1" data-view="intelligence" onclick="setProgressView('intelligence',this)">Inteligencia</button>
     <button class="progress-nav-btn" id="progress-tab-analytics" role="tab" aria-selected="false" aria-controls="progress-analytics" tabindex="-1" data-view="analytics" onclick="setProgressView('analytics',this)">Analítica</button>
+    <button class="progress-nav-btn desktop-progress-only" id="progress-tab-history" role="tab" aria-selected="false" aria-controls="progress-history" tabindex="-1" data-view="history" onclick="setProgressView('history',this)">Historial</button>
     <button class="progress-nav-btn" id="progress-tab-body" role="tab" aria-selected="false" aria-controls="progress-body" tabindex="-1" data-view="body" onclick="setProgressView('body',this)">Cuerpo</button>
   </nav>
   <aside class="desktop-exercise-browser" id="desktopExerciseBrowser" aria-label="Explorador de ejercicios">
@@ -286,6 +287,47 @@
       <div class="analytics-panel-head"><h3>Próximas decisiones</h3><span class="muted">Motor explicable · reglas deterministas</span></div>
       <div id="analyticsIntelligence" class="intel-list"></div>
     </div>
+  </div>
+
+  <div class="card progress-view desktop-history-view" id="progress-history" role="tabpanel" aria-labelledby="progress-tab-history" data-progress-view="history">
+    <div class="section-title history-title">
+      <div>
+        <span class="eyebrow">Historial</span>
+        <h2>Sesiones y comparación</h2>
+        <p class="muted history-subtitle">Compara bloques equivalentes y revisa qué cambió en tus sesiones con los mismos filtros.</p>
+      </div>
+    </div>
+
+    <div class="history-controls">
+      <div>
+        <label for="historyWindow">Periodo</label>
+        <select id="historyWindow" onchange="renderHistory()">
+          <option value="4" selected>4 semanas vs. 4 anteriores</option>
+          <option value="8">8 semanas vs. 8 anteriores</option>
+          <option value="12">12 semanas vs. 12 anteriores</option>
+        </select>
+      </div>
+      <div>
+        <label for="historyRoutine">Rutina</label>
+        <select id="historyRoutine" onchange="renderHistory()"><option value="">Todas las rutinas</option></select>
+      </div>
+      <div>
+        <label for="historyExercise">Ejercicio</label>
+        <select id="historyExercise" onchange="renderHistory()"><option value="">Todos los ejercicios</option></select>
+      </div>
+      <button class="btn btn-secondary history-clear-btn" type="button" onclick="resetHistoryFilters()">Limpiar filtros</button>
+    </div>
+
+    <div id="historyCompareSummary"></div>
+
+    <div class="history-table-head">
+      <div>
+        <span class="eyebrow">Periodo actual</span>
+        <h3>Sesiones</h3>
+      </div>
+      <span class="badge" id="historySessionCount">0 sesiones</span>
+    </div>
+    <div id="historySessionList" class="history-session-list"></div>
   </div>
 
   <div class="card progress-view" id="progress-body" role="tabpanel" aria-labelledby="progress-tab-body" data-progress-view="body">

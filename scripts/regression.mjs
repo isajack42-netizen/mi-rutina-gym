@@ -171,6 +171,68 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   assert.equal(x.plan.weightKg,40);
 }
 
+// ===== Training History & Compare (v6.5.0) =====
+{
+  const src=read('js/history.js');
+  const a=src.indexOf('// <history-helpers>'), z=src.indexOf('// </history-helpers>');
+  assert.ok(a>=0&&z>a,'faltan los helpers puros de Historial v6.5');
+  const ctx=context();
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__hist={historyShiftDate,historyValidSet,historySessionRow,historyAggregate,historyPct,historyPeriodCompare};',ctx);
+  const h=ctx.__hist, J=x=>JSON.parse(JSON.stringify(x));
+
+  const entries=[
+    {isCardio:false,name:'Press',sets:[
+      {done:true,type:'warmup',weight:20,reps:10,rir:4},
+      {done:true,type:'normal',weight:30,reps:10,rir:2},
+      {done:true,type:'normal',weight:30,reps:9,rir:2}
+    ]},
+    {isCardio:false,name:'Remo',sets:[
+      {done:true,type:'normal',weight:40,reps:10,rir:1}
+    ]},
+    {isCardio:true,name:'Caminadora',time:20,distance:2}
+  ];
+  const prs=[
+    {date:'2026-10-05',name:'Press'},
+    {date:'2026-10-05',name:'Remo'}
+  ];
+
+  let row=J(h.historySessionRow('2026-10-05',entries,'Push','','',prs));
+  assert.equal(row.exercises,2);
+  assert.equal(row.sets,3,'calentamiento no cuenta como serie de trabajo');
+  assert.equal(row.volume,30*10+30*9+40*10);
+  assert.equal(row.prs,2);
+  assert.ok(row.avgRir>1.6&&row.avgRir<1.7);
+
+  row=J(h.historySessionRow('2026-10-05',entries,'Push','','Press',prs));
+  assert.equal(row.exercises,1);
+  assert.equal(row.sets,2);
+  assert.equal(row.prs,1);
+  assert.equal(h.historySessionRow('2026-10-05',entries,'Push','Pull','',prs),null);
+
+  const makeRow=(date,sets,volume,rir=2,exercise='Press')=>({
+    date,routine:'Push',exerciseNames:[exercise],exercises:1,sets,volume,
+    rirSum:rir*sets,rirCount:sets,avgRir:rir,prs:0
+  });
+  const rows=[
+    makeRow('2026-08-15',3,900),
+    makeRow('2026-09-01',3,960),
+    makeRow('2026-09-15',3,1020),
+    makeRow('2026-10-05',4,1400)
+  ];
+  assert.equal(h.historyShiftDate('2026-10-05',-27),'2026-09-08');
+  const cmp=J(h.historyPeriodCompare(rows,4));
+  assert.equal(cmp.current.sessions,2);
+  assert.equal(cmp.previous.sessions,2);
+  assert.equal(cmp.current.sets,7);
+  assert.equal(cmp.previous.sets,6);
+  assert.ok(cmp.deltas.volumePerSession>25);
+  assert.equal(cmp.currentRows.at(-1).date,'2026-10-05');
+
+  const noPrev=J(h.historyPeriodCompare([makeRow('2026-10-05',3,900)],4));
+  assert.equal(noPrev.previous.sessions,0);
+  assert.equal(noPrev.deltas.sessions,null);
+}
+
 // ===== Exercise Profile Analytics (v6.4.0) =====
 {
   const src=read('js/logbook.js');
