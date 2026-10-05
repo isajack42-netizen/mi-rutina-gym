@@ -134,6 +134,8 @@ async function initApp() {
     await load();
     if(migrateNames()) await persistLocal();
     applyTheme();
+    const versionLabel=document.getElementById('summaryVersionLabel');
+    if(versionLabel)versionLabel.textContent=`LiftEngine v${globalThis.LIFTENGINE_VERSION||''}`.trim();
     initThemePreferenceListener();
     initTabKeyboard();
     initModalFocusManagement();
