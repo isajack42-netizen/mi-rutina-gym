@@ -9,13 +9,15 @@ Desde v5.4.0 el JavaScript está separado por dominio. Desde v5.5.0, `app.js` es
 3. `js/config.js` — Firebase y versiones de esquemas.
 4. `js/storage.js` — IndexedDB: días, configuración y metadata local.
 5. `js/core.js` — estado, sanitización, almacenamiento local, Nube v2, conflictos, unidades, tema y diálogos.
-6. `js/logbook.js` — registro manual, sesiones, e1RM y progresión.
+6. `js/logbook.js` — registro manual, sesiones, e1RM y utilidades de progresión.
 7. `js/dashboard.js` — resumen, PR, calendario y composición corporal.
-8. `js/tools.js` — calculadora, temporizador, CSV, ajustes, catálogos y backups.
-9. `js/routines.js` — creación y gestión de rutinas.
-10. `js/notifications.js` — avisos de descanso y teclado móvil.
-11. `js/training.js` — modo entrenamiento.
-12. `js/bootstrap.js` — inicialización y listeners globales.
+8. `js/analytics.js` — ventanas 4/8/12 semanas, adherencia, frecuencia y tendencias.
+9. `js/intelligence.js` — motor explicable de recomendación para la siguiente sesión.
+10. `js/tools.js` — calculadora, temporizador, CSV, ajustes, catálogos y backups.
+11. `js/routines.js` — creación y gestión de rutinas.
+12. `js/notifications.js` — avisos de descanso y teclado móvil.
+13. `js/training.js` — modo entrenamiento e integración de sugerencias.
+14. `js/bootstrap.js` — inicialización y listeners globales.
 
 Los módulos siguen siendo scripts clásicos y comparten el entorno global. Esto mantiene compatibilidad con el proyecto existente sin una reescritura completa a ES modules.
 
@@ -41,6 +43,7 @@ Si IndexedDB no está disponible, LiftEngine cae automáticamente al modo hereda
 - `customMuscles`
 - `currentUnit`
 - `currentTheme`
+- `weeklySessionTarget`
 
 ### Documentos por día
 
@@ -98,3 +101,15 @@ La siguiente optimización posible, solo cuando el historial lo justifique, ser�
 ## v5.7 Analytics
 
 `js/analytics.js` es una capa de lectura sobre el historial. Calcula ventanas de 4/8/12 semanas, adherencia a una meta semanal configurable, frecuencia y series de trabajo por músculo, PR del periodo y señales conservadoras de mejora/estancamiento mediante e1RM. La única escritura de este módulo es `weeklySessionTarget`, que forma parte de la configuración local/nube y del backup JSON.
+
+## v5.8 Training Intelligence
+
+`js/intelligence.js` es una capa exclusivamente derivada: no introduce tablas ni documentos nuevos. Consume `getExerciseSessions()`, el objetivo resuelto por `routineTargetFor()`, RIR y e1RM para construir una recomendación determinista.
+
+El módulo produce un objeto común usado por:
+
+- **Progreso:** plan de próxima sesión y explicación.
+- **Analytics:** resumen de próximas decisiones.
+- **Modo entrenamiento:** placeholders de peso/reps y tarjeta compacta de objetivo.
+
+Las señales de meseta y caída de rendimiento son contextuales y no se convierten automáticamente en diagnósticos ni deloads. El motor exige volumen objetivo suficiente antes de subir carga y trata la ausencia de RIR de forma conservadora.

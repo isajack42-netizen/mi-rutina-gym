@@ -216,7 +216,7 @@
   </div>
 
   <div class="card">
-    <div class="section-title"><h2>Progresión recomendada</h2></div>
+    <div class="section-title intelligence-section-title"><div><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p></div></div>
     <div id="progressionPanel"><div class="empty">Selecciona un ejercicio arriba para ver la recomendación.</div></div>
   </div>
 
@@ -245,6 +245,10 @@
     <div class="analytics-grid" style="margin-top:12px">
       <div class="analytics-panel"><div class="analytics-panel-head"><h3>En progreso</h3><span class="muted">e1RM</span></div><div id="analyticsProgressing" class="progress-list"></div></div>
       <div class="analytics-panel"><div class="analytics-panel-head"><h3>Para revisar</h3><span class="muted">Señales, no diagnósticos</span></div><div id="analyticsAttention" class="progress-list"></div></div>
+    </div>
+    <div class="analytics-panel intelligence-overview" style="margin-top:12px">
+      <div class="analytics-panel-head"><h3>Próximas decisiones</h3><span class="muted">Motor v5.8 · reglas explicables</span></div>
+      <div id="analyticsIntelligence" class="intel-list"></div>
     </div>
   </div>
 
@@ -315,7 +319,7 @@
   </div>
 </div>
 
-<div class="dialog-backdrop" id="dialogBackdrop" aria-hidden="true"><div class="app-dialog" id="appDialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle"></div></div>
+<div class="dialog-backdrop" id="dialogBackdrop" aria-hidden="true" hidden><div class="app-dialog" id="appDialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle"></div></div>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
