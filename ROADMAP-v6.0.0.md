@@ -109,3 +109,15 @@ Al terminar:
 - actualizar `ARCHITECTURE.md`;
 - changelog final;
 - merge a `main`.
+
+
+## Estado de implementación
+
+- ✅ Fase 1 — Foundation & Quality Gate
+- ✅ Fase 2 — Settings & Goals
+- ✅ Fase 3 — Metrics Engine
+- ✅ Fase 4 — Dashboard v6
+- ✅ Fase 5 — Intelligence Integration preservando el motor determinista existente
+- 🟡 Fase 6 — Regresión automatizada completada; smoke test real pendiente después del despliegue en GitHub Pages
+
+La regresión automatizada corre en GitHub Actions. Las pruebas visuales y de integración real con Safari/iPhone y sesión Firebase se validan tras publicar.
