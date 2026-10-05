@@ -96,7 +96,7 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   });
   run('js/metrics.js',ctx);
 
-  const week=ctx.metricsWeekSnapshot(ctx.metricsWeekStart(new Date(2026,9,5)));
+  const week=ctx.metricsWeekSnapshot(ctx.metricsWeekStart(new Date(2026,8,28)));
   assert.equal(week.sessions,2);
   assert.equal(week.sets,4);
   assert.ok(week.volume>0);
