@@ -63,17 +63,91 @@ function renderPerformanceOverview(prs=null){
     </div>
     ${body.length?`<div class="body-trend-strip"><span>Composición corporal</span><div>${body.join(' <i>·</i> ')}</div></div>`:''}`;
 }
+function dashboardDecisionPlan(intel){
+  if(!intel)return '';
+  const p=intel.plan||{},bits=[];
+  if(Number(p.weightKg)>0)bits.push(formatKgValue(p.weightKg));
+  if(Number(p.sets)>0){
+    if(p.repMin&&p.repMax)bits.push(`${p.sets} × ${p.repMin}–${p.repMax}`);
+    else bits.push(`${p.sets} series`);
+  }
+  if(p.rir)bits.push(`RIR ${p.rir}`);
+  return bits.join(' · ');
+}
+function dashboardTopDecision(coverage){
+  if(typeof window.getTrainingIntelligence!=='function'||!coverage?.coverageDays)return null;
+  const names=new Set();
+  Object.keys(data).filter(d=>d>=coverage.coverageStart&&d<=coverage.endKey).forEach(d=>{
+    (data[d]||[]).forEach(e=>{if(!e.isCardio&&entryHasData(e))names.add(e.name);});
+  });
+  const warningRank={'possible-fatigue':0,'performance-down':1,'plateau':2,'':3};
+  const actionRank={decrease:0,increase:1,difficulty:2,reps:3,hold:4,reference:5};
+  return [...names].map(name=>window.getTrainingIntelligence(name,{})).filter(x=>x&&x.hasHistory).sort((a,b)=>
+    (warningRank[a.warning]??9)-(warningRank[b.warning]??9)||
+    (actionRank[a.action]??9)-(actionRank[b.action]??9)||
+    String(b.lastDate||'').localeCompare(String(a.lastDate||''))
+  )[0]||null;
+}
+function renderDashboardV6(prs=[]){
+  const box=document.getElementById('dashboardV6');if(!box)return;
+  const adherence=metricsAdherence(8,weeklySessionTarget);
+  if(!adherence.coverage.coverageDays){
+    box.innerHTML='<div class="empty"><b>Tu resumen aparecerá aquí</b><span>Registra tu primera sesión para empezar a medir adherencia, progreso y próximas decisiones.</span></div>';
+    return;
+  }
+  const current=metricsWeekSnapshot(metricsWeekStart());
+  const weekPRs=(prs||[]).filter(p=>current.days.includes(p.date));
+  const names=new Set();
+  Object.keys(data).filter(d=>d>=adherence.coverage.coverageStart&&d<=adherence.period.endKey).forEach(d=>{
+    (data[d]||[]).forEach(e=>{if(!e.isCardio&&entryHasData(e))names.add(e.name);});
+  });
+  const trends=[...names].map(name=>metricsExerciseTrend(name,adherence.coverage.coverageStart,adherence.period.endKey));
+  const improving=trends.filter(x=>x.improving).length;
+  const attention=trends.filter(x=>x.down||x.stagnant).length;
+  const pct=Math.round(adherence.pct);
+  const adherenceLabel=pct>=90?'Meta cubierta':pct>=70?'Buen ritmo':pct>=50?'Ritmo parcial':'Por debajo de la meta';
+  const decision=dashboardTopDecision(adherence.coverage);
+  const goal=sanitizeBodyGoal(bodyGoal);
+  const goalText=[bodyGoalLabel(goal.mode)];
+  if(goal.targetWeightKg)goalText.push(`peso ${formatKgValue(goal.targetWeightKg)}`);
+  if(goal.targetWaistCm)goalText.push(`cintura ${goal.targetWaistCm.toFixed(1)} cm`);
+  const decisionHtml=decision?`
+    <button class="dashboard-decision ${escapeHtml(decision.tone||'neutral')}" data-name="${escapeHtml(decision.name)}" onclick="openDashboardDecision(this.dataset.name)">
+      <span class="eyebrow">Próxima decisión</span>
+      <div class="dashboard-decision-head"><b>${escapeHtml(decision.name)}</b><span class="intelligence-action ${escapeHtml(decision.tone||'neutral')}">${escapeHtml(decision.label||'Revisar')}</span></div>
+      <strong>${escapeHtml(decision.title)}</strong>
+      ${dashboardDecisionPlan(decision)?`<small>${escapeHtml(dashboardDecisionPlan(decision))}</small>`:''}
+      <span class="dashboard-decision-link">Ver detalle →</span>
+    </button>`:'<div class="dashboard-decision empty"><b>Aún sin próxima decisión</b><span>Training Intelligence necesita al menos una sesión comparable por ejercicio.</span></div>';
+
+  box.innerHTML=`
+    <div class="dashboard-v6-grid">
+      <div class="dashboard-v6-hero">
+        <div><span class="eyebrow">Adherencia</span><div class="dashboard-v6-score">${pct}%</div><b>${adherenceLabel}</b><small>${adherence.sessions} sesiones · objetivo equivalente ${adherence.expected<10?adherence.expected.toFixed(1):Math.round(adherence.expected)} · meta ${weeklySessionTarget}/sem</small></div>
+        <div class="dashboard-v6-meter" aria-label="Adherencia ${pct}%"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="dashboard-v6-kpis">
+        <div><span>Esta semana</span><b>${current.sessions}/${weeklySessionTarget}</b><small>sesiones</small></div>
+        <div><span>PR esta semana</span><b>${weekPRs.length}</b><small>${new Set(weekPRs.map(x=>x.name)).size} ejercicios</small></div>
+        <div><span>En mejora</span><b>${improving}</b><small>${attention} para revisar</small></div>
+        <div><span>Objetivo corporal</span><b>${escapeHtml(bodyGoalLabel(goal.mode))}</b><small>${escapeHtml(goalText.slice(1).join(' · ')||'Interpretación neutral')}</small></div>
+      </div>
+    </div>
+    ${decisionHtml}`;
+}
+window.openDashboardDecision=function(name){
+  const btn=document.querySelectorAll('.tab-btn')[3];
+  switchTab('progreso',btn);
+  const sel=document.getElementById('chartExercise');
+  if(sel&&[...sel.options].some(o=>o.value===name)){sel.value=name;updateChart();}
+};
+
 function renderDashboard(){
   renderWeek();
   const prs=findPRs();
   renderPerformanceOverview(prs);
-  const dates=Object.keys(data).filter(d=>(data[d]||[]).some(entryHasData)).sort(),workouts=dates.filter(d=>(data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))).length;
-  const allSets=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:e.sets.filter(setCountsForWork).length),0),0);
-  const totalVolKg=dates.reduce((a,d)=>a+(data[d]||[]).reduce((b,e)=>b+(e.isCardio?0:sessionVolume(e)),0),0);
-  const displayVol = currentUnit === 'lbs' ? totalVolKg * 2.20462 : totalVolKg;
-  
-  document.getElementById('stats').innerHTML=`<div class="stat"><div class="label">Días registrados</div><div class="value">${dates.length}</div></div><div class="stat"><div class="label">Entrenamientos</div><div class="value">${workouts}</div></div><div class="stat"><div class="label">Series</div><div class="value">${allSets}</div></div><div class="stat"><div class="label">Volumen total</div><div class="value">${currentUnit==='lbs' ? Math.round(displayVol).toLocaleString()+' lb' : Math.round(displayVol).toLocaleString()+' kg'}</div></div>`;
-  
+  renderDashboardV6(prs);
+  const dates=Object.keys(data).filter(d=>(data[d]||[]).some(entryHasData)).sort();
   const recent=dates.slice(-6).reverse();
   document.getElementById('recentWorkouts').innerHTML=recent.length?recent.map(d=>{
       const vol = Math.round(fromKg((data[d]||[]).reduce((a,e)=>a+(e.isCardio?0:sessionVolume(e)),0))).toLocaleString();
