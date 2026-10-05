@@ -95,6 +95,13 @@ if(!read('js/bootstrap.js').includes('function bindRovingTablist')||!read('js/bo
 if(!trainingJs.includes("data-set-state=\"${setState||'idle'}\"")||!css.includes('.tr-row.next-set')||!css.includes('.tr-row.active-set')) fail.push('Modo Entrenamiento no distingue la siguiente serie o la serie en curso.');
 if(!read('js/dashboard.js').includes('progress-item-button')||!read('js/routines.js').includes('Crear primera rutina')) fail.push('Faltan estados interactivos accesibles de v6.1.3.');
 if(!read('js/logbook.js').includes('1400+text.length*28')) fail.push('Los toasts largos no ajustan su duración.');
+if(!html.includes('class="app-sidebar"')||!html.includes('class="app-main"')) fail.push('Falta el shell de escritorio v6.2.');
+if(!css.includes('@media(min-width:1200px)')||!css.includes('grid-template-columns:248px minmax(0,1fr)')) fail.push('Falta el layout desktop principal v6.2.');
+if(!css.includes('#registro.active')||!css.includes('#calendario.active')||!css.includes('#progreso.active')) fail.push('Faltan layouts desktop por sección.');
+if(!css.includes('.train-overlay.open')||!css.includes('.train-chip-name')) fail.push('Falta el workspace desktop del Modo Entrenamiento.');
+if(!read('js/routines.js').includes('trainRoutineFromLibrary')||!read('js/routines.js').includes('routine-train-btn')) fail.push('Rutinas no ofrece inicio directo en escritorio.');
+if(!read('js/dashboard.js').includes('cal-desktop-stats')) fail.push('Calendario no expone metadatos desktop.');
+if(!read('js/bootstrap.js').includes('function initDesktopExperience')) fail.push('Falta inicialización del comportamiento desktop.');
 
 let depth=0;
 for(const ch of css){
