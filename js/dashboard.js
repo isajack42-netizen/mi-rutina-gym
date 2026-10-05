@@ -302,7 +302,21 @@ window.renderCalendar = function(){
   const grid=document.getElementById('calendarGrid'),name=document.getElementById('monthYear');grid.innerHTML='';name.textContent=new Date(currentYear,currentMonth,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(x=>grid.innerHTML+=`<div class="day-name">${x}</div>`);
   const first=new Date(currentYear,currentMonth,1).getDay(),days=new Date(currentYear,currentMonth+1,0).getDate();for(let i=0;i<first;i++)grid.innerHTML+='<div class="cal-day empty"></div>';
-  for(let i=1;i<=days;i++){const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData)),label=categories[d]||((data[d]||[]).some(entryHasData)?'Entrenamiento':'Registro');const el=document.createElement('button');el.type='button';el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');el.setAttribute('aria-label',`${i} · ${label||'Sin registro'}`);el.innerHTML=`<div class="cal-num">${i}</div>${has?'<span class="cal-dot" aria-hidden="true"></span>':''}`;el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};grid.appendChild(el)}
+  for(let i=1;i<=days;i++){
+    const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData));
+    const routine=categories[d]||'';
+    const label=routine||((data[d]||[]).some(entryHasData)?'Entrenamiento':'Registro');
+    const el=document.createElement('button');
+    el.type='button';
+    el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');
+    el.setAttribute('aria-label',`${i} · ${label||'Sin registro'}`);
+    el.title=routine||label||'';
+    const routineHtml=routine?`<span class="cal-routine">${escapeHtml(routine)}</span>`:'';
+    el.innerHTML=`<div class="cal-num">${i}</div>${has?`<div class="cal-day-meta">${routineHtml}<span class="cal-dot" aria-hidden="true"></span></div>`:''}`;
+    el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};
+    grid.appendChild(el);
+  }
   if(selectedDate)showDaySummary(selectedDate)
 }
 
