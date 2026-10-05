@@ -155,7 +155,7 @@ function renderTrain(){
   train.idx=Math.min(Math.max(train.idx,0),es.length-1);
   const e=es[train.idx], d=train.date, body=document.getElementById('trainBody'), keep=body.scrollTop;
   document.getElementById('trainTitle').textContent=train.routine||'Sesión libre';
-  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone);return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="Ejercicio ${i+1}">${dn?ic('check'):i+1}</button>`}).join('');
+  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone),label=`${x.name} · ejercicio ${i+1}${dn?' · completado':''}`;return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="${escapeHtml(label)}" title="${escapeHtml(x.name)}">${dn?ic('check'):i+1}</button>`}).join('');
   document.getElementById('trainNext').innerHTML=train.idx===es.length-1?'Finalizar '+ic('check'):'Siguiente '+ic('arrow-right');
   const tg=routineTargetFor(e.name,train.routine||null,d);
   const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${normalizeRestLabel(tg.rest)}`].filter(Boolean):[];
@@ -176,12 +176,15 @@ function renderTrain(){
   const intelPlan=intel&&typeof intelligencePlanText==='function'?intelligencePlanText(intel):'';
   const intelShell=intel?`<details class="train-context train-context-intel"><summary><span><small>Objetivo sugerido</small><b>${escapeHtml(intelPlan||intel.title||'Revisar propuesta')}</b></span><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span></summary><div class="train-context-card">${intelHtml}</div></details>`:'';
   const rph=tg?parseFloat(tg.rir):NaN;
+  const activeSetIndex=train.activeSet&&train.activeSet.id===e.id?Number(train.activeSet.i):-1;
+  const nextPendingIndex=e.sets.findIndex(s=>!isDone(s));
   const rows=e.sets.map((s,i)=>{
     const sg=sug?sug(i):null, dn=isDone(s), has=parseFloat(s.reps)>0;
+    const setState=dn?'done':activeSetIndex===i?'active-set':activeSetIndex<0&&i===nextPendingIndex?'next-set':'';
     const sw=sg&&sg.w?rd(sg.w):'', sr=sg&&sg.r?sg.r:'';
     const ri=has&&s.rir!=='-'&&!isNaN(parseFloat(s.rir))?s.rir:'';
     const tp=normalizeSetType(s.type), weightStep=1;
-    return `<div class="tr-row ${dn?'done':''} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}"><div class="tr-n">${i+1}</div>
+    return `<div class="tr-row ${setState} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}" data-set-state="${setState||'idle'}"><div class="tr-n">${i+1}</div>
       <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
       <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
       <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">

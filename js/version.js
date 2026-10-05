@@ -1,3 +1,3 @@
 // LiftEngine · versión única de la aplicación
 'use strict';
-globalThis.LIFTENGINE_VERSION = '6.1.2';
+globalThis.LIFTENGINE_VERSION = '6.1.3';

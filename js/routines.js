@@ -126,7 +126,7 @@ function renderRoutines(){
             </table>
         </div>
     </details>`;
-  }).join('') || '<div class="empty"><b>Aún no tienes rutinas</b><span>Crea tu primera rutina para iniciar entrenamientos guiados.</span></div>';
+  }).join('') || '<div class="empty"><b>Aún no tienes rutinas</b><span>Crea tu primera rutina para iniciar entrenamientos guiados.</span><button class="btn btn-primary empty-action" type="button" onclick="openRoutineEditor()">Crear primera rutina</button></div>';
 }
 
 

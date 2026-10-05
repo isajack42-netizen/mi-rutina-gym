@@ -90,6 +90,11 @@ if(trainingJs.includes('Pulsa “Empezar” al iniciar la serie para cerrar el d
 if(!trainingJs.includes('function trainApplyEnd')||!trainingJs.includes('onclick="trainEnd(true)"')) fail.push('Falta proteger las series pendientes al terminar el entrenamiento.');
 if(!/trainEnd=function\(savePending\)/.test(trainingJs)) fail.push('trainEnd debe recibir explícitamente si guarda o descarta las pendientes.');
 if(!trainingJs.includes('Descanso ${restLabel(s)}')||!read('js/logbook.js').includes("s.restEstimated?'≈ ':''")) fail.push('El descanso estimado debe mostrarse con ≈ en Entrenamiento y Registro.');
+if(!html.includes('aria-controls="resumen"')||!html.includes('role="tabpanel" aria-labelledby="tab-resumen"')) fail.push('Falta la semántica accesible de pestañas v6.1.3.');
+if(!read('js/bootstrap.js').includes('function bindRovingTablist')||!read('js/bootstrap.js').includes('function initModalFocusManagement')) fail.push('Falta navegación por teclado o gestión de foco en modales.');
+if(!trainingJs.includes("data-set-state=\"${setState||'idle'}\"")||!css.includes('.tr-row.next-set')||!css.includes('.tr-row.active-set')) fail.push('Modo Entrenamiento no distingue la siguiente serie o la serie en curso.');
+if(!read('js/dashboard.js').includes('progress-item-button')||!read('js/routines.js').includes('Crear primera rutina')) fail.push('Faltan estados interactivos accesibles de v6.1.3.');
+if(!read('js/logbook.js').includes('1400+text.length*28')) fail.push('Los toasts largos no ajustan su duración.');
 
 let depth=0;
 for(const ch of css){

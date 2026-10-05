@@ -26,6 +26,7 @@ window.setProgressView=function(view,btn=null){
       const on=el.dataset.view===activeProgressView;
       el.classList.toggle('active',on);
       el.setAttribute('aria-selected',on?'true':'false');
+      el.tabIndex=on?0:-1;
     });
     requestAnimationFrame(()=>{
       if(activeProgressView==='performance'&&typeof updateChart==='function')updateChart();
@@ -36,6 +37,59 @@ window.setProgressView=function(view,btn=null){
       }
     });
 };
+function bindRovingTablist(root,selector){
+    if(!root||root.dataset.keyboardBound==='1')return;
+    root.dataset.keyboardBound='1';
+    root.addEventListener('keydown',e=>{
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+      const tabs=[...root.querySelectorAll(selector)].filter(x=>!x.disabled);
+      if(!tabs.length)return;
+      const cur=Math.max(0,tabs.indexOf(document.activeElement));
+      let next=cur;
+      if(e.key==='ArrowRight')next=(cur+1)%tabs.length;
+      if(e.key==='ArrowLeft')next=(cur-1+tabs.length)%tabs.length;
+      if(e.key==='Home')next=0;
+      if(e.key==='End')next=tabs.length-1;
+      e.preventDefault();
+      tabs[next].click();
+      try{tabs[next].focus({preventScroll:true});}catch(_){tabs[next].focus();}
+    });
+}
+function initTabKeyboard(){
+    bindRovingTablist(document.querySelector('.tabs'),'.tab-btn');
+    bindRovingTablist(document.querySelector('.progress-nav'),'.progress-nav-btn');
+}
+
+let modalReturnFocus=null, modalWasOpen=false;
+function focusableIn(root){
+  return [...root.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(el=>!el.hidden&&el.offsetParent!==null);
+}
+function initModalFocusManagement(){
+  const back=document.getElementById('modalBackdrop'), box=document.getElementById('modal');
+  if(!back||!box||back.dataset.focusManaged==='1')return;
+  back.dataset.focusManaged='1';
+  const sync=()=>{
+    const open=back.classList.contains('show');
+    if(open&&!modalWasOpen){
+      modalReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+      requestAnimationFrame(()=>{
+        const target=focusableIn(box)[0]||box;
+        if(target===box&&!box.hasAttribute('tabindex'))box.setAttribute('tabindex','-1');
+        try{target.focus({preventScroll:true});}catch(_){try{target.focus();}catch(__){}}
+      });
+    }else if(!open&&modalWasOpen){
+      const previous=modalReturnFocus;modalReturnFocus=null;
+      if(previous&&previous.isConnected&&typeof previous.focus==='function'){
+        requestAnimationFrame(()=>{try{previous.focus({preventScroll:true});}catch(_){}});
+      }
+    }
+    modalWasOpen=open;
+  };
+  new MutationObserver(sync).observe(back,{attributes:true,attributeFilter:['class']});
+  sync();
+}
+
 let themePreferenceBound=false;
 function initThemePreferenceListener(){
     if(themePreferenceBound||typeof matchMedia!=='function')return;
@@ -52,6 +106,8 @@ async function initApp() {
     if(migrateNames()) await persistLocal();
     applyTheme();
     initThemePreferenceListener();
+    initTabKeyboard();
+    initModalFocusManagement();
     setProgressView('performance');
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
@@ -103,7 +159,17 @@ document.addEventListener('visibilitychange',()=>{
 
 document.getElementById('routineDate').addEventListener('change',()=>loadDay());
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape' && document.getElementById('modalBackdrop').classList.contains('show')) closeModal()});
+document.addEventListener('keydown',e=>{
+  const back=document.getElementById('modalBackdrop'), box=document.getElementById('modal');
+  if(!back.classList.contains('show'))return;
+  if(e.key==='Escape'){e.preventDefault();closeModal();return;}
+  if(e.key==='Tab'){
+    const items=focusableIn(box);if(!items.length){e.preventDefault();box.focus();return;}
+    const first=items[0],last=items[items.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
 
 const settingsBtn = document.getElementById('settingsBtn');
 if(settingsBtn){

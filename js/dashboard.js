@@ -147,8 +147,8 @@ function renderDashboard(){
   const recent=dates.slice(-6).reverse();
   document.getElementById('recentWorkouts').innerHTML=recent.length?recent.map(d=>{
       const vol = Math.round(fromKg((data[d]||[]).reduce((a,e)=>a+(e.isCardio?0:sessionVolume(e)),0))).toLocaleString();
-      return `<div class="progress-item" onclick="goToDate('${d}')" style="cursor:pointer"><div><b>${fmtDate(d)}</b><br><small>${escapeHtml(categories[d]||'Sin etiqueta')} · ${(data[d]||[]).filter(e=>!e.isCardio&&entryHasData(e)).length} ejercicios</small></div><b>${vol} ${unitLabel()}</b></div>`;
-  }).join(''):'<div class="empty">Todavía no hay entrenamientos.</div>';
+      return `<button class="progress-item progress-item-button" type="button" onclick="goToDate('${d}')" aria-label="Abrir entrenamiento del ${fmtDate(d)}"><div><b>${fmtDate(d)}</b><br><small>${escapeHtml(categories[d]||'Sin etiqueta')} · ${(data[d]||[]).filter(e=>!e.isCardio&&entryHasData(e)).length} ejercicios</small></div><b>${vol} ${unitLabel()}</b></button>`;
+  }).join(''):'<div class="empty"><b>Aún no hay entrenamientos</b><span>Cuando registres tu primera sesión aparecerá aquí para abrirla rápidamente.</span><button class="btn btn-primary empty-action" type="button" onclick="openTrainStart()">Iniciar entrenamiento</button></div>';
   
   document.getElementById('recentPRs').innerHTML=prs.slice(-6).reverse().map(p=>{
     const value=p.type==='reps'?`${p.value} reps`:formatKgValue(p.value);
