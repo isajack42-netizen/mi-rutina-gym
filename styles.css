@@ -439,9 +439,10 @@ body{padding-top:calc(16px + env(safe-area-inset-top,0px))}
 
 
 /* ===== v5.7 · ANALÍTICA ===== */
-.analytics-title{align-items:flex-end}
-.analytics-title>div:first-child{min-width:0;flex:1}
-.analytics-subtitle{font-size:.8rem;margin:-5px 0 0;max-width:640px}
+.analytics-title{align-items:flex-end;margin-bottom:16px}
+.analytics-title>div:first-child{min-width:0;flex:1;display:grid;gap:4px}
+.analytics-title h2{line-height:1.2}
+.analytics-subtitle{font-size:.8rem;margin:0;max-width:640px;line-height:1.45}
 .analytics-controls{display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:8px;min-width:min(100%,300px)}
 .analytics-controls label{margin-bottom:4px}
 .analytics-controls select{height:38px;min-height:38px;padding:6px 9px;font-size:.82rem}
@@ -535,8 +536,10 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 }
 
 /* ===== v5.8 · TRAINING INTELLIGENCE ===== */
-.intelligence-section-title{align-items:flex-start}
-.intelligence-subtitle{font-size:.79rem;margin:-5px 0 0;max-width:720px;line-height:1.45}
+.intelligence-section-title{align-items:flex-start;margin-bottom:16px}
+.intelligence-section-title>div{display:grid;gap:4px;min-width:0}
+.intelligence-section-title h2{line-height:1.2}
+.intelligence-subtitle{font-size:.79rem;margin:0;max-width:720px;line-height:1.45}
 .intelligence-card{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:11px;padding:14px;margin:0 0 12px;min-width:0}
 .intelligence-card.positive{border-left-color:var(--green)}
 .intelligence-card.warning{border-left-color:var(--yellow)}
@@ -602,3 +605,11 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 .analytics-kpis-secondary{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}
 @media(max-width:720px){.analytics-kpis-secondary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:520px){.analytics-kpis-secondary{grid-template-columns:1fr 1fr}.analytics-kpis-secondary .analytics-kpi:last-child{grid-column:1/-1}}
+
+
+/* ===== v5.8.2 · PROGRESO / INTELIGENCIA HOTFIX ===== */
+#progressionPanel>.empty{min-height:92px;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;color:var(--muted)}
+@media(max-width:720px){
+  .intelligence-section-title,.analytics-title{margin-bottom:14px}
+  .intelligence-subtitle,.analytics-subtitle{font-size:.76rem}
+}
