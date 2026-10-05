@@ -1,42 +1,63 @@
 # Arquitectura de LiftEngine
 
-Desde v5.4.0 el JavaScript está separado por dominio. Desde v5.5.0, `app.js` es el cargador estable: obtiene la versión desde `js/version.js` y carga después los módulos con esa versión como cache-buster.
+LiftEngine es una PWA estática alojada en GitHub Pages. Usa Firebase Authentication + Firestore para sincronización y IndexedDB como persistencia local principal.
+
+Desde v6, la arquitectura conserva scripts clásicos por compatibilidad, pero separa contratos de settings, métricas derivadas y orquestación de UI.
 
 ## Orden de carga
 
 1. `app.js` — cargador estable.
 2. `js/version.js` — única fuente runtime del número de versión.
 3. `js/config.js` — Firebase y versiones de esquemas.
-4. `js/storage.js` — IndexedDB: días, configuración y metadata local.
-5. `js/core.js` — estado, sanitización, almacenamiento local, Nube v2, conflictos, unidades, tema y diálogos.
-6. `js/logbook.js` — registro manual, sesiones, e1RM y utilidades de progresión.
-7. `js/dashboard.js` — resumen, PR, calendario y composición corporal.
-8. `js/analytics.js` — ventanas 4/8/12 semanas, adherencia, frecuencia y tendencias.
-9. `js/intelligence.js` — motor explicable de recomendación para la siguiente sesión.
-10. `js/tools.js` — calculadora, temporizador, CSV, ajustes, catálogos y backups.
-11. `js/routines.js` — creación y gestión de rutinas.
-12. `js/notifications.js` — avisos de descanso y teclado móvil.
-13. `js/training.js` — modo entrenamiento e integración de sugerencias.
-14. `js/bootstrap.js` — inicialización y listeners globales.
+4. `js/storage.js` — adaptador IndexedDB.
+5. `js/core.js` — estado base, sanitización, persistencia, nube, auth, conflictos y diálogos.
+6. `js/settings.js` — contrato único de preferencias y objetivos.
+7. `js/logbook.js` — registro manual, sesiones, e1RM y targets de rutina.
+8. `js/metrics.js` — métricas derivadas compartidas.
+9. `js/dashboard.js` — Resumen, PR, calendario y composición corporal.
+10. `js/analytics.js` — UI de analítica sobre `metrics.js`.
+11. `js/intelligence.js` — recomendaciones deterministas para la próxima sesión.
+12. `js/tools.js` — calculadora, temporizador, CSV, ajustes, catálogos y backups.
+13. `js/routines.js` — creación y gestión de rutinas.
+14. `js/notifications.js` — avisos de descanso y comportamiento móvil.
+15. `js/training.js` — modo entrenamiento.
+16. `js/bootstrap.js` — inicialización, listeners globales y `refreshAll()`.
 
-Los módulos siguen siendo scripts clásicos y comparten el entorno global. Esto mantiene compatibilidad con el proyecto existente sin una reescritura completa a ES modules.
+## Principios de v6
+
+- No reescribir todo a un framework.
+- Una sola definición por métrica.
+- Un solo contrato de settings para local, nube y backups.
+- Dashboard = síntesis; Progreso/Analytics = detalle.
+- Training Intelligence debe ser explicable y consistente en todas las pantallas.
+- Los cambios de composición corporal son neutrales salvo que exista un objetivo explícito.
+- `main` debe pasar el quality gate de GitHub antes de publicar.
 
 ## Persistencia local
 
-Desde v5.6.0, **IndexedDB es la persistencia local principal del historial**. Se guarda un registro por fecha, alineado con la estructura de Nube v2, y la configuración se guarda por separado.
+IndexedDB es la fuente local principal.
 
-El estado JavaScript continúa en memoria mientras la aplicación está abierta. `localStorage` queda reservado para metadata pequeña (UID, unidad/tema, cursores, dirtyDays, estado del entrenamiento y compatibilidad). El snapshot histórico v5.5.x se conserva sin reescribirse como red de seguridad.
+Stores:
+- `days`: un registro por fecha.
+- `settings`: configuración.
+- `meta`: metadata de migración.
 
-Si IndexedDB no está disponible, LiftEngine cae automáticamente al modo heredado de `localStorage`.
+`localStorage` se usa para metadata pequeña y compatibilidad:
+- UID;
+- cursores;
+- dirty days/settings;
+- estado del entrenamiento;
+- tema/unidad;
+- fallback legacy;
+- backups de recuperación puntuales.
 
-## Firestore — Nube v2
+Si IndexedDB no está disponible, LiftEngine puede caer al snapshot legacy de `localStorage`.
 
-### Documento raíz
+## Settings v6
 
-`userData/{uid}` contiene solamente configuración:
+El contrato se centraliza en `js/settings.js`.
 
-- `cloudSchemaVersion`
-- `revision`
+Incluye:
 - `exerciseNotes`
 - `customRoutines`
 - `customAliases`
@@ -44,72 +65,129 @@ Si IndexedDB no está disponible, LiftEngine cae automáticamente al modo hereda
 - `currentUnit`
 - `currentTheme`
 - `weeklySessionTarget`
+- `bodyGoal`
+
+`bodyGoal`:
+- `mode`: neutral / recomp / cut / gain / maintain
+- `targetWeightKg`: opcional
+- `targetWaistCm`: opcional
+
+Los backups anteriores siguen siendo válidos. Si un campo nuevo no existe, se aplica un default conservador.
+
+## Firestore — Nube v2
+
+### Documento raíz
+
+`userData/{uid}` contiene configuración y metadata:
+
+- `cloudSchemaVersion`
+- `revision`
+- `serverUpdatedAt`
+- settings del contrato actual.
 
 ### Documentos por día
 
 `userData/{uid}/days/{YYYY-MM-DD}` contiene:
 
-- entrenamientos completados de ese día;
+- entrenamientos completados;
 - categoría/rutina;
-- nota de sesión;
+- nota;
 - peso corporal;
-- medidas corporales;
+- medidas;
 - `revision`;
 - `updatedAt`;
-- `serverUpdatedAt` (desde v5.6, Timestamp de servidor para pulls incrementales).
+- `serverUpdatedAt`.
 
-Los borrados se representan con `deleted:true`. Así un dispositivo desconectado no puede resucitar silenciosamente una fecha borrada.
+Los borrados usan `deleted:true`.
 
-### Conflictos
+## Conflictos
 
-Cada día tiene su propia revisión. Una escritura usa transacción y solo continúa si la revisión de Firestore coincide con la última que vio el dispositivo. Si otro dispositivo modificó la misma fecha, LiftEngine solicita una elección explícita. Cambios en fechas diferentes pueden sincronizarse independientemente.
+Cada día tiene su propia revisión.
 
-## Regla de mantenimiento
+Una escritura solo continúa si la revisión remota coincide con la última revisión conocida por el dispositivo. Ante un conflicto del mismo día, el usuario elige explícitamente entre versión local y nube.
 
-- Adaptador IndexedDB: `storage.js`.
-- Estado, persistencia, nube y diálogos: `core.js`.
-- Registro y progresión: `logbook.js`.
-- Métricas y PR: `dashboard.js`.
-- Archivos, ajustes y utilidades: `tools.js`.
-- Rutinas: `routines.js`.
-- Entrenamiento: `training.js`.
-- Arranque: `bootstrap.js`.
-- Versión: únicamente `js/version.js`.
+Los settings tienen revisión independiente en el documento raíz.
 
+## Dirty days y pull incremental
 
-## Fiabilidad v5.5.1
+Las mutaciones marcan únicamente las fechas afectadas.
 
-- Los borradores viven localmente dentro de `data` con `trainingDraft:true`/`done:false`, pero `buildDayContent()` solo publica trabajo completado. Durante un pull se preservan y vuelven a mezclar después de aplicar la nube.
-- El estado de descanso (`__restCtx`, `__timerEndAt`, `__timerAlarmed`) se persiste junto con `gymTrainState` y se restaura al reabrir la PWA.
-- Al volver al primer plano, si han pasado más de 45 segundos desde el último pull, LiftEngine refresca Nube v2.
-- El Service Worker solo administra caches con prefijo `liftengine-` y dispone de fallback de `version.js` ignorando query strings.
+La sincronización normal escribe solo:
+- dirty days;
+- settings dirty.
 
-## Rendimiento v5.6.0
+Los pulls usan `serverUpdatedAt` como cursor. Periódicamente se fuerza un pull completo como red de seguridad.
 
-### dirtyDays
+## Métricas v6
 
-Las mutaciones marcan fechas concretas. Una escritura normal a Nube v2 procesa únicamente esas fechas y limpia el marcador después de una confirmación exitosa. Los marcadores se conservan entre recargas si el dispositivo queda offline.
+`js/metrics.js` define las reglas compartidas para:
 
-### Pull incremental
+- fechas de entrenamiento;
+- snapshots semanales;
+- cobertura de periodos;
+- adherencia;
+- tendencias de e1RM;
+- series/frecuencia por músculo;
+- deltas de composición corporal.
 
-Después de un pull completo inicial, Firestore se consulta por `serverUpdatedAt >= cursor`. El cursor conserva el Timestamp completo. Cada 24 horas se hace un pull completo como red de seguridad y compatibilidad con clientes anteriores. El botón **Reintentar sincronización** también fuerza un pull completo.
+Dashboard y Analytics consumen estas definiciones para evitar discrepancias.
 
-### Pendiente de arquitectura
+## Training Intelligence
 
-La siguiente optimización posible, solo cuando el historial lo justifique, sería carga perezosa por rangos desde IndexedDB para no mantener años completos de datos en memoria. No es necesaria para el uso actual.
+`js/intelligence.js` combina:
 
-## v5.7 Analytics
+- historial del ejercicio;
+- carga;
+- repeticiones;
+- RIR;
+- volumen objetivo;
+- target de rutina;
+- tendencia de e1RM.
 
-`js/analytics.js` es una capa de lectura sobre el historial. Calcula ventanas de 4/8/12 semanas, adherencia a una meta semanal configurable, frecuencia y series de trabajo por músculo, PR del periodo y señales conservadoras de mejora/estancamiento mediante e1RM. La única escritura de este módulo es `weeklySessionTarget`, que forma parte de la configuración local/nube y del backup JSON.
+Produce acciones como:
+- subir carga;
+- sumar reps;
+- mantener;
+- bajar carga;
+- aumentar dificultad;
+- usar referencia.
 
-## v5.8 Training Intelligence
+Las señales de fatiga son contextuales. LiftEngine no diagnostica fatiga ni prescribe un deload automático.
 
-`js/intelligence.js` es una capa exclusivamente derivada: no introduce tablas ni documentos nuevos. Consume `getExerciseSessions()`, el objetivo resuelto por `routineTargetFor()`, RIR y e1RM para construir una recomendación determinista.
+## Orquestación de UI
 
-El módulo produce un objeto común usado por:
+`refreshAll()` pertenece a `bootstrap.js`.
 
-- **Progreso:** plan de próxima sesión y explicación.
-- **Analytics:** resumen de próximas decisiones.
-- **Modo entrenamiento:** placeholders de peso/reps y tarjeta compacta de objetivo.
+Los módulos de dominio renderizan su propia área, pero no deben asumir responsabilidad sobre el refresco completo de la aplicación.
 
-Las señales de meseta y caída de rendimiento son contextuales y no se convierten automáticamente en diagnósticos ni deloads. El motor exige volumen objetivo suficiente antes de subir carga y trata la ausencia de RIR de forma conservadora.
+`updateChart()` también refresca el panel de Intelligence; por eso `refreshAll()` no debe volver a llamarlo por separado.
+
+## Quality Gate
+
+`.github/workflows/validate.yml` ejecuta:
+
+- `node --check` para JavaScript runtime;
+- `scripts/validate.mjs` para:
+  - archivos runtime requeridos;
+  - IDs HTML duplicados;
+  - handlers sin target;
+  - consistencia loader ↔ Service Worker;
+  - balance básico de CSS.
+
+## Mantenimiento
+
+Responsabilidad principal por archivo:
+
+- `storage.js`: IndexedDB.
+- `core.js`: estado base, nube y persistencia.
+- `settings.js`: preferencias/objetivos.
+- `logbook.js`: registro y sesiones.
+- `metrics.js`: métricas compartidas.
+- `dashboard.js`: resumen/calendario/composición.
+- `analytics.js`: visualización analítica.
+- `intelligence.js`: decisiones de entrenamiento.
+- `tools.js`: utilidades/import-export/ajustes.
+- `routines.js`: rutinas.
+- `training.js`: sesión guiada.
+- `bootstrap.js`: arranque y orquestación.
+- `version.js`: versión runtime.
