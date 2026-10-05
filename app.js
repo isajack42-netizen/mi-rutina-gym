@@ -2,7 +2,8 @@
 (async function(){
   if(window.__liftEngineCompatLoading) return;
   window.__liftEngineCompatLoading=true;
-  await import(`./js/version.js?ts=${Date.now()}`);
+  try{ await import(`./js/version.js?ts=${Date.now()}`); }
+  catch(_){ await import('./js/version.js'); }
   const version=globalThis.LIFTENGINE_VERSION || 'dev';
   const css=document.querySelector('link[rel="stylesheet"][href^="styles.css"]'); if(css) css.href=`styles.css?v=${encodeURIComponent(version)}`;
   const files=['config','core','logbook','dashboard','tools','routines','notifications','training','bootstrap'];

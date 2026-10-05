@@ -4,7 +4,7 @@ const APPV=self.LIFTENGINE_VERSION || 'dev';
 const VER=`liftengine-v${APPV}`;
 const q=u=>`${u}?v=${APPV}`;
 const SHELL=[
-  './','index.html','app.js',q('styles.css'),
+  './','index.html','app.js',q('styles.css'),'js/version.js',
   ...['version','config','core','logbook','dashboard','tools','routines','notifications','training','bootstrap'].map(n=>q(`js/${n}.js`)),
   'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
 ];
@@ -12,7 +12,7 @@ self.addEventListener('install',e=>{
   e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:'reload'}).then(r=>{if(r.ok)c.put(u,r.clone());}).catch(()=>{})))).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('liftengine-')&&k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET') return;
@@ -42,11 +42,11 @@ self.addEventListener('fetch',e=>{
     try{
       const res=await fetch(r,{cache:'no-store',signal:controller.signal});
       clearTimeout(timeout);
-      if(res&&res.ok) c.put(r,res.clone()).catch(()=>{});
+      if(res&&res.ok&&!u.pathname.endsWith('/js/version.js')) c.put(r,res.clone()).catch(()=>{});
       return res;
     }catch(_){
       clearTimeout(timeout);
-      const hit=(await c.match(r)) || (await c.match(u.pathname.replace(/^\//,''))) || (await c.match(u.pathname.replace(/^\//,'')+u.search));
+      const hit=(await c.match(r,{ignoreSearch:true})) || (await c.match(u.pathname.replace(/^\//,''),{ignoreSearch:true})) || (await c.match(u.pathname.replace(/^\//,'')+u.search,{ignoreSearch:true}));
       if(hit) return hit;
       if(r.mode==='navigate') return (await c.match('index.html')) || Response.error();
       return Response.error();

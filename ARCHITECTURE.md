@@ -65,3 +65,15 @@ Cada día tiene su propia revisión. Una escritura usa transacción y solo conti
 - Entrenamiento: `training.js`.
 - Arranque: `bootstrap.js`.
 - Versión: únicamente `js/version.js`.
+
+
+## Fiabilidad v5.5.1
+
+- Los borradores viven localmente dentro de `data` con `trainingDraft:true`/`done:false`, pero `buildDayContent()` solo publica trabajo completado. Durante un pull se preservan y vuelven a mezclar después de aplicar la nube.
+- El estado de descanso (`__restCtx`, `__timerEndAt`, `__timerAlarmed`) se persiste junto con `gymTrainState` y se restaura al reabrir la PWA.
+- Al volver al primer plano, si han pasado más de 45 segundos desde el último pull, LiftEngine refresca Nube v2.
+- El Service Worker solo administra caches con prefijo `liftengine-` y dispone de fallback de `version.js` ignorando query strings.
+
+### Pendiente de arquitectura
+
+La siguiente optimización estructural recomendada es sincronización incremental + `dirtyDays`, seguida de IndexedDB para el historial local.
