@@ -1,0 +1,232 @@
+// LiftEngine · modo entrenamiento
+'use strict';
+// ===== MODO ENTRENAMIENTO =====
+const TRAIN_KEY='gymTrainState';
+let train=safeParse(localStorage.getItem(TRAIN_KEY),null), trainClock=null, wakeLock=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
+const isDone=s=>s.done===undefined?(parseFloat(s.reps)>0):!!s.done;
+const rd=v=>Math.round(fromKg(v)*10)/10;
+let restCtx=null;
+function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+function restLabel(s){ return s.restUsed?fmtRest(s.restUsed):s.rest; }
+function trainRestEnded(){
+  if(!restCtx) return; const c=restCtx; restCtx=null;
+  const end=Date.now();
+  const secs=Math.round((end-c.startAt)/1000);
+  const e=(data[c.date]||[]).find(x=>x.id===c.id), st=e&&e.sets[c.i];
+  if(st&&secs>=5&&isDone(st)){ st.restUsed=secs; saveToFirebase(); renderTrain(); }
+}
+function saveTrain(){ try{ if(train) localStorage.setItem(TRAIN_KEY,JSON.stringify(train)); else localStorage.removeItem(TRAIN_KEY); }catch(e){} }
+function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[]).find(x=>x.id===id)).filter(Boolean):[]; }
+function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
+
+function renderTrainCTA(){
+  document.querySelectorAll('.train-cta-slot').forEach(b=>{
+    b.innerHTML=train
+      ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
+      : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
+  });
+}
+window.openTrainStart=function(){
+  const pre=categories[todayStr()];
+  document.getElementById('modal').innerHTML=`<h2>Modo entrenamiento</h2>
+    <p class="muted">Elige la rutina de hoy. Verás tu rendimiento anterior en cada serie y el descanso arranca solo al marcar cada serie como hecha y se guarda como dato.</p>
+    <div class="progress-list">${Object.keys(customRoutines).map(k=>`<button class="btn btn-secondary full" style="${k===pre?'border-color:var(--accent)':''}" data-n="${escapeHtml(k)}" onclick="startTraining(this.dataset.n)">${escapeHtml(k)}${k===pre?' · asignada hoy':''}</button>`).join('')}
+    <button class="btn btn-secondary full" onclick="startTraining('')">Sesión libre</button></div>
+    <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button></div>`;
+  openEl();
+}
+window.startTraining=function(name){
+  notifOffer();
+  const date=todayStr(); if(!data[date]) data[date]=[];
+  const rows=name&&customRoutines[name]?customRoutines[name]:[], order=[];
+  rows.forEach(ex=>{
+    let e=data[date].find(x=>!x.isCardio&&x.name===ex.name&&!order.includes(x.id));
+    if(!e){ e={id:Date.now()+Math.random(),isCardio:false,name:ex.name,sets:Array.from({length:ex.sets||3},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest:ex.rest||'-',type:'normal'}))}; data[date].push(e); }
+    order.push(e.id);
+  });
+  data[date].filter(x=>!x.isCardio&&!order.includes(x.id)).forEach(x=>order.push(x.id));
+  if(!order.length){ toast('Esa sesión no tiene ejercicios. Agrégalos en Rutinas.'); if(!data[date].length) delete data[date]; return; }
+  if(name) categories[date]=name;
+  train={date,routine:name||'',startedAt:Date.now(),order,idx:0};
+  train.idx=Math.max(0,trainEntries().findIndex(e=>!e.sets.every(isDone)));
+  saveTrain(); saveToFirebase(); closeModal(); openTraining(); loadDay(); renderCalendar();
+}
+async function trainWake(){ try{ if('wakeLock' in navigator&&!wakeLock){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{wakeLock=null}); } }catch(e){} }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&train&&document.getElementById('trainOverlay').classList.contains('open')) trainWake(); });
+function updateTrainClock(){
+  if(!train) return; const t=Math.floor((Date.now()-train.startedAt)/1000), h=Math.floor(t/3600);
+  document.getElementById('trainElapsed').textContent=(h?h+':':'')+String(Math.floor(t%3600/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+}
+window.openTraining=function(){
+  if(!train) return;
+  document.getElementById('trainOverlay').classList.add('open'); document.body.classList.add('train-open');
+  clearInterval(trainClock); trainClock=setInterval(updateTrainClock,1000); updateTrainClock(); trainWake(); renderTrain();
+}
+function closeTrainUI(){
+  document.getElementById('trainOverlay').classList.remove('open'); document.body.classList.remove('train-open');
+  clearInterval(trainClock); trainClock=null; try{wakeLock&&wakeLock.release()}catch(e){} wakeLock=null;
+}
+window.trainExit=function(){ closeTrainUI(); renderTrainCTA(); toast('Entrenamiento en pausa · toca "Continuar" para volver'); }
+function resumeTrainingIfAny(){
+  if(!train) return;
+  if(Date.now()-train.startedAt>12*3600e3||!trainEntries().length){ train=null; saveTrain(); renderTrainCTA(); return; }
+  openTraining();
+}
+
+function renderTrain(){
+  const ov=document.getElementById('trainOverlay'); if(!train||!ov.classList.contains('open')) return;
+  const es=trainEntries(); if(!es.length){ train=null; saveTrain(); closeTrainUI(); renderTrainCTA(); return; }
+  train.idx=Math.min(Math.max(train.idx,0),es.length-1);
+  const e=es[train.idx], d=train.date, body=document.getElementById('trainBody'), keep=body.scrollTop;
+  document.getElementById('trainTitle').textContent=train.routine||'Sesión libre';
+  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone);return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="Ejercicio ${i+1}">${dn?ic('check'):i+1}</button>`}).join('');
+  document.getElementById('trainNext').innerHTML=train.idx===es.length-1?'Finalizar '+ic('check'):'Siguiente '+ic('arrow-right');
+  const tg=routineTargetFor(e.name);
+  const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${normalizeRestLabel(tg.rest)}`].filter(Boolean):[];
+  const prev=getExerciseSessions(e.name).filter(x=>x.date<d), last=prev[prev.length-1];
+  let sug=null,hint='',lastHtml='<div class="train-last muted">Primera vez con este ejercicio: registra tus series.</div>';
+  if(last){
+    const v=last.sets.filter(x=>x.reps>0), rec=progressionRecommendation(e.name,prev,tg);
+    const inc=rec.increment||progressionIncrementKg(Math.max(0,...v.map(x=>x.weight)));
+    const suggestedWeight=rec.action==='increase'&&v.length?v[0].weight+inc:(v[0]?.weight||0);
+    const suggestedReps=rec.action==='increase'&&tg?.repRange?tg.repRange.min:(v[0]?.reps||'');
+    sug=i=>{const p=v[i]||v[v.length-1]||{};return rec.action==='increase'?{w:p.weight+inc,r:tg?.repRange?.min||p.reps}:{w:p.weight,r:p.reps}};
+    hint=rec.title+(rec.action==='increase'?` → prueba ${rd(suggestedWeight)} ${unitLabel()}`:'');
+    const best=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>z.weight)));
+    lastHtml=`<div class="train-last"><b>Última vez · ${fmtDate(last.date)}</b><br>${last.sets.map(z=>`${rd(z.weight)}×${z.reps}`).join(' · ')}<br><span class="muted">Récord: ${rd(best)} ${unitLabel()}</span></div>`;
+  }
+  const rph=tg?parseFloat(tg.rir):NaN;
+  const rows=e.sets.map((s,i)=>{
+    const sg=sug?sug(i):null, dn=isDone(s), has=parseFloat(s.reps)>0;
+    const sw=sg&&sg.w?rd(sg.w):'', sr=sg&&sg.r?sg.r:'';
+    const ri=has&&s.rir!=='-'&&!isNaN(parseFloat(s.rir))?s.rir:'';
+    const tp=normalizeSetType(s.type), step=currentUnit==='lbs'?5:2.5;
+    return `<div class="tr-row ${dn?'done':''} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}"><div class="tr-n">${i+1}</div>
+      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${step})" aria-label="Bajar peso ${step} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${step})" aria-label="Subir peso ${step} ${unitLabel()}">+</button></div>
+      <input class="tr-r" type="number" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}">
+      <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">
+      <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?ic('check'):ic('circle')}</button>
+      <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${s.restUsed?`<span class="tr-rest-inline">Descanso ${fmtRest(s.restUsed)}</span>`:'<span></span>'}</div></div>`;
+  }).join('');
+  const exNote=exerciseNotes[e.name]||'';
+  body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
+    <div class="train-tags">${tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>
+    <button class="train-ex-note ${exNote?'has-note':''}" onclick="trainEditExerciseNote()">${ic('edit')} <span>${exNote?escapeHtml(exNote):'Añadir nota del ejercicio (asiento, agarre, ajuste...)'}</span></button>
+    ${lastHtml}${hint?`<div class="train-hint">${ic('bulb')}${escapeHtml(hint)}</div>`:''}
+    <div class="tr-head"><span>#</span><span>Peso (${unitLabel()})</span><span>Reps</span><span>RIR</span><span></span></div>${rows}
+    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><button class="btn btn-secondary" onclick="trainSubstitute()">Sustituir ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
+  body.scrollTop=keep;
+}
+function trainCur(){ return trainEntries()[train.idx]; }
+function trainRead(i,useSug){
+  const row=document.querySelectorAll('#trainBody .tr-row')[i], g=c=>{const el=row.querySelector(c);return el.value!==''?el.value:(useSug?(el.dataset.sug||''):'')};
+  return {w:g('.tr-w'),r:g('.tr-r'),ri:g('.tr-rir'),type:normalizeSetType(row.querySelector('.tr-type')?.value)};
+}
+window.trainSave=function(i){
+  const e=trainCur(); if(!e) return; const s=e.sets[i], v=trainRead(i,false);
+  s.reps=v.r!==''?v.r:'-'; s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; saveToFirebase();
+}
+window.trainToggle=function(i){
+  const es=trainEntries(), e=es[train.idx]; if(!e) return; const s=e.sets[i];
+  if(isDone(s)){ s.done=false; delete s.restUsed; saveToFirebase(); renderTrain(); return; }
+  const v=trainRead(i,true);
+  if(!(parseFloat(v.r)>0)){ toast('Escribe las repeticiones'); return; }
+  trainRestEnded(); s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase();
+  if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; window.timerAlarmed=false; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; ensureTimerRunning(); }
+  if(navigator.vibrate) navigator.vibrate(30);
+  renderTrain();
+}
+window.trainSetType=function(i){ trainSave(i); renderTrain(); }
+window.trainAdjustWeight=function(i,deltaDisplay){
+  const row=document.querySelectorAll('#trainBody .tr-row')[i]; if(!row) return;
+  const input=row.querySelector('.tr-w');
+  const base=parseFloat(input.value!==''?input.value:(input.dataset.sug||0))||0;
+  const next=Math.max(0,Math.round((base+Number(deltaDisplay))*10)/10);
+  input.value=next||''; trainSave(i);
+}
+window.openTrainPlateCalc=function(i){
+  const row=document.querySelectorAll('#trainBody .tr-row')[i]; if(!row) return;
+  const input=row.querySelector('.tr-w'); const v=parseFloat(input.value!==''?input.value:(input.dataset.sug||''));
+  openPlateCalc(Number.isFinite(v)?v:null);
+}
+window.trainEditExerciseNote=function(){
+  const e=trainCur(); if(!e) return;
+  const cur=exerciseNotes[e.name]||'';
+  document.getElementById('modal').innerHTML=`<h2>Nota · ${escapeHtml(e.name)}</h2><p class="muted">Se guarda para este ejercicio y aparecerá en futuras sesiones. Úsala para asiento, agarre, altura de polea, posición, etc.</p><textarea id="trExerciseNote" maxlength="1200" rows="5" placeholder="Ej. Asiento en 4 · agarre neutro · respaldo 2">${escapeHtml(cur)}</textarea><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="trainSaveExerciseNote()">Guardar nota</button></div>`;
+  openEl(); setTimeout(()=>document.getElementById('trExerciseNote')?.focus(),60);
+}
+window.trainSaveExerciseNote=function(){
+  const e=trainCur(); if(!e) return;
+  const v=(document.getElementById('trExerciseNote')?.value||'').trim();
+  if(v) exerciseNotes[e.name]=v.slice(0,1200); else delete exerciseNotes[e.name];
+  saveToFirebase(); closeModal(); renderTrain(); toast(v?'Nota del ejercicio guardada':'Nota eliminada');
+}
+window.trainSubstitute=function(){
+  const e=trainCur(); if(!e) return;
+  document.getElementById('modal').innerHTML=`<h2>Sustituir ejercicio</h2><p class="muted">El historial anterior de <b>${escapeHtml(e.name)}</b> no se modifica. El ejercicio sustituto usará su propio historial y notas.</p><label>Nuevo ejercicio</label><input id="trSubEx" list="exerciseList" placeholder="Ej. Remo sentado en máquina"><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="trainSubstituteOk()">Sustituir</button></div>`;
+  openEl(); setTimeout(()=>document.getElementById('trSubEx')?.focus(),60);
+}
+window.trainSubstituteOk=function(){
+  const old=trainCur(); if(!old) return;
+  const raw=(document.getElementById('trSubEx')?.value||'').trim(); if(!raw){toast('Escribe el ejercicio sustituto');return;}
+  const name=normalizeName(raw); if(name===old.name){toast('Es el mismo ejercicio');return;}
+  trainRestEnded(); if(window.timerInt) stopTimer();
+  const d=train.date, oldName=old.name, completed=old.sets.filter(isDone), pending=Math.max(1,old.sets.length-completed.length);
+  const target=routineTargetFor(name)||{}, prev=getExerciseSessions(name).filter(x=>x.date<d).pop();
+  const count=completed.length?pending:(target.sets||prev?.sets?.length||old.sets.length||3);
+  const rest=target.rest||old.sets[0]?.rest||'90 s';
+  if(!completed.length){
+    old.name=name; old.substitutedFrom=oldName;
+    old.sets=Array.from({length:count},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest,type:'normal'}));
+  }else{
+    old.sets=completed.map((x,i)=>({...x,setNumber:i+1}));
+    const ne={id:Date.now()+Math.random(),isCardio:false,name,substitutedFrom:oldName,sets:Array.from({length:count},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest,type:'normal'}))};
+    data[d].push(ne); train.order.splice(train.idx+1,0,ne.id); train.idx++;
+  }
+  saveTrain(); saveToFirebase(); closeModal(); populateExercises(); renderTrain(); toast(`Sustituido por ${name}`);
+}
+window.trainAddExercise=function(){
+  document.getElementById('modal').innerHTML=`<h2>Añadir ejercicio</h2><label>Nombre</label><input id="trNewEx" list="exerciseList" placeholder="Ej. Press banca con barra"><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="trainAddExerciseOk()">Añadir</button></div>`;
+  openEl(); setTimeout(()=>{const i=document.getElementById('trNewEx'); if(i) i.focus();},60);
+}
+window.trainAddExerciseOk=function(){
+  const raw=document.getElementById('trNewEx').value.trim(); if(!raw){ toast('Escribe el ejercicio'); return; }
+  const name=normalizeName(raw), d=train.date; if(!data[d]) data[d]=[];
+  const prev=getExerciseSessions(name).filter(x=>x.date<d).pop(), n=prev?prev.sets.length:3, rest=(routineTargetFor(name)||{}).rest||'90 s';
+  const e={id:Date.now()+Math.random(),isCardio:false,name,sets:Array.from({length:n},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest,type:'normal'}))};
+  data[d].push(e); train.order.push(e.id); train.idx=train.order.length-1;
+  saveTrain(); saveToFirebase(); closeModal(); populateExercises(); renderTrain();
+}
+window.trainAddSet=function(){ const e=trainCur(); if(!e) return; const l=e.sets[e.sets.length-1]||{}; e.sets.push({setNumber:e.sets.length+1,reps:'-',weight:0,rir:'-',rest:l.rest||'90 s',type:normalizeSetType(l.type)}); saveToFirebase(); renderTrain(); }
+window.trainDelSet=function(){ const e=trainCur(); if(!e||e.sets.length<2) return; if(isDone(e.sets[e.sets.length-1])){ toast('Desmarca la última serie para quitarla'); return; } e.sets.pop(); saveToFirebase(); renderTrain(); }
+window.trainToggleAuto=function(){ trainAutoRest=!trainAutoRest; try{localStorage.setItem('gymAutoRest',trainAutoRest?'1':'0')}catch(e){} if(!trainAutoRest) stopTimer(); renderTrain(); }
+window.trainGo=function(i){ train.idx=i; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0; }
+window.trainNav=function(n){
+  const len=trainEntries().length;
+  if(train.idx+n>=len){ trainFinish(); return; }
+  if(train.idx+n<0) return; train.idx+=n; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0;
+}
+window.trainFinish=function(){
+  const es=trainEntries(), done=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&!isWarmupSet(s)).length,0), warmups=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&isWarmupSet(s)).length,0);
+  const vol=es.reduce((a,e)=>a+e.sets.filter(s=>isDone(s)&&!isWarmupSet(s)).reduce((b,s)=>b+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0),0);
+  const mins=Math.max(1,Math.round((Date.now()-train.startedAt)/60000)), rv=es.flatMap(e=>e.sets.map(z=>z.restUsed).filter(Boolean));
+  const prs=findPRs().filter(p=>p.date===train.date);
+  const prHtml=prs.map(p=>{
+    const value=p.type==='reps'?`${p.value} reps`:formatKgValue(p.value);
+    return `<div class="progress-item">${ic('trophy')} <b>${escapeHtml(p.name)}</b><span class="pr">PR ${escapeHtml(p.label)} · ${value}</span></div>`;
+  }).join('');
+  document.getElementById('modal').innerHTML=`<h2>Resumen del entrenamiento</h2>
+    <div class="stat-grid" style="margin-bottom:12px"><div class="stat"><div class="label">Duración</div><div class="value">${mins} min</div></div><div class="stat"><div class="label">Series efectivas</div><div class="value">${done}</div></div><div class="stat"><div class="label">Ejercicios</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Volumen</div><div class="value">${Math.round(fromKg(vol)).toLocaleString()} ${unitLabel()}</div></div></div>
+    ${prHtml?`<div class="progress-list" style="margin-bottom:12px">${prHtml}</div>`:''}
+    ${rv.length?`<p class="muted">Descanso promedio: <b>${fmtRest(Math.round(rv.reduce((a,b)=>a+b,0)/rv.length))}</b></p>`:''}${warmups?`<p class="muted">Calentamientos registrados: <b>${warmups}</b> · no cuentan para volumen ni PR.</p>`:''}<p class="muted">Las series sin datos se descartan al terminar.</p>
+    <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Seguir</button><button class="btn btn-primary" onclick="trainEnd()">Terminar y guardar</button></div>`;
+  openEl();
+}
+window.trainEnd=function(){
+  stopTimer();
+  const d=train.date;
+  trainEntries().forEach(e=>{ e.sets=e.sets.filter(setHasData); e.sets.forEach((s,i)=>s.setNumber=i+1); });
+  data[d]=(data[d]||[]).filter(e=>e.isCardio||e.sets.length); if(!data[d].length) delete data[d];
+  train=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase(); refreshAll(); toast('¡Entrenamiento guardado!');
+}
+

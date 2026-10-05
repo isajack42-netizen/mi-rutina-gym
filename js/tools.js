@@ -1,0 +1,441 @@
+// LiftEngine · calculadora, descansos, CSV, ajustes, catálogos y backups
+'use strict';
+window.openPlateCalc = function(targetValue=null) {
+    const defaultTarget = targetValue!=null && Number.isFinite(Number(targetValue)) ? String(Math.round(Number(targetValue)*10)/10) : (currentUnit === 'lbs' ? '135' : '60');
+    const defaultBar = currentUnit === 'lbs' ? '45' : '20';
+    document.getElementById('modal').innerHTML = `
+        <h2>Calculadora de Discos (${unitLabel()})</h2>
+        <p class="muted">Discos necesarios por cada lado de la barra.</p>
+        <div class="grid grid-2">
+            <div><label>Peso Objetivo (${unitLabel()})</label><input type="number" id="calcTarget" value="${defaultTarget}"></div>
+            <div><label>Peso Barra (${unitLabel()})</label><input type="number" id="calcBar" value="${defaultBar}"></div>
+        </div>
+        <button class="btn btn-primary full" style="margin-top:14px" onclick="calculatePlates()">Calcular Discos</button>
+        <div id="calcResult" style="margin-top:15px; text-align:center; font-size:1.1rem; line-height:1.5;"></div>
+        <div class="actions"><button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button></div>
+    `;
+    document.getElementById('modalBackdrop').classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+window.calculatePlates = function() {
+    const target = parseFloat(document.getElementById('calcTarget').value) || 0;
+    const bar = parseFloat(document.getElementById('calcBar').value) || 0;
+    if(target <= bar) { document.getElementById('calcResult').innerHTML = "<span class='muted'>El objetivo debe ser mayor a la barra.</span>"; return; }
+    
+    let perSide = (target - bar) / 2;
+    const plates = currentUnit === 'lbs' ? [45, 35, 25, 10, 5, 2.5] : [25, 20, 15, 10, 5, 2.5, 1.25];
+    let res = [];
+    plates.forEach(p => {
+        let count = Math.floor(perSide / p);
+        if(count > 0) { res.push(`<b>${count}</b> de <b>${p} ${unitLabel()}</b>`); perSide -= count * p; }
+    });
+    
+    document.getElementById('calcResult').innerHTML = `<span style="color:var(--accent)">Por cada lado pon:</span><br>${res.join('<br>')}<br><small class="muted" style="font-size:0.8rem; display:block; margin-top:8px;">(Restante: ${perSide.toFixed(2)} ${unitLabel()})</small>`;
+}
+
+function parseRestSeconds(raw){
+  const s=String(raw||'').trim().toLowerCase().replace(/–/g,'-');
+  if(!s) return 90;
+  const nums=s.match(/\d+(?:\.\d+)?/g);
+  if(!nums) return 90;
+  const n=parseFloat(nums[0]);
+  if(!Number.isFinite(n) || n<=0) return 90;
+  if(/min/.test(s)) return Math.round(n*60);
+  if(/s|seg/.test(s)) return Math.round(n);
+  if(/m/.test(s)) return Math.round(n*60);
+  return n<=10 ? Math.round(n*60) : Math.round(n);
+}
+
+function normalizeRestLabel(raw){
+  const s=String(raw||'').trim().toLowerCase().replace(/–/g,'-');
+  if(!s || s==='-') return s||'-';
+  const nums=(s.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);
+  if(!nums.length) return String(raw).trim();
+  const mult=/min|\bm\b/.test(s)?60:1;
+  const vals=nums.slice(0,2).map(n=>Math.round(n*mult));
+  return vals.length>1 ? `${vals[0]}–${vals[1]} s` : `${vals[0]} s`;
+}
+
+function timerRemaining(){ return Math.max(0, Math.ceil((window.timerEndAt - Date.now())/1000)); }
+function timerOvertime(){ return window.timerEndAt ? Math.max(0, Math.floor((Date.now()-window.timerEndAt)/1000)) : 0; }
+function ensureTimerRunning(){
+    document.getElementById('floatingTimer').style.display = 'flex';
+    if(!window.timerInt) window.timerInt = setInterval(tickTimer, 500);
+    if(!window.timerAlarmed) notifSchedule();
+    updateTimerUI();
+}
+window.quickStartTimer = function(btn) {
+    const restInput = btn && btn.closest ? btn.closest('.set-row')?.querySelector('.set-rest') : null;
+    const secs = parseRestSeconds(restInput?.value);
+    window.timerEndAt = Date.now() + secs*1000;
+    window.timerAlarmed=false;
+    ensureTimerRunning();
+    toast('Cronómetro iniciado ('+secs+'s)');
+}
+window.addTimer = function(secs) {
+    const base = window.timerEndAt>Date.now() ? window.timerEndAt : Date.now();
+    window.timerEndAt = base + secs*1000;
+    window.timerAlarmed=false;
+    notifCancel();
+    ensureTimerRunning();
+}
+window.stopTimer = function() {
+    trainRestEnded(); notifCancel();
+    clearInterval(window.timerInt); window.timerInt = null; window.timerEndAt = 0; window.timerAlarmed=false;
+    const ft=document.getElementById('floatingTimer'); if(ft){ft.style.display = 'none';ft.classList.remove('overtime');}
+    const ov=document.getElementById('trainOverlay'); if(ov){ov.classList.remove('resting');ov.classList.remove('overtime');}
+}
+function fireRestAlarm(){
+    if(window.timerAlarmed) return;
+    window.timerAlarmed=true;
+    if(document.hidden && notifState()==='on') notifShow('Descanso terminado', notifBody());
+    if ("vibrate" in navigator) navigator.vibrate([200, 100, 200, 100, 200]);
+    toast('¡Descanso objetivo terminado! El contador sigue registrando el tiempo real.');
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); osc.connect(ctx.destination);
+        osc.frequency.value = 800; osc.start(); osc.stop(ctx.currentTime + 0.4);
+    } catch(e){}
+}
+function tickTimer() {
+    if(!window.timerEndAt) return;
+    if(timerRemaining()<=0) fireRestAlarm();
+    updateTimerUI();
+}
+function updateTimerUI() {
+    const left = timerRemaining(), over=timerOvertime(), overtime=window.timerEndAt>0&&Date.now()>=window.timerEndAt;
+    const val=overtime?over:left;
+    const m = Math.floor(val / 60).toString().padStart(2, '0');
+    const ss = (val % 60).toString().padStart(2, '0');
+    const label = overtime?`+${m}:${ss}`:`${m}:${ss}`;
+    const ft=document.getElementById('floatingTimer'); if(ft) ft.classList.toggle('overtime',overtime);
+    document.getElementById('timerDisplay').innerText = label;
+    const tr=document.getElementById('trainRestTime'); if(tr) tr.textContent=label;
+    const ov=document.getElementById('trainOverlay'); if(ov){ov.classList.toggle('resting',!!window.timerInt);ov.classList.toggle('overtime',overtime);}
+}
+
+window.exportCSV = function() {
+    const csvEscape = value => { const v=String(value ?? ''); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+    const addRow = row => { csv += row.map(csvEscape).join(',') + '\n'; };
+    let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas,Peso_corporal,Unidad_peso,Cintura_cm,Pecho_cm,Brazo_cm,Muslo_cm,Cadera_cm,Descanso_real_seg,Tipo_serie,Nota_ejercicio\n";
+    let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...weights.map(w=>w.date), ...measurements.map(m=>m.date)]);
+    let sortedDates = Array.from(allDates).sort();
+
+    sortedDates.forEach(date => {
+        const cat = categories[date] || "";
+        const note = notes[date] || "";
+        const dayUnit = currentUnit.toUpperCase();
+        const wEntry = weights.find(w => w.date === date);
+        const mEntry = measurements.find(m => m.date === date);
+
+        if(wEntry) {
+            let wVal = currentUnit === 'lbs' ? wEntry.weight * 2.20462 : wEntry.weight;
+            addRow([date,cat,"Peso Corporal","Peso Corporal","-","-",Math.round(wVal*10)/10,dayUnit,"-","-","-","-",note,wVal,dayUnit,mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
+        }
+
+        const arr = data[date] || [];
+        arr.forEach(ex => {
+            const exName = ex.name.replace(/,/g, " ");
+            if (ex.isCardio) {
+                addRow([date,cat,"Cardio",exName,"-","-","-","-","-","-",ex.time,ex.distance,note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
+            } else {
+                ex.sets.forEach(s => {
+                    let wVal = currentUnit === 'lbs' ? s.weight * 2.20462 : s.weight;
+                    addRow([date,cat,"Pesas",exName,s.setNumber,s.reps,Math.round(wVal*10)/10,dayUnit,s.rir,normalizeRestLabel(s.rest),"-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??"",s.restUsed??"",setTypeLabel(s.type),exerciseNotes[ex.name]||""]);
+                });
+            }
+        });
+
+        if(!wEntry && arr.length === 0 && (cat || note)) {
+            addRow([date,cat,"Info","-","-","-","-","-","-","-","-","-",note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
+        }
+    });
+
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `LiftEngine_Historial_${todayStr()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('Exportado a Excel OK');
+}
+
+
+function parseCSVText(text){
+  text=String(text||'').replace(/^\uFEFF/,'');
+  const first=(text.split(/\r?\n/,1)[0]||'');
+  const count=(ch)=>{let q=false,n=0;for(let i=0;i<first.length;i++){if(first[i]==='"')q=!q;else if(!q&&first[i]===ch)n++;}return n;};
+  const delim=count(';')>count(',')?';':',';
+  const rows=[]; let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'&&text[i+1]==='"'){cell+='"';i++;} else if(c==='"')q=false; else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===delim){row.push(cell);cell='';}
+    else if(c==='\n'){row.push(cell.replace(/\r$/,'')); if(row.some(x=>x!==''))rows.push(row); row=[];cell='';}
+    else cell+=c;
+  }
+  row.push(cell.replace(/\r$/,'')); if(row.some(x=>x!==''))rows.push(row);
+  return rows;
+}
+function csvNum(v){ const n=Number(String(v??'').trim().replace(',','.')); return Number.isFinite(n)?n:null; }
+function csvDate(v){
+  const s=String(v||'').trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+window.importCSV=async function(event){
+  const input=event.target, file=input.files&&input.files[0]; if(!file) return;
+  try{
+    if(file.size>10*1024*1024) throw new Error('El CSV supera el límite de 10 MB.');
+    const rows=parseCSVText(await file.text()); if(rows.length<2) throw new Error('El archivo no contiene filas de datos.');
+    const headers=rows[0].map(h=>String(h).trim().replace(/^\uFEFF/,'').toLowerCase());
+    const req=['fecha','tipo','ejercicio']; if(req.some(x=>!headers.includes(x))) throw new Error('El CSV no tiene el formato de LiftEngine (faltan Fecha, Tipo o Ejercicio).');
+    const ix=n=>headers.indexOf(n.toLowerCase()), val=(r,n)=>ix(n)>=0?(r[ix(n)]??''):'';
+    const stagedData={}, stagedCats={}, stagedNotes={}, stagedExerciseNotes={}, stagedWeights=[], stagedMeasures=[]; let valid=0, skipped=0;
+    for(const r of rows.slice(1)){
+      const date=csvDate(val(r,'Fecha')); if(!date){skipped++;continue;}
+      const type=String(val(r,'Tipo')).trim().toLowerCase(), routine=String(val(r,'Rutina')).trim(), note=String(val(r,'Notas')).trim();
+      if(routine) stagedCats[date]=routine; if(note) stagedNotes[date]=note;
+      const bodyW=csvNum(val(r,'Peso_corporal')), bodyUnit=String(val(r,'Unidad_peso')||val(r,'Unidad')).toLowerCase();
+      if(bodyW!=null&&bodyW>0){ const kg=bodyUnit.includes('lb')?bodyW/2.20462:bodyW; stagedWeights.push({date,weight:kg}); }
+      const mm={date}; let hasM=false; for(const [col,key] of [['Cintura_cm','waist'],['Pecho_cm','chest'],['Brazo_cm','arm'],['Muslo_cm','thigh'],['Cadera_cm','hip']]){const n=csvNum(val(r,col));if(n!=null&&n>0){mm[key]=n;hasM=true;}} if(hasM) stagedMeasures.push(mm);
+      if(type==='pesas'){
+        const name=String(val(r,'Ejercicio')).trim(); const reps=String(val(r,'Reps')).trim(); const weight=csvNum(val(r,'Peso'))??0; const unit=String(val(r,'Unidad')).toLowerCase(); if(!name){skipped++;continue;}
+        const kg=unit.includes('lb')?weight/2.20462:weight, setNo=Math.max(1,Math.round(csvNum(val(r,'Serie'))||1));
+        stagedData[date] ||= []; let ex=stagedData[date].find(e=>!e.isCardio&&e.name===name); if(!ex){ex={id:Date.now()+Math.random(),isCardio:false,name,sets:[]};stagedData[date].push(ex);}
+        ex.sets.push({setNumber:setNo,reps:reps||'-',weight:kg,rir:String(val(r,'RIR')).trim()||'-',rest:normalizeRestLabel(val(r,'Descanso')||'90 s'),type:normalizeSetType(val(r,'Tipo_serie')),...(csvNum(val(r,'Descanso_real_seg'))!=null?{restUsed:Math.round(csvNum(val(r,'Descanso_real_seg')))}:{})}); const exNote=String(val(r,'Nota_ejercicio')).trim(); if(exNote) stagedExerciseNotes[name]=exNote.slice(0,1200); valid++;
+      } else if(type==='cardio'){
+        const name=String(val(r,'Ejercicio')).trim(); if(!name){skipped++;continue;} stagedData[date] ||= []; stagedData[date].push({id:Date.now()+Math.random(),isCardio:true,name,time:csvNum(val(r,'Tiempo_min'))||0,distance:csvNum(val(r,'Distancia_km'))||0}); valid++;
+      } else if(type==='peso corporal'||type==='info'){valid++;}
+    }
+    if(!valid) throw new Error('No encontré registros válidos para importar.');
+    const dates=Object.keys(stagedData), existing=dates.filter(d=>(data[d]||[]).length).length;
+    const mode=existing?confirm(`Se encontraron ${valid} registros válidos${skipped?` y ${skipped} filas omitidas`:''}.\n\n${existing} fecha(s) ya tienen entrenamientos.\n\nAceptar = REEMPLAZAR los entrenamientos de esas fechas con el CSV.\nCancelar = AGREGAR los registros del CSV sin borrar los existentes.`):false;
+    if(existing && !confirm(`¿Confirmas la importación? ${mode?'Se reemplazarán':'Se agregarán'} los entrenamientos en las fechas coincidentes.`)){ input.value=''; return; }
+    for(const [d,arr] of Object.entries(stagedData)){ data[d]=mode?arr:[...(data[d]||[]),...arr]; }
+    Object.assign(categories,stagedCats); Object.assign(notes,stagedNotes); Object.assign(exerciseNotes,stagedExerciseNotes);
+    const byDate=(arr)=>{const m=new Map();arr.forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
+    weights=byDate([...weights,...stagedWeights]); measurements=byDate([...measurements,...stagedMeasures]);
+    persistLocal(); await saveToFirebase(); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
+  }catch(err){ alert('No se pudo importar el CSV: '+(err&&err.message?err.message:err)); }
+  finally{ input.value=''; }
+}
+
+function renderSettingsModal(){
+    const modal = document.getElementById('modal');
+    if(!modal) return;
+    modal.innerHTML=`
+        <div class="modal-content-wrapper">
+            <h2>Ajustes</h2>
+            
+            <label>Tema visual (Paleta de Colores)</label>
+            <div class="theme-grid">
+                <button class="btn-theme ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="border-left-color:#d8dde5">Gris Clásico</button>
+                <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="border-left-color:#60a5fa">Océano Profundo</button>
+                <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="border-left-color:#4ade80">Verde Bosque</button>
+                <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="border-left-color:#fbbf24">Café/Ámbar</button>
+            </div>
+            
+            <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
+            <!-- FASE 3: Botón para gestionar Músculos y Alias -->
+            <button class="btn btn-secondary full" style="margin-bottom:12px; border-style:dashed;" onclick="openCatalogsModal('musculos')">${ic('list')} Gestionar Músculos y Alias</button>
+            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
+            <p class="muted" style="font-size:.72rem;margin:-4px 0 14px">Los avisos actuales son locales y dependen de que iOS/Android mantenga activa la PWA. Un aviso garantizado con pantalla bloqueada requiere Push desde un servidor.</p>
+            
+            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.</p>
+            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="retryCloudSync()">${ic('cloud')} Reintentar sincronización</button>
+            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:10px;" onclick="exportCSV()">${ic('table')} Exportar datos a Excel (CSV)</button>
+            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="document.getElementById('importCSVFile').click()">${ic('upload')} Importar datos desde Excel (CSV)</button>
+            <input id="importCSVFile" type="file" accept=".csv,text/csv" style="display:none" onchange="importCSV(event)">
+            <div class="actions">
+                <button class="btn btn-primary" onclick="exportData()">Crear copia de seguridad</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Restaurar copia</button>
+            </div>
+            <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+            
+            <button class="btn btn-danger full" style="margin-top:12px;" onclick="logout()">Cerrar sesión</button>
+            <p class="muted" style="font-size:.75rem;text-align:center;margin:14px 0 0">LiftEngine v${APP_VERSION} · Creada y diseñada por <b style="color:var(--text)">Isaias Cruz</b><br><a href="mailto:isajack42@gmail.com" style="color:var(--accent);text-decoration:none">isajack42@gmail.com</a></p>
+            
+            <div class="actions" style="margin-top:12px;">
+                <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
+            </div>
+        </div>`;
+    document.getElementById('modalBackdrop').classList.add('show');
+    document.body.classList.add('modal-open');
+}
+window.openDataModal = function(){
+    renderSettingsModal();
+};
+
+// ==========================================
+// NUEVAS FUNCIONES FASE 3: GESTOR DE CATÁLOGOS
+// ==========================================
+window.openCatalogsModal = function(tab = 'musculos') {
+    let isM = tab === 'musculos';
+    let html = `<h2 style="margin-top:0">Catálogos y Mapeos</h2>
+    <div class="type-toggle" style="margin-bottom:10px;">
+        <button class="${isM?'active':''}" onclick="openCatalogsModal('musculos')">Músculos</button>
+        <button class="${!isM?'active':''}" onclick="openCatalogsModal('alias')">Corrector (Alias)</button>
+    </div>
+    <div id="catContent" style="max-height: 50vh; overflow: auto; margin-bottom: 12px; padding-right:5px;"></div>
+    <div class="actions">
+        <button class="btn btn-primary full" onclick="renderSettingsModal()">Volver a Ajustes</button>
+    </div>`;
+    document.getElementById('modal').innerHTML = html;
+
+    if(isM) {
+        let allEx = getAllExercises();
+        let list = allEx.map(ex => {
+            let currentMuscle = getMuscleGroup(ex);
+            return `<div class="routine-edit-row" style="padding:8px">
+                <div style="font-size:0.85rem; font-weight:bold; margin-bottom:4px;">${escapeHtml(ex)}</div>
+                <select data-ex="${escapeHtml(ex)}" onchange="updateExerciseMuscle(this.dataset.ex, this.value)" style="min-height:36px; height:36px; padding:4px 8px; font-size:14px;">
+                    <option value="Otros">Otros</option>
+                    ${Object.keys(customMuscles).concat(['Pecho','Espalda','Piernas','Hombros','Brazos','Core']).filter((v,i,a)=>a.indexOf(v)===i).sort().map(m => `<option value="${m}" ${currentMuscle===m?'selected':''}>${m}</option>`).join('')}
+                </select>
+            </div>`;
+        }).join('');
+        document.getElementById('catContent').innerHTML = list || '<div class="empty">No hay ejercicios registrados.</div>';
+    } else {
+        let list = Object.entries(customAliases).map(([alias, real]) => {
+            return `<div class="routine-edit-row" style="padding:8px; display:grid; grid-template-columns:1fr 1fr auto; gap:6px; align-items:center;">
+                <div style="font-size:0.8rem; color:var(--muted)">Si escribo: <br><b style="color:var(--text)">${escapeHtml(alias)}</b></div>
+                <div style="font-size:0.8rem; color:var(--muted)">Se guarda como: <br><b style="color:var(--text)">${escapeHtml(real)}</b></div>
+                <button class="btn-delete-sm" data-alias="${escapeHtml(alias)}" onclick="deleteAlias(this.dataset.alias)">${ic('trash')}</button>
+            </div>`;
+        }).join('');
+        let form = `<div class="routine-edit-row" style="padding:10px; margin-bottom:15px; border-color:var(--accent);">
+            <div style="font-size:0.85rem; font-weight:bold; margin-bottom:8px;">Añadir Nuevo Alias</div>
+            <input id="newAliasFrom" placeholder="Escribes... (ej. pull up)" style="margin-bottom:6px; min-height:36px; height:36px; font-size:14px;">
+            <input id="newAliasTo" placeholder="Se guarda... (ej. Dominadas)" style="margin-bottom:8px; min-height:36px; height:36px; font-size:14px;" list="exerciseList">
+            <button class="btn btn-primary full" style="min-height:36px;" onclick="addAlias()">Añadir Regla</button>
+        </div>`;
+        document.getElementById('catContent').innerHTML = form + (list || '<div class="empty">No hay alias configurados.</div>');
+    }
+}
+
+window.updateExerciseMuscle = function(ex, newMuscle) {
+    for(let m in customMuscles) {
+        customMuscles[m] = customMuscles[m].filter(x => x !== ex);
+    }
+    if(newMuscle && newMuscle !== 'Otros') {
+        if(!customMuscles[newMuscle]) customMuscles[newMuscle] = [];
+        if(!customMuscles[newMuscle].includes(ex)) customMuscles[newMuscle].push(ex);
+    }
+    saveToFirebase();
+    refreshAll();
+}
+
+window.addAlias = function() {
+    let from = document.getElementById('newAliasFrom').value.trim().toLowerCase();
+    let to = document.getElementById('newAliasTo').value.trim();
+    if(!from || !to) { toast('Llena ambos campos'); return; }
+    customAliases[from] = to;
+    saveToFirebase();
+    openCatalogsModal('alias');
+    toast('Regla de alias añadida');
+}
+
+window.deleteAlias = function(alias) {
+    if(!confirm('¿Eliminar esta regla de alias?')) return;
+    delete customAliases[alias];
+    saveToFirebase();
+    openCatalogsModal('alias');
+    toast('Regla eliminada');
+}
+// ==========================================
+
+window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
+function buildBackupPayload(){
+  return {
+    appVersion:APP_VERSION,
+    schemaVersion:DATA_SCHEMA_VERSION,
+    exportedAt:new Date().toISOString(),
+    data:sanitizeData(data),
+    categories:sanitizeCategories(categories),
+    weights:sanitizeWeights(weights),
+    measurements:sanitizeMeasurements(measurements),
+    notes:sanitizeNotes(notes),
+    exerciseNotes:sanitizeExerciseNotes(exerciseNotes),
+    customRoutines:sanitizeRoutines(customRoutines),
+    customAliases:sanitizeAliases(customAliases),
+    customMuscles:sanitizeMuscles(customMuscles),
+    currentUnit:currentUnit==='lbs'?'lbs':'kg',
+    currentTheme:cleanString(currentTheme,'default')||'default'
+  };
+}
+
+function validateBackupPayload(x){
+  if(!isPlainObject(x)) return {ok:false,reason:'El archivo no contiene un objeto JSON válido.'};
+  if(!isPlainObject(x.data)) return {ok:false,reason:'Falta o es inválida la sección de registros.'};
+  if(x.categories!=null&&!isPlainObject(x.categories)) return {ok:false,reason:'La sección de categorías no es válida.'};
+  if(x.weights!=null&&!Array.isArray(x.weights)) return {ok:false,reason:'La sección de peso corporal no es válida.'};
+  if(x.measurements!=null&&!Array.isArray(x.measurements)) return {ok:false,reason:'La sección de medidas corporales no es válida.'};
+  if(x.notes!=null&&!isPlainObject(x.notes)) return {ok:false,reason:'La sección de notas no es válida.'};
+  if(x.exerciseNotes!=null&&!isPlainObject(x.exerciseNotes)) return {ok:false,reason:'La sección de notas por ejercicio no es válida.'};
+  if(x.customRoutines!=null&&!isPlainObject(x.customRoutines)) return {ok:false,reason:'La sección de rutinas no es válida.'};
+  if(x.customAliases!=null&&!isPlainObject(x.customAliases)) return {ok:false,reason:'La sección de alias no es válida.'};
+  if(x.customMuscles!=null&&!isPlainObject(x.customMuscles)) return {ok:false,reason:'La sección de músculos no es válida.'};
+  if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return {ok:false,reason:'La unidad del archivo no es válida.'};
+  const cleanData=sanitizeData(x.data);
+  const sourceDays=Object.keys(x.data).length,cleanDays=Object.keys(cleanData).length;
+  if(sourceDays>0&&cleanDays===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
+  return {ok:true,cleanDays};
+}
+
+window.exportData = function(){
+  const payload=buildBackupPayload();
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`liftengine-backup-v${APP_VERSION}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),0);
+  toast('Respaldo JSON OK');
+}
+
+window.importData = function(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  if(file.size>10*1024*1024){ alert('El archivo es demasiado grande (máximo 10 MB).'); ev.target.value=''; return; }
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const x=JSON.parse(r.result);
+      const validation=validateBackupPayload(x);
+      if(!validation.ok) throw new Error(validation.reason);
+      const clean={
+        data:sanitizeData(x.data),
+        categories:sanitizeCategories(x.categories||{}),
+        weights:sanitizeWeights(x.weights||[]),
+        measurements:sanitizeMeasurements(x.measurements||[]),
+        notes:sanitizeNotes(x.notes||{}),
+        exerciseNotes:sanitizeExerciseNotes(x.exerciseNotes||{}),
+        customRoutines:sanitizeRoutines(x.customRoutines||defaultPPL),
+        customAliases:sanitizeAliases(x.customAliases||defaultAliases),
+        customMuscles:sanitizeMuscles(x.customMuscles||defaultMuscles),
+        currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
+        currentTheme:cleanString(x.currentTheme,'default')||'default'
+      };
+      const days=Object.keys(clean.data).length;
+      const sourceDays=Object.keys(x.data).length;
+      const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
+      if(!confirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.\n\n¿Continuar?`)) return;
+      try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
+      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes; exerciseNotes=clean.exerciseNotes;
+      customRoutines=Object.keys(clean.customRoutines).length?clean.customRoutines:JSON.parse(JSON.stringify(defaultPPL));
+      customAliases=Object.keys(clean.customAliases).length?clean.customAliases:JSON.parse(JSON.stringify(defaultAliases));
+      customMuscles=Object.keys(clean.customMuscles).length?clean.customMuscles:JSON.parse(JSON.stringify(defaultMuscles));
+      currentUnit=clean.currentUnit; currentTheme=clean.currentTheme;
+      persistLocal();
+      migrateNames();
+      await saveToFirebase();
+      closeModal(); refreshAll();
+      toast('Importado y validado correctamente');
+    }catch(e){ alert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.')); }
+    finally{ ev.target.value=''; }
+  };
+  r.readAsText(file);
+}
+
+// --- FUNCIONES DEL CREADOR DE RUTINAS ---
