@@ -220,6 +220,34 @@
     <div id="progressionPanel"><div class="empty">Selecciona un ejercicio arriba para ver la recomendación.</div></div>
   </div>
 
+  <div class="card" id="analyticsCard">
+    <div class="section-title analytics-title">
+      <div>
+        <h2>Analítica de entrenamiento</h2>
+        <p class="muted analytics-subtitle">Tendencias, consistencia, frecuencia y señales de estancamiento basadas en tu historial.</p>
+      </div>
+      <div class="analytics-controls">
+        <div><label for="analyticsWindow">Periodo</label><select id="analyticsWindow" onchange="renderAnalytics()"><option value="4">4 semanas</option><option value="8" selected>8 semanas</option><option value="12">12 semanas</option></select></div>
+        <div><label for="analyticsWeeklyTarget">Meta semanal</label><select id="analyticsWeeklyTarget" onchange="setWeeklySessionTarget(this.value)"><option value="1">1 sesión</option><option value="2">2 sesiones</option><option value="3">3 sesiones</option><option value="4">4 sesiones</option><option value="5">5 sesiones</option><option value="6">6 sesiones</option><option value="7">7 sesiones</option></select></div>
+      </div>
+    </div>
+    <div id="analyticsOverview"></div>
+    <div class="analytics-grid" style="margin-top:12px">
+      <div class="analytics-panel">
+        <div class="analytics-panel-head"><h3>Consistencia semanal</h3><span class="muted" id="analyticsCoverage"></span></div>
+        <div class="chart-box chart-box-sm"><canvas id="analyticsWeeklyChart"></canvas></div>
+      </div>
+      <div class="analytics-panel">
+        <div class="analytics-panel-head"><h3>Series por músculo</h3><span class="muted">Músculo principal</span></div>
+        <div id="analyticsMuscles"></div>
+      </div>
+    </div>
+    <div class="analytics-grid" style="margin-top:12px">
+      <div class="analytics-panel"><div class="analytics-panel-head"><h3>En progreso</h3><span class="muted">e1RM</span></div><div id="analyticsProgressing" class="progress-list"></div></div>
+      <div class="analytics-panel"><div class="analytics-panel-head"><h3>Para revisar</h3><span class="muted">Señales, no diagnósticos</span></div><div id="analyticsAttention" class="progress-list"></div></div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="section-title">
       <h2>Composición Corporal</h2>

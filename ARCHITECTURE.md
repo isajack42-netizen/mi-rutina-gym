@@ -7,20 +7,25 @@ Desde v5.4.0 el JavaScript está separado por dominio. Desde v5.5.0, `app.js` es
 1. `app.js` — cargador estable.
 2. `js/version.js` — única fuente runtime del número de versión.
 3. `js/config.js` — Firebase y versiones de esquemas.
-4. `js/core.js` — estado, sanitización, almacenamiento local, Nube v2, conflictos, unidades, tema y diálogos.
-5. `js/logbook.js` — registro manual, sesiones, e1RM y progresión.
-6. `js/dashboard.js` — resumen, PR, calendario y composición corporal.
-7. `js/tools.js` — calculadora, temporizador, CSV, ajustes, catálogos y backups.
-8. `js/routines.js` — creación y gestión de rutinas.
-9. `js/notifications.js` — avisos de descanso y teclado móvil.
-10. `js/training.js` — modo entrenamiento.
-11. `js/bootstrap.js` — inicialización y listeners globales.
+4. `js/storage.js` — IndexedDB: días, configuración y metadata local.
+5. `js/core.js` — estado, sanitización, almacenamiento local, Nube v2, conflictos, unidades, tema y diálogos.
+6. `js/logbook.js` — registro manual, sesiones, e1RM y progresión.
+7. `js/dashboard.js` — resumen, PR, calendario y composición corporal.
+8. `js/tools.js` — calculadora, temporizador, CSV, ajustes, catálogos y backups.
+9. `js/routines.js` — creación y gestión de rutinas.
+10. `js/notifications.js` — avisos de descanso y teclado móvil.
+11. `js/training.js` — modo entrenamiento.
+12. `js/bootstrap.js` — inicialización y listeners globales.
 
 Los módulos siguen siendo scripts clásicos y comparten el entorno global. Esto mantiene compatibilidad con el proyecto existente sin una reescritura completa a ES modules.
 
 ## Persistencia local
 
-LocalStorage continúa siendo la fuente inmediata de trabajo y permite usar LiftEngine con mala señal o sin conexión. La nube se sincroniza después.
+Desde v5.6.0, **IndexedDB es la persistencia local principal del historial**. Se guarda un registro por fecha, alineado con la estructura de Nube v2, y la configuración se guarda por separado.
+
+El estado JavaScript continúa en memoria mientras la aplicación está abierta. `localStorage` queda reservado para metadata pequeña (UID, unidad/tema, cursores, dirtyDays, estado del entrenamiento y compatibilidad). El snapshot histórico v5.5.x se conserva sin reescribirse como red de seguridad.
+
+Si IndexedDB no está disponible, LiftEngine cae automáticamente al modo heredado de `localStorage`.
 
 ## Firestore — Nube v2
 
@@ -47,7 +52,8 @@ LocalStorage continúa siendo la fuente inmediata de trabajo y permite usar Lift
 - peso corporal;
 - medidas corporales;
 - `revision`;
-- `updatedAt`.
+- `updatedAt`;
+- `serverUpdatedAt` (desde v5.6, Timestamp de servidor para pulls incrementales).
 
 Los borrados se representan con `deleted:true`. Así un dispositivo desconectado no puede resucitar silenciosamente una fecha borrada.
 
@@ -57,6 +63,7 @@ Cada día tiene su propia revisión. Una escritura usa transacción y solo conti
 
 ## Regla de mantenimiento
 
+- Adaptador IndexedDB: `storage.js`.
 - Estado, persistencia, nube y diálogos: `core.js`.
 - Registro y progresión: `logbook.js`.
 - Métricas y PR: `dashboard.js`.
@@ -74,6 +81,20 @@ Cada día tiene su propia revisión. Una escritura usa transacción y solo conti
 - Al volver al primer plano, si han pasado más de 45 segundos desde el último pull, LiftEngine refresca Nube v2.
 - El Service Worker solo administra caches con prefijo `liftengine-` y dispone de fallback de `version.js` ignorando query strings.
 
+## Rendimiento v5.6.0
+
+### dirtyDays
+
+Las mutaciones marcan fechas concretas. Una escritura normal a Nube v2 procesa únicamente esas fechas y limpia el marcador después de una confirmación exitosa. Los marcadores se conservan entre recargas si el dispositivo queda offline.
+
+### Pull incremental
+
+Después de un pull completo inicial, Firestore se consulta por `serverUpdatedAt >= cursor`. El cursor conserva el Timestamp completo. Cada 24 horas se hace un pull completo como red de seguridad y compatibilidad con clientes anteriores. El botón **Reintentar sincronización** también fuerza un pull completo.
+
 ### Pendiente de arquitectura
 
-La siguiente optimización estructural recomendada es sincronización incremental + `dirtyDays`, seguida de IndexedDB para el historial local.
+La siguiente optimización posible, solo cuando el historial lo justifique, sería carga perezosa por rangos desde IndexedDB para no mantener años completos de datos en memoria. No es necesaria para el uso actual.
+
+## v5.7 Analytics
+
+`js/analytics.js` es una capa de lectura sobre el historial. Calcula ventanas de 4/8/12 semanas, adherencia a una meta semanal configurable, frecuencia y series de trabajo por músculo, PR del periodo y señales conservadoras de mejora/estancamiento mediante e1RM. La única escritura de este módulo es `weeklySessionTarget`, que forma parte de la configuración local/nube y del backup JSON.
