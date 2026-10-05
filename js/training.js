@@ -155,7 +155,7 @@ function renderTrain(){
   train.idx=Math.min(Math.max(train.idx,0),es.length-1);
   const e=es[train.idx], d=train.date, body=document.getElementById('trainBody'), keep=body.scrollTop;
   document.getElementById('trainTitle').textContent=train.routine||'Sesión libre';
-  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone),label=`${x.name} · ejercicio ${i+1}${dn?' · completado':''}`;return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="${escapeHtml(label)}" title="${escapeHtml(x.name)}">${dn?ic('check'):i+1}</button>`}).join('');
+  document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone),label=`${x.name} · ejercicio ${i+1}${dn?' · completado':''}`;return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="${escapeHtml(label)}" title="${escapeHtml(x.name)}"><span class="train-chip-index">${dn?ic('check'):i+1}</span><span class="train-chip-name">${escapeHtml(x.name)}</span></button>`}).join('');
   document.getElementById('trainNext').innerHTML=train.idx===es.length-1?'Finalizar '+ic('check'):'Siguiente '+ic('arrow-right');
   const tg=routineTargetFor(e.name,train.routine||null,d);
   const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${normalizeRestLabel(tg.rest)}`].filter(Boolean):[];
