@@ -4,7 +4,7 @@ import path from 'node:path';
 const root=process.cwd();
 const runtime=[
   'app.js','sw.js',
-  'js/config.js','js/storage.js','js/core.js','js/logbook.js','js/dashboard.js',
+  'js/config.js','js/storage.js','js/core.js','js/settings.js','js/logbook.js','js/dashboard.js',
   'js/analytics.js','js/intelligence.js','js/tools.js','js/routines.js',
   'js/notifications.js','js/training.js','js/bootstrap.js','js/version.js'
 ];
