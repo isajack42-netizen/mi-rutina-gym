@@ -1,5 +1,22 @@
 // LiftEngine · arranque y eventos globales
 'use strict';
+
+// Orquestador neutral de UI. Los módulos de dominio exponen sus renderers,
+// pero ninguno debe ser responsable de refrescar toda la aplicación.
+function refreshAll(){
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    populateExercises();
+    loadDay();
+    renderDashboard();
+    renderCalendar();
+    renderBodyWeights();
+    // updateChart() ya refresca el detalle y Training Intelligence.
+    updateChart();
+    renderAnalytics();
+    renderRoutines();
+    renderTrainCTA();
+    renderTrain();
+}
 async function initApp() {
     if(DOC_ID) setTimeout(()=>{ document.getElementById('loadingOverlay').style.display='none'; },4000);
     document.getElementById('routineDate').value=todayStr();
