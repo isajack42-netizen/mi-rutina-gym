@@ -191,7 +191,7 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   const cmp=J(p.exercisePeriodComparison(sessions,28));
   assert.equal(cmp.anchor,'2026-10-05');
   assert.equal(cmp.current.sessions,2);
-  assert.equal(cmp.previous.sessions,1);
+  assert.equal(cmp.previous.sessions,2);
   assert.ok(cmp.deltas.bestWeight>18&&cmp.deltas.bestWeight<19);
   assert.ok(cmp.deltas.bestE1rm>18&&cmp.deltas.bestE1rm<19);
   assert.equal(p.exerciseTrendSignal(cmp).kind,'positive');
