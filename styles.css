@@ -1074,7 +1074,8 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   #progreso .progress-nav{
     grid-column:1;
     position:sticky;
-    top:20px;
+    top:0;
+    align-self:start;
     display:flex;
     flex-direction:column;
     gap:5px;
@@ -1090,6 +1091,7 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   #progreso .progress-view{grid-column:2;margin-bottom:0}
   #progreso .progress-view.active{
     display:block;
+    align-self:start;
     min-height:var(--progress-workspace-min);
   }
   #progress-performance .chart-box{height:380px}
@@ -1231,7 +1233,8 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
     display:flex;
     grid-column:2;
     position:sticky;
-    top:20px;
+    top:0;
+    align-self:start;
     min-width:0;
     height:var(--progress-workspace-min);
     max-height:var(--progress-workspace-min);
@@ -1388,4 +1391,12 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 @media(min-width:1540px){
   #progreso.active[data-progress-mode="exercise"]{grid-template-columns:160px 270px minmax(0,1fr)}
   .desktop-exercise-hero-kpis>div{min-width:112px}
+}
+
+
+/* ===== v6.3.2 · PROGRESS ALIGNMENT ===== */
+@media(min-width:1200px){
+  #progreso.active>.progress-nav,
+  #progreso.active>.desktop-exercise-browser,
+  #progreso.active>.progress-view.active{margin-top:0}
 }
