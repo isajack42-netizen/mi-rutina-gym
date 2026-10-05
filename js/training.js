@@ -65,10 +65,14 @@ function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[])
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
 
 function renderTrainCTA(){
-  document.querySelectorAll('.train-cta-slot').forEach(b=>{
+  const primary=train
+    ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
+    : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
+  document.querySelectorAll('.train-cta-slot').forEach(b=>{b.innerHTML=primary;});
+  document.querySelectorAll('.desktop-train-slot').forEach(b=>{
     b.innerHTML=train
-      ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
-      : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
+      ? `<button class="desktop-train-btn active" onclick="openTraining()">${ic('play')} <span><b>Continuar</b><small>${escapeHtml(train.routine||'Sesión libre')}</small></span></button>`
+      : `<button class="desktop-train-btn" onclick="openTrainStart()">${ic('dumbbell')} <span><b>Entrenar</b><small>Iniciar una sesión</small></span></button>`;
   });
 }
 window.openTrainStart=function(){
