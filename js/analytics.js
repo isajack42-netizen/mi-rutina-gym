@@ -118,6 +118,7 @@ window.renderAnalytics=function(){
   renderAnalyticsWeeklyChart(period,coverage);
   renderAnalyticsMuscles(coverage);
   renderAnalyticsExerciseLists(up,attention,trends);
+  if(typeof window.renderIntelligenceAnalytics==='function') window.renderIntelligenceAnalytics(coverage);
 };
 
 function renderAnalyticsWeeklyChart(period,coverage){

@@ -5,6 +5,7 @@ function fmtDate(s){return new Date(s+'T12:00:00').toLocaleDateString('es-MX',{d
 function toast(t){const el=document.getElementById('toast');el.textContent=t;el.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>el.style.display='none',2200)}
 
 window.switchTab = function(id,btn){
+  if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');
   if(id==='resumen')renderDashboard();
@@ -353,6 +354,7 @@ function renderProgressionPanel(){
   const lastSum=summarizeSession(last);
   const prev=sessions.length>1?summarizeSession(sessions[sessions.length-2]):null;
   const rec=progressionRecommendation(name,sessions,target);
+  const intel=typeof window.getTrainingIntelligence==='function'?window.getTrainingIntelligence(name,{sessions,target,routineName:categories[last.date]||null,date:last.date}):null;
   const targetText=target?.ambiguous?`Objetivo variable entre: ${escapeHtml(target.routines.join(', '))}`:(target&&target.repRange?`${target.repRange.min}–${target.repRange.max} reps · RIR ${escapeHtml(target.rir)}`:'Sin rango definido en rutina');
   const allRecords=getExerciseRecords(name);
   const repPr=latestRepPR(name);
@@ -379,7 +381,7 @@ function renderProgressionPanel(){
       <div class="progression-stat"><div class="label">Cambio e1RM</div><div class="value">${e1DeltaText}</div></div>
     </div>
     <div class="record-grid">${recordCards}</div>
-    <div class="progression-message"><strong class="${rec.className}">${escapeHtml(rec.title)}</strong><span>${escapeHtml(rec.text)}</span></div>
+    ${intel&&typeof window.renderIntelligenceCard==='function'?window.renderIntelligenceCard(intel,{whyAction:'openCurrentIntelligenceWhy()'}):`<div class="progression-message"><strong class="${rec.className}">${escapeHtml(rec.title)}</strong><span>${escapeHtml(rec.text)}</span></div>`}
     <div class="muted" style="font-size:.78rem;margin-bottom:8px"><b>Objetivo de rutina:</b> ${targetText}${target&&!target.ambiguous?` · ${target.sets} series · descanso ${escapeHtml(normalizeRestLabel(target.rest))}`:''}</div>
     <div style="overflow:auto"><table class="progression-table"><thead><tr><th>Fecha</th><th>Series</th><th>Mejor peso</th><th>Máx. reps</th><th>e1RM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }

@@ -130,17 +130,19 @@ function renderTrain(){
   const tg=routineTargetFor(e.name,train.routine||null,d);
   const tags=tg?[`${tg.sets} series`,tg.repRange?`${tg.repRange.min}–${tg.repRange.max} reps`:'',`RIR ${tg.rir}`,`Descanso ${normalizeRestLabel(tg.rest)}`].filter(Boolean):[];
   const prev=getExerciseSessions(e.name).filter(x=>x.date<d), last=prev[prev.length-1];
-  let sug=null,hint='',lastHtml='<div class="train-last muted">Primera vez con este ejercicio: registra tus series.</div>';
+  const intel=typeof window.getTrainingIntelligence==='function'?window.getTrainingIntelligence(e.name,{sessions:prev,target:tg,routineName:train.routine||null,date:d,beforeDate:d}):null;
+  const sug=i=>{
+    const x=intel&&typeof window.intelligenceSuggestionForSet==='function'?window.intelligenceSuggestionForSet(intel,i):null;
+    return x?{w:x.weightKg,r:x.reps}:null;
+  };
+  let lastHtml='<div class="train-last muted">Primera vez con este ejercicio: registra tus series.</div>';
   if(last){
-    const v=last.sets.filter(x=>x.reps>0), rec=progressionRecommendation(e.name,prev,tg);
-    const inc=rec.increment||progressionIncrementKg(Math.max(0,...v.map(x=>x.weight)));
-    const suggestedWeight=rec.action==='increase'&&v.length?v[0].weight+inc:(v[0]?.weight||0);
-    const suggestedReps=rec.action==='increase'&&tg?.repRange?tg.repRange.min:(v[0]?.reps||'');
-    sug=i=>{const p=v[i]||v[v.length-1]||{};return rec.action==='increase'?{w:p.weight+inc,r:tg?.repRange?.min||p.reps}:{w:p.weight,r:p.reps}};
-    hint=rec.title+(rec.action==='increase'?` → prueba ${rd(suggestedWeight)} ${unitLabel()}`:'');
-    const best=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>z.weight)));
-    lastHtml=`<div class="train-last"><b>Última vez · ${fmtDate(last.date)}</b><br>${last.sets.map(z=>`${rd(z.weight)}×${z.reps}`).join(' · ')}<br><span class="muted">Récord: ${rd(best)} ${unitLabel()}</span></div>`;
+    const best=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>Number(z.weight)||0)));
+    const bestReps=Math.max(0,...prev.flatMap(x=>x.sets.map(z=>Number(z.reps)||0)));
+    const setText=last.sets.map(z=>`${Number(z.weight)>0?rd(z.weight)+'×':''}${z.reps}`).join(' · ');
+    lastHtml=`<div class="train-last"><b>Última vez · ${fmtDate(last.date)}</b><br>${setText}<br><span class="muted">${best>0?`Récord de carga: ${rd(best)} ${unitLabel()}`:`Mejor registro: ${bestReps} reps`}</span></div>`;
   }
+  const intelHtml=intel&&typeof window.renderIntelligenceCard==='function'?window.renderIntelligenceCard(intel,{compact:true,whyAction:'openTrainIntelligenceWhy()'}):'';
   const rph=tg?parseFloat(tg.rir):NaN;
   const rows=e.sets.map((s,i)=>{
     const sg=sug?sug(i):null, dn=isDone(s), has=parseFloat(s.reps)>0;
@@ -158,7 +160,7 @@ function renderTrain(){
   body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
     <div class="train-tags">${tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>
     <button class="train-ex-note ${exNote?'has-note':''}" onclick="trainEditExerciseNote()">${ic('edit')} <span>${exNote?escapeHtml(exNote):'Añadir nota del ejercicio (asiento, agarre, ajuste...)'}</span></button>
-    ${lastHtml}${hint?`<div class="train-hint">${ic('bulb')}${escapeHtml(hint)}</div>`:''}
+    ${lastHtml}${intelHtml}
     <div class="tr-head"><span>#</span><span>Peso (${unitLabel()})</span><span>Reps</span><span>RIR</span><span></span></div>${rows}
     <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><button class="btn btn-secondary" onclick="trainSubstitute()">Sustituir ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
   body.scrollTop=keep;

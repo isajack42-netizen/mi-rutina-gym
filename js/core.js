@@ -157,28 +157,54 @@ function validDateKey(v){
 
 
 let dialogResolve=null;
+let dialogPreviousFocus=null;
 function closeAppDialog(value=false){
-  const back=document.getElementById('dialogBackdrop');
+  const back=document.getElementById('dialogBackdrop'),box=document.getElementById('appDialog');
   if(!back) return;
-  back.classList.remove('show'); back.setAttribute('aria-hidden','true');
-  const r=dialogResolve; dialogResolve=null; if(r) r(value);
+  back.classList.remove('show');
+  back.hidden=true;
+  back.setAttribute('aria-hidden','true');
+  document.documentElement.classList.remove('dialog-open');
+  document.body.classList.remove('dialog-open');
+  const r=dialogResolve; dialogResolve=null;
+  const previous=dialogPreviousFocus; dialogPreviousFocus=null;
+  if(box) box.innerHTML='';
+  if(previous&&previous.isConnected&&typeof previous.focus==='function'){
+    try{previous.focus({preventScroll:true});}catch(e){}
+  }
+  if(r) r(value);
 }
 function appDialog({title='LiftEngine',message='',confirmText='Aceptar',cancelText='',danger=false}={}){
   const back=document.getElementById('dialogBackdrop'), box=document.getElementById('appDialog');
   if(!back||!box){ console.warn('Diálogo no disponible:',title,message); return Promise.resolve(cancelText?false:true); }
-  if(dialogResolve){ const prev=dialogResolve; dialogResolve=null; try{prev(false);}catch(e){} }
+  if(dialogResolve) closeAppDialog(false);
+  dialogPreviousFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   box.innerHTML=`<h2 id="appDialogTitle">${escapeHtml(title)}</h2><div class="dialog-message">${escapeHtml(message)}</div><div class="dialog-actions">${cancelText?`<button class="btn btn-secondary" id="appDialogCancel">${escapeHtml(cancelText)}</button>`:''}<button class="btn ${danger?'btn-danger':'btn-primary'}" id="appDialogConfirm">${escapeHtml(confirmText)}</button></div>`;
+  back.hidden=false;
   back.classList.add('show'); back.setAttribute('aria-hidden','false');
+  document.documentElement.classList.add('dialog-open');
+  document.body.classList.add('dialog-open');
   return new Promise(resolve=>{
     dialogResolve=resolve;
     box.querySelector('#appDialogConfirm')?.addEventListener('click',()=>closeAppDialog(true),{once:true});
     box.querySelector('#appDialogCancel')?.addEventListener('click',()=>closeAppDialog(false),{once:true});
-    setTimeout(()=>box.querySelector('#appDialogConfirm')?.focus(),20);
+    requestAnimationFrame(()=>{
+      const target=box.querySelector('#appDialogCancel')||box.querySelector('#appDialogConfirm');
+      try{target?.focus({preventScroll:true});}catch(e){try{target?.focus();}catch(_){} }
+    });
   });
+}
+function initAppDialogDismiss(){
+  const back=document.getElementById('dialogBackdrop');
+  if(!back||back.dataset.dismissBound==='1') return;
+  back.dataset.dismissBound='1';
+  back.addEventListener('pointerdown',ev=>{ if(ev.target===back) closeAppDialog(false); });
+  document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&back.classList.contains('show')){ev.preventDefault();closeAppDialog(false);} });
 }
 function appAlert(message,title='Aviso'){ return appDialog({title,message,confirmText:'Entendido'}); }
 function appConfirm(message,{title='Confirmar',confirmText='Continuar',cancelText='Cancelar',danger=false}={}){ return appDialog({title,message,confirmText,cancelText,danger}); }
 window.appAlert=appAlert; window.appConfirm=appConfirm;
+window.closeAppDialog=closeAppDialog; initAppDialogDismiss();
 
 let a11yIdCounter=0;
 function improveFormAccessibility(root=document){

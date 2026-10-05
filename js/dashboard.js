@@ -267,12 +267,14 @@ window.deleteCalendarWorkout=async function(d){
   const active=typeof train!=='undefined'&&train&&train.date===d;
   const msg=`¿Eliminar el entrenamiento completo del ${fmtDate(d)}?\n\nSe borrarán ejercicios, series, etiqueta de rutina y nota de la sesión.${active?' También se cerrará el entrenamiento que está en curso.':''}\n\nEl peso corporal y las medidas de ese día se conservarán.`;
   if(!(await appConfirm(msg,{title:'Eliminar entrenamiento completo',confirmText:'Eliminar entrenamiento',cancelText:'Cancelar',danger:true})))return;
+  if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
   if(active&&typeof window.discardTrainingForDate==='function')window.discardTrainingForDate(d,{silent:true});
   delete data[d];delete categories[d];delete notes[d];
   await saveToFirebase({days:[d]});
   selectedDate=d;
   if(typeof refreshAll==='function')refreshAll();else{renderCalendar();renderDashboard();populateExercises();updateChart();renderProgressionPanel();renderAnalytics();}
   showDaySummary(d);
+  if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
   toast('Entrenamiento eliminado');
 }
 window.changeMonth = function(n){currentMonth+=n;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
