@@ -207,7 +207,15 @@ function migrateNames(){
   }
   return changed;
 }
-function populateExercises(){const all=getAllExercises();document.getElementById('exerciseList').innerHTML=all.map(x=>`<option value="${escapeHtml(x)}">`).join('');const sel=document.getElementById('chartExercise');const cur=sel.value;sel.innerHTML='<option value="">-- Elige un ejercicio --</option>'+all.map(x=>`<option>${escapeHtml(x)}</option>`).join('');if(all.includes(cur))sel.value=cur}
+function populateExercises(){
+  const all=getAllExercises();
+  document.getElementById('exerciseList').innerHTML=all.map(x=>`<option value="${escapeHtml(x)}">`).join('');
+  const sel=document.getElementById('chartExercise');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Elige un ejercicio --</option>'+all.map(x=>`<option>${escapeHtml(x)}</option>`).join('');
+  if(all.includes(cur))sel.value=cur;
+  if(typeof renderDesktopExerciseBrowser==='function')renderDesktopExerciseBrowser();
+}
 function mostRecentExerciseName(){
   const dates=Object.keys(data).sort().reverse();
   for(const date of dates){
@@ -225,6 +233,40 @@ function ensureProgressExerciseSelection(){
   if(!option)return false;
   sel.value=name;
   return true;
+}
+
+window.selectDesktopExercise=function(name){
+  const sel=document.getElementById('chartExercise');
+  if(!sel)return;
+  const option=[...sel.options].find(o=>o.value===name||o.textContent===name);
+  if(!option){toast('Ese ejercicio ya no está disponible');return;}
+  sel.value=name;
+  updateChart();
+}
+window.renderDesktopExerciseBrowser=function(){
+  const list=document.getElementById('desktopExerciseList'), count=document.getElementById('desktopExerciseCount');
+  if(!list)return;
+  const q=String(document.getElementById('desktopExerciseSearch')?.value||'').trim().toLocaleLowerCase('es-MX');
+  const selected=document.getElementById('chartExercise')?.value||'';
+  const all=getAllExercises().map(name=>{
+    const sessions=getExerciseSessions(name);
+    const last=sessions.at(-1)||null;
+    return {name,sessions:sessions.length,lastDate:last?.date||''};
+  }).filter(x=>!q||x.name.toLocaleLowerCase('es-MX').includes(q))
+    .sort((a,b)=>(b.lastDate||'').localeCompare(a.lastDate||'')||a.name.localeCompare(b.name,'es'));
+  if(count){
+    const total=getAllExercises().length;
+    count.textContent=q?`${all.length} de ${total}`:`${total} ejercicio${total===1?'':'s'}`;
+  }
+  if(!all.length){
+    list.innerHTML='<div class="desktop-exercise-empty"><b>Sin coincidencias</b><span>Prueba con otro nombre.</span></div>';
+    return;
+  }
+  list.innerHTML=all.map(x=>`
+    <button class="desktop-exercise-item ${x.name===selected?'active':''}" type="button" data-name="${escapeHtml(x.name)}" onclick="selectDesktopExercise(this.dataset.name)" ${x.name===selected?'aria-current="true"':''}>
+      <span class="desktop-exercise-item-name">${escapeHtml(x.name)}</span>
+      <span class="desktop-exercise-item-meta">${x.sessions?`${x.sessions} sesión${x.sessions===1?'':'es'} · ${fmtDate(x.lastDate)}`:'Sin sesiones'}</span>
+    </button>`).join('');
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
@@ -279,10 +321,12 @@ window.updateChart = function(){
   // el panel de inteligencia quedaba en estado "Selecciona un ejercicio".
   if(!sel.value) ensureProgressExerciseSelection();
   const name=sel.value;
+  renderDesktopExerciseBrowser();
   if(!name){
     if(chart){chart.destroy();chart=null}
     const detail=document.getElementById('exerciseDetail');
     if(detail)detail.innerHTML='<div class="empty">Selecciona un ejercicio.</div>';
+    renderDesktopExerciseContext('');
     renderProgressionPanel();
     return;
   }
@@ -305,6 +349,7 @@ window.updateChart = function(){
     const panel=document.getElementById('progressionPanel');
     if(panel)panel.innerHTML='<div class="empty">No se pudo generar la recomendación. Cambia de ejercicio o recarga la vista.</div>';
   }
+  renderDesktopExerciseContext(name);
 }
 
 function parseRepRange(range){
@@ -355,6 +400,62 @@ function summarizeSession(session){
   const rirVals=valid.filter(s=>s.rir!==null).map(s=>s.rir);
   const avgRir=rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null;
   return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
+}
+
+function renderDesktopExerciseContext(name){
+  const hero=document.getElementById('desktopExerciseHero');
+  const history=document.getElementById('desktopExerciseHistory');
+  const intel=document.getElementById('desktopIntelligenceExercise');
+  if(!hero&&!history&&!intel)return;
+  if(!name){
+    if(hero)hero.innerHTML='';
+    if(history)history.innerHTML='';
+    if(intel)intel.innerHTML='';
+    return;
+  }
+  const sessions=getExerciseSessions(name);
+  const last=sessions.at(-1)||null;
+  const lastSum=last?summarizeSession(last):null;
+  const target=routineTargetFor(name,last?categories[last.date]||null:null,last?.date||null);
+  const routineLabel=target?.ambiguous?`${target.routines.length} rutinas`:target?.routine||'Sin rutina';
+  let allRecords=null;
+  try{allRecords=typeof getExerciseRecords==='function'?getExerciseRecords(name):null}catch(_){}
+  if(hero){
+    hero.innerHTML=`
+      <div class="desktop-exercise-hero-copy">
+        <span class="eyebrow">Ejercicio seleccionado</span>
+        <h3>${escapeHtml(name)}</h3>
+        <div class="desktop-exercise-hero-tags">
+          <span>${sessions.length} sesión${sessions.length===1?'':'es'}</span>
+          <span>${last?`Última · ${fmtDate(last.date)}`:'Sin historial'}</span>
+          <span>${escapeHtml(routineLabel)}</span>
+        </div>
+      </div>
+      <div class="desktop-exercise-hero-kpis">
+        <div><small>PR peso</small><b>${allRecords?.weight?formatKgValue(allRecords.weight):'—'}</b></div>
+        <div><small>PR e1RM</small><b>${allRecords?.e1rm?formatKgValue(allRecords.e1rm):'—'}</b></div>
+        <div><small>Última sesión</small><b>${lastSum?.bestWeight?formatKgValue(lastSum.bestWeight):'—'}</b></div>
+      </div>`;
+  }
+  if(intel){
+    intel.innerHTML=`<span>Analizando</span><b>${escapeHtml(name)}</b>${last?`<small>Última sesión · ${fmtDate(last.date)}</small>`:'<small>Sin historial todavía</small>'}`;
+  }
+  if(history){
+    if(!sessions.length){
+      history.innerHTML='<div class="empty"><b>Sin historial</b><span>Registra este ejercicio para empezar a comparar sesiones.</span></div>';
+    }else{
+      const rows=sessions.slice(-8).reverse().map(session=>{
+        const sum=summarizeSession(session);
+        return `<button class="desktop-history-row" type="button" onclick="goToDate('${session.date}')">
+          <span><b>${fmtDate(session.date)}</b><small>${sum.sets} serie${sum.sets===1?'':'s'}</small></span>
+          <span><small>Mejor peso</small><b>${sum.bestWeight?formatKgValue(sum.bestWeight):'—'}</b></span>
+          <span><small>e1RM</small><b>${sum.e1rm?formatKgValue(sum.e1rm):'—'}</b></span>
+          <span><small>Volumen</small><b>${sum.volume?`${Math.round(fromKg(sum.volume)).toLocaleString()} ${unitLabel()}`:'—'}</b></span>
+        </button>`;
+      }).join('');
+      history.innerHTML=`<div class="desktop-history-head"><div><span class="eyebrow">Historial</span><h3>Sesiones recientes</h3></div><span class="badge">últimas ${Math.min(8,sessions.length)}</span></div><div class="desktop-history-list">${rows}</div>`;
+    }
+  }
 }
 function formatKgValue(v, signed=false){
   if(v==null || v==='' || Number.isNaN(Number(v))) return '—';

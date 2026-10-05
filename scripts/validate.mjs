@@ -105,6 +105,11 @@ if(!read('js/bootstrap.js').includes('function initDesktopExperience')) fail.pus
 if(!html.includes('class="desktop-train-slot"')||!read('js/training.js').includes('desktop-train-btn')) fail.push('La acción de entrenamiento desktop debe vivir en la sidebar.');
 if(!css.includes('.app-main .train-cta-slot{display:none}')||!css.includes('overflow:hidden')||!css.includes('height:calc(100vh - 40px)')) fail.push('El workspace desktop debe conservar márgenes verticales simétricos y scroll interno.');
 if(!css.includes('border-radius:16px')||!css.includes('.app-main::-webkit-scrollbar-thumb')||!css.includes('scrollbar-width:thin')) fail.push('Falta el acabado redondeado/minimalista del scroll desktop.');
+if(!html.includes('id="desktopExerciseBrowser"')||!html.includes('id="desktopExerciseHero"')||!html.includes('id="desktopExerciseHistory"')) fail.push('Falta el workspace de análisis por ejercicio v6.3.');
+if(!read('js/logbook.js').includes('renderDesktopExerciseBrowser')||!read('js/logbook.js').includes('selectDesktopExercise')||!read('js/logbook.js').includes('renderDesktopExerciseContext')) fail.push('Falta la lógica del explorador de ejercicios v6.3.');
+if(!read('js/bootstrap.js').includes("dataset.progressMode=['performance','intelligence'].includes(activeProgressView)?'exercise':'overview'")) fail.push('Progreso no distingue modo ejercicio/overview en escritorio.');
+if(!css.includes('v6.3 · DESKTOP ANALYTICS WORKSPACE')||!css.includes('#progreso.active[data-progress-mode="exercise"]')) fail.push('Falta el layout Desktop Analytics Workspace v6.3.');
+if(!css.includes('@media(min-width:1320px)')) fail.push('El explorador de ejercicios debe activarse solo con ancho desktop suficiente.');
 
 let depth=0;
 for(const ch of css){

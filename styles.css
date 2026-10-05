@@ -1209,3 +1209,176 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .app-sidebar .tab-btn{min-height:42px;padding:8px 10px}
   .train-overlay.open{padding-top:12px;padding-bottom:12px}
 }
+
+
+/* ===== v6.3 · DESKTOP ANALYTICS WORKSPACE ===== */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.desktop-exercise-browser,.desktop-exercise-hero,.desktop-exercise-history,.desktop-intelligence-exercise{display:none}
+
+@media(min-width:1320px){
+  #progreso.active[data-progress-mode="exercise"]{
+    grid-template-columns:150px 246px minmax(0,1fr);
+    gap:16px;
+  }
+  #progreso[data-progress-mode="exercise"] .progress-nav{grid-column:1}
+  #progreso[data-progress-mode="exercise"] .desktop-exercise-browser{
+    display:flex;
+    grid-column:2;
+    position:sticky;
+    top:20px;
+    min-width:0;
+    max-height:calc(100vh - 40px);
+    flex-direction:column;
+    padding:12px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  #progreso[data-progress-mode="exercise"] .progress-view{grid-column:3}
+  #progreso[data-progress-mode="overview"] .desktop-exercise-browser{display:none}
+  #progreso[data-progress-mode="overview"] .progress-view{grid-column:2}
+
+  .desktop-exercise-browser-head{display:grid;gap:2px;margin-bottom:10px}
+  .desktop-exercise-browser-head>.eyebrow{margin-bottom:0}
+  .desktop-exercise-browser-head>b{font-size:.92rem}
+  .desktop-exercise-browser-head>small{color:var(--muted);font-size:.68rem}
+  .desktop-exercise-search{display:block;margin:0 0 9px}
+  .desktop-exercise-search input{
+    height:38px;
+    min-height:38px;
+    padding:8px 10px;
+    font-size:.8rem;
+    border-radius:9px;
+  }
+  .desktop-exercise-list{
+    min-height:0;
+    overflow:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+    scrollbar-color:color-mix(in srgb,var(--muted) 28%,transparent) transparent;
+    padding-right:3px;
+  }
+  .desktop-exercise-list::-webkit-scrollbar{width:6px}
+  .desktop-exercise-list::-webkit-scrollbar-track{background:transparent}
+  .desktop-exercise-list::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 28%,transparent);border-radius:999px}
+  .desktop-exercise-item{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    align-items:flex-start;
+    text-align:left;
+    padding:9px 10px;
+    margin:0 0 5px;
+    border:1px solid transparent;
+    border-radius:9px;
+    background:transparent;
+    color:var(--text);
+  }
+  .desktop-exercise-item:hover{background:var(--soft);border-color:var(--line)}
+  .desktop-exercise-item.active{
+    background:color-mix(in srgb,var(--accent) 12%,var(--card2));
+    border-color:color-mix(in srgb,var(--accent) 48%,var(--line));
+    box-shadow:inset 3px 0 0 var(--accent);
+  }
+  .desktop-exercise-item-name{width:100%;font-size:.78rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .desktop-exercise-item-meta{font-size:.65rem;color:var(--muted);line-height:1.3}
+  .desktop-exercise-empty{display:grid;gap:3px;padding:14px 8px;text-align:center;color:var(--muted);font-size:.72rem}
+  .desktop-exercise-empty b{color:var(--text)}
+
+  #progress-performance .performance-exercise-select{display:none}
+  #progress-performance .progress-controls{
+    grid-template-columns:minmax(190px,260px);
+    justify-content:end;
+  }
+  #progress-performance .progress-controls>div:last-child{grid-column:1}
+  .desktop-exercise-hero{
+    display:flex;
+    justify-content:space-between;
+    align-items:stretch;
+    gap:14px;
+    padding:14px;
+    margin:0 0 12px;
+    background:var(--card2);
+    border:1px solid var(--line);
+    border-radius:11px;
+  }
+  .desktop-exercise-hero:empty{display:none}
+  .desktop-exercise-hero-copy{min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .desktop-exercise-hero-copy h3{font-size:1.12rem!important;margin:1px 0 7px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .desktop-exercise-hero-tags{display:flex;gap:6px;flex-wrap:wrap}
+  .desktop-exercise-hero-tags span{
+    display:inline-flex;
+    padding:3px 7px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    color:var(--muted);
+    font-size:.67rem;
+    font-weight:700;
+  }
+  .desktop-exercise-hero-kpis{
+    flex:none;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(96px,1fr));
+    border:1px solid var(--line);
+    border-radius:9px;
+    overflow:hidden;
+  }
+  .desktop-exercise-hero-kpis>div{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:3px;
+    min-width:96px;
+    padding:9px 11px;
+    background:var(--soft);
+  }
+  .desktop-exercise-hero-kpis>div+div{border-left:1px solid var(--line)}
+  .desktop-exercise-hero-kpis small{color:var(--muted);font-size:.63rem}
+  .desktop-exercise-hero-kpis b{font-size:.82rem;font-variant-numeric:tabular-nums}
+
+  .desktop-exercise-history{display:block;margin-top:14px}
+  .desktop-exercise-history:empty{display:none}
+  .desktop-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .desktop-history-head h3{margin:0!important;font-size:.95rem!important}
+  .desktop-history-list{display:grid;gap:6px}
+  .desktop-history-row{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(140px,1.2fr) repeat(3,minmax(90px,.8fr));
+    gap:8px;
+    align-items:center;
+    padding:9px 11px;
+    color:var(--text);
+    background:var(--card2);
+    border:1px solid var(--line);
+    border-radius:9px;
+    text-align:left;
+  }
+  .desktop-history-row:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:var(--soft)}
+  .desktop-history-row>span{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .desktop-history-row>span:not(:first-child){text-align:right;align-items:flex-end}
+  .desktop-history-row b{font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .desktop-history-row small{color:var(--muted);font-size:.63rem}
+
+  .desktop-intelligence-exercise{
+    display:inline-grid;
+    gap:1px;
+    margin-top:8px;
+    padding:7px 10px;
+    max-width:100%;
+    background:var(--soft);
+    border:1px solid var(--line);
+    border-radius:9px;
+  }
+  .desktop-intelligence-exercise:empty{display:none}
+  .desktop-intelligence-exercise>span{color:var(--accent);font-size:.62rem;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
+  .desktop-intelligence-exercise>b{font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .desktop-intelligence-exercise>small{color:var(--muted);font-size:.66rem}
+}
+
+@media(min-width:1540px){
+  #progreso.active[data-progress-mode="exercise"]{grid-template-columns:160px 270px minmax(0,1fr)}
+  .desktop-exercise-hero-kpis>div{min-width:112px}
+}
