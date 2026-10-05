@@ -80,6 +80,9 @@ if(!html.includes('class="progress-nav"')||!html.includes('data-progress-view="a
 if(!core.includes("const THEME_VALUES=['auto','light','default','ocean','forest','coffee']")) fail.push('Falta el contrato de temas v6.1.');
 if(!core.includes('function applyTheme()')) fail.push('Falta aplicar el tema automático de forma centralizada.');
 if(!css.includes('[data-theme="light"]')||!css.includes('prefers-color-scheme:light')) fail.push('Falta tema claro o seguimiento del tema del sistema.');
+if(!html.includes('id="summaryMore"')||!css.includes('.summary-glance-grid')) fail.push('Falta la jerarquía compacta del Resumen v6.1.');
+if(!dashboard.includes("document.createElement('button')")||!css.includes('.cal-dot')) fail.push('Calendario v6.1 no usa celdas accesibles e indicador visual.');
+if(!read('js/training.js').includes('class="train-context')) fail.push('Modo Entrenamiento v6.1 no compacta el contexto previo.');
 
 const css=read('styles.css');
 let depth=0;
