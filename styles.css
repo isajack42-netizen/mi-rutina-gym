@@ -589,3 +589,16 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .intel-list-item small{white-space:normal}
 }
 .intel-placeholder-note{display:block;color:var(--muted);font-size:.66rem;line-height:1.35;margin-top:7px}
+
+/* v5.8.1 · Early Intelligence + adherencia visible */
+.analytics-adherence-hero{margin:2px 0 10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:11px}
+.analytics-adherence-hero .eyebrow{display:block;color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.analytics-adherence-value{font-size:2rem;line-height:1;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;margin:4px 0 3px}
+.analytics-adherence-copy strong{display:block;font-size:.9rem}
+.analytics-adherence-copy p{margin:4px 0 0;color:var(--muted);font-size:.74rem;line-height:1.35}
+.analytics-adherence-meter{height:9px;border-radius:999px;background:var(--line);overflow:hidden}
+.analytics-adherence-meter span{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .25s ease}
+.analytics-adherence-hero.empty-state .analytics-adherence-value{display:none}
+.analytics-kpis-secondary{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}
+@media(max-width:720px){.analytics-kpis-secondary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){.analytics-kpis-secondary{grid-template-columns:1fr 1fr}.analytics-kpis-secondary .analytics-kpi:last-child{grid-column:1/-1}}
