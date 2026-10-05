@@ -357,13 +357,31 @@
 <!-- PESTAÑA: RUTINAS -->
 <section id="rutinas" class="tab" role="tabpanel" aria-labelledby="tab-rutinas">
   <div class="train-cta-slot"></div>
-  <div class="card">
-    <div class="section-title">
-      <h2>Mis Rutinas</h2>
-      <button class="btn btn-primary" onclick="openRoutineEditor()">+ Nueva Rutina</button>
+  <div class="routine-workspace">
+    <div class="card routine-library-card">
+      <div class="section-title">
+        <div><span class="eyebrow">Programación</span><h2>Mis Rutinas</h2></div>
+        <button class="btn btn-primary" onclick="openRoutineEditor()">+ Nueva Rutina</button>
+      </div>
+      <p class="note" style="margin-bottom:12px"><b>Doble progresión:</b> primero intenta aumentar repeticiones manteniendo el peso. Cuando completes el extremo superior del rango, sube el peso y vuelve al inicio del rango.</p>
+      <div id="routineContent" class="routine"></div>
     </div>
-    <p class="note" style="margin-bottom:12px"><b>Doble progresión:</b> primero intenta aumentar repeticiones manteniendo el peso. Cuando completes el extremo superior del rango, sube el peso y vuelve al inicio del rango.</p>
-    <div id="routineContent" class="routine"></div>
+
+    <aside class="card routine-planner-card desktop-planner-only" aria-label="Planificador semanal">
+      <div class="section-title routine-planner-title">
+        <div>
+          <span class="eyebrow">Escenario semanal</span>
+          <h2>Planificador</h2>
+          <p class="muted">Ajusta cuántas veces harías cada rutina y revisa la distribución antes de modificar tu programa.</p>
+        </div>
+        <button class="btn btn-secondary" type="button" onclick="resetRoutinePlanScenario()">Restablecer</button>
+      </div>
+      <div id="routinePlanSummary"></div>
+      <div id="routinePlanFrequency" class="routine-plan-frequency"></div>
+      <div id="routinePlanMuscles" class="routine-plan-muscles"></div>
+      <div id="routinePlanSignals" class="routine-plan-signals"></div>
+      <p class="routine-plan-footnote">Las series se asignan al grupo muscular principal configurado para cada ejercicio. El escenario no cambia tus rutinas ni se sincroniza.</p>
+    </aside>
   </div>
 </section>
 <footer class="credit"><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><b>LiftEngine</b><span>Creada y diseñada por <b>Isaias Cruz</b></span><a href="mailto:isajack42@gmail.com">isajack42@gmail.com</a></footer>
