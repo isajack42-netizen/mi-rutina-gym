@@ -207,7 +207,15 @@ function migrateNames(){
   }
   return changed;
 }
-function populateExercises(){const all=getAllExercises();document.getElementById('exerciseList').innerHTML=all.map(x=>`<option value="${escapeHtml(x)}">`).join('');const sel=document.getElementById('chartExercise');const cur=sel.value;sel.innerHTML='<option value="">-- Elige un ejercicio --</option>'+all.map(x=>`<option>${escapeHtml(x)}</option>`).join('');if(all.includes(cur))sel.value=cur}
+function populateExercises(){
+  const all=getAllExercises();
+  document.getElementById('exerciseList').innerHTML=all.map(x=>`<option value="${escapeHtml(x)}">`).join('');
+  const sel=document.getElementById('chartExercise');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Elige un ejercicio --</option>'+all.map(x=>`<option>${escapeHtml(x)}</option>`).join('');
+  if(all.includes(cur))sel.value=cur;
+  if(typeof renderDesktopExerciseBrowser==='function')renderDesktopExerciseBrowser();
+}
 function mostRecentExerciseName(){
   const dates=Object.keys(data).sort().reverse();
   for(const date of dates){
@@ -225,6 +233,40 @@ function ensureProgressExerciseSelection(){
   if(!option)return false;
   sel.value=name;
   return true;
+}
+
+window.selectDesktopExercise=function(name){
+  const sel=document.getElementById('chartExercise');
+  if(!sel)return;
+  const option=[...sel.options].find(o=>o.value===name||o.textContent===name);
+  if(!option){toast('Ese ejercicio ya no está disponible');return;}
+  sel.value=name;
+  updateChart();
+}
+window.renderDesktopExerciseBrowser=function(){
+  const list=document.getElementById('desktopExerciseList'), count=document.getElementById('desktopExerciseCount');
+  if(!list)return;
+  const q=String(document.getElementById('desktopExerciseSearch')?.value||'').trim().toLocaleLowerCase('es-MX');
+  const selected=document.getElementById('chartExercise')?.value||'';
+  const all=getAllExercises().map(name=>{
+    const sessions=getExerciseSessions(name);
+    const last=sessions.at(-1)||null;
+    return {name,sessions:sessions.length,lastDate:last?.date||''};
+  }).filter(x=>!q||x.name.toLocaleLowerCase('es-MX').includes(q))
+    .sort((a,b)=>(b.lastDate||'').localeCompare(a.lastDate||'')||a.name.localeCompare(b.name,'es'));
+  if(count){
+    const total=getAllExercises().length;
+    count.textContent=q?`${all.length} de ${total}`:`${total} ejercicio${total===1?'':'s'}`;
+  }
+  if(!all.length){
+    list.innerHTML='<div class="desktop-exercise-empty"><b>Sin coincidencias</b><span>Prueba con otro nombre.</span></div>';
+    return;
+  }
+  list.innerHTML=all.map(x=>`
+    <button class="desktop-exercise-item ${x.name===selected?'active':''}" type="button" data-name="${escapeHtml(x.name)}" onclick="selectDesktopExercise(this.dataset.name)" ${x.name===selected?'aria-current="true"':''}>
+      <span class="desktop-exercise-item-name">${escapeHtml(x.name)}</span>
+      <span class="desktop-exercise-item-meta">${x.sessions?`${x.sessions} sesión${x.sessions===1?'':'es'} · ${fmtDate(x.lastDate)}`:'Sin sesiones'}</span>
+    </button>`).join('');
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
