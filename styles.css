@@ -1063,10 +1063,12 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 
   /* Progreso: navegación contextual lateral */
   #progreso.active{
+    --progress-workspace-min:calc(100vh - 40px);
     display:grid;
     grid-template-columns:190px minmax(0,1fr);
     gap:16px;
     align-items:start;
+    min-height:var(--progress-workspace-min);
   }
   #progreso>.train-cta-slot{grid-column:1/-1;margin-bottom:0}
   #progreso .progress-nav{
@@ -1086,7 +1088,10 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
     padding:9px 11px;
   }
   #progreso .progress-view{grid-column:2;margin-bottom:0}
-  #progreso .progress-view.active{display:block}
+  #progreso .progress-view.active{
+    display:block;
+    min-height:var(--progress-workspace-min);
+  }
   #progress-performance .chart-box{height:380px}
   #progress-analytics .analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   #progress-body .chart-box{height:300px}
@@ -1204,6 +1209,7 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .app{height:calc(100vh - 24px)}
   .app-sidebar{height:100%}
   .app-main{padding-bottom:12px}
+  #progreso.active{--progress-workspace-min:calc(100vh - 24px)}
   .app-sidebar header{padding-bottom:10px}
   .app-sidebar .tabs{margin-top:10px}
   .app-sidebar .tab-btn{min-height:42px;padding:8px 10px}
@@ -1227,7 +1233,8 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
     position:sticky;
     top:20px;
     min-width:0;
-    max-height:calc(100vh - 40px);
+    height:var(--progress-workspace-min);
+    max-height:var(--progress-workspace-min);
     flex-direction:column;
     padding:12px;
     background:var(--card);
