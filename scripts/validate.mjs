@@ -68,6 +68,15 @@ if(appList&&swList){
   warn.push('No se pudo comparar automáticamente la lista de módulos de app.js y sw.js');
 }
 
+const dashboard=read('js/dashboard.js');
+const core=read('js/core.js');
+const toolsJs=read('js/tools.js');
+if(/entries\[entries\.length-1\]\.e/.test(dashboard)) fail.push('Regresión: Cargar anterior vuelve a asumir .e en allWeightEntries().');
+if(!core.includes('function sanitizeRecordId')) fail.push('Falta sanitización estricta de IDs importados.');
+if(!core.includes("const key=boundedString(rawKey,80,'');")) fail.push('Falta normalizar nombres de rutina antes de safeKey().');
+if(!toolsJs.includes('replaceDays:true')) fail.push('Restore JSON no reemplaza IndexedDB de forma explícita.');
+if(!sw.includes("await caches.delete(VER)")) fail.push('Service Worker no revierte un precache incompleto.');
+
 const css=read('styles.css');
 let depth=0;
 for(const ch of css){

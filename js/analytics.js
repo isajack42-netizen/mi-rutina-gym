@@ -41,6 +41,7 @@ window.setWeeklySessionTarget=function(v){
   persistLocal({settings:true});
   saveToFirebase({settings:true});
   renderAnalytics();
+  if(typeof renderDashboard==='function')renderDashboard();
   toast(`Meta semanal: ${n} sesión${n===1?'':'es'}`);
 };
 
@@ -97,7 +98,7 @@ window.renderAnalytics=function(){
     <div class="analytics-kpi"><div class="label">Ejercicios en mejora</div><div class="value">${up.length}</div><small>${evaluated?`${attention.length} para revisar · ${evaluated} evaluados`:'Con 1–3 sesiones aún priorizamos propuestas provisionales'}</small></div>
   </div>`;
   const note=document.getElementById('analyticsNoteSlot');
-  if(note)note.innerHTML='<div class="analytics-note">La adherencia se prorratea desde tu primer entrenamiento disponible dentro del periodo. Con poco historial, LiftEngine muestra propuestas provisionales; las señales de meseta o caída requieren más sesiones comparables.</div>';
+  if(note)note.innerHTML='<div class="analytics-note">Si ya existía historial antes del periodo, la adherencia usa la ventana completa; solo se prorratea cuando estás empezando a registrar. Con poco historial, LiftEngine evita extrapolar una semana incompleta.</div>';
 
   const cov=document.getElementById('analyticsCoverage');
   if(cov)cov.textContent=coverage.coverageDays?`${fmtDate(coverage.coverageStart)} → ${fmtDate(period.endKey)}`:'Sin datos';

@@ -148,7 +148,12 @@ function makeChart(canvas,cfg){
 function isPlainObject(v){ return !!v && typeof v==='object' && !Array.isArray(v); }
 function safeKey(k){ return !['__proto__','prototype','constructor'].includes(String(k)); }
 function cleanString(v,fallback=''){ return typeof v==='string' ? v.trim() : (v==null ? fallback : String(v).trim()); }
+function boundedString(v,max=500,fallback=''){ return cleanString(v,fallback).slice(0,Math.max(0,Number(max)||0)); }
 function finiteNumber(v,min=0){ const n=Number(v); return Number.isFinite(n)&&n>=min ? n : null; }
+function sanitizeRecordId(v){
+  const n=Number(v);
+  return Number.isFinite(n)&&n>0&&n<Number.MAX_SAFE_INTEGER?n:Date.now()+Math.random();
+}
 function validDateKey(v){
   const s=String(v); if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const d=new Date(s+'T00:00:00Z');
@@ -239,18 +244,18 @@ function setCountsForWork(s){ return setHasData(s)&&!isWarmupSet(s); }
 
 function sanitizeSet(set,index=0){
   if(!isPlainObject(set)) return null;
-  const weight=finiteNumber(set.weight,0);
-  const restUsed=finiteNumber(set.restUsed,0);
-  const reps=cleanString(set.reps,'-') || '-';
-  // El estado completado es explícito. Para datos históricos sin
-  // `done`, una serie con reps válidas se migra una sola vez como completada.
+  const rawWeight=finiteNumber(set.weight,0);
+  const weight=rawWeight!==null&&rawWeight<=5000?rawWeight:0;
+  const rawRestUsed=finiteNumber(set.restUsed,0);
+  const restUsed=rawRestUsed!==null&&rawRestUsed<=86400?rawRestUsed:null;
+  const reps=boundedString(set.reps,16,'-') || '-';
   const done=typeof set.done==='boolean' ? set.done : ((parseFloat(reps)||0)>0);
   return {
-    setNumber: Math.max(1, Number(set.setNumber)||index+1),
+    setNumber: Math.max(1,Math.min(30,Math.round(Number(set.setNumber)||index+1))),
     reps,
-    weight: weight===null ? 0 : weight,
-    rir: cleanString(set.rir,'-') || '-',
-    rest: normalizeRestLabel(cleanString(set.rest,'-') || '-'),
+    weight,
+    rir: boundedString(set.rir,16,'-') || '-',
+    rest: normalizeRestLabel(boundedString(set.rest,40,'-') || '-'),
     type: normalizeSetType(set.type||set.setType),
     done,
     ...(restUsed!==null ? {restUsed} : {})
@@ -259,15 +264,16 @@ function sanitizeSet(set,index=0){
 
 function sanitizeEntry(entry){
   if(!isPlainObject(entry)) return null;
-  const id=entry.id!=null ? entry.id : Date.now()+Math.random();
-  const name=cleanString(entry.name,'Registro');
+  const id=sanitizeRecordId(entry.id);
+  const name=boundedString(entry.name,160,'Registro');
   if(entry.isCardio){
-    return {id,isCardio:true,name,time:cleanString(entry.time,'-')||'-',distance:cleanString(entry.distance,'-')||'-'};
+    const time=boundedString(entry.time,24,'-')||'-',distance=boundedString(entry.distance,24,'-')||'-';
+    return {id,isCardio:true,name,time,distance};
   }
-  const sets=Array.isArray(entry.sets) ? entry.sets.map(sanitizeSet).filter(Boolean) : [];
+  const sets=Array.isArray(entry.sets) ? entry.sets.slice(0,30).map(sanitizeSet).filter(Boolean) : [];
   if(!name || !sets.length) return null;
   sets.forEach((s,i)=>s.setNumber=i+1);
-  const substitutedFrom=cleanString(entry.substitutedFrom,'');
+  const substitutedFrom=boundedString(entry.substitutedFrom,160,'');
   return {id,isCardio:false,name,sets,...(substitutedFrom?{substitutedFrom}:{}),...(entry.trainingDraft===true?{trainingDraft:true}:{})};
 }
 
@@ -283,27 +289,27 @@ function sanitizeData(raw){
 }
 
 function sanitizeCategories(raw){
-  const out={};
+  const out=Object.create(null);
   if(!isPlainObject(raw)) return out;
-  Object.entries(raw).forEach(([date,value])=>{ if(safeKey(date)&&validDateKey(date)&&typeof value==='string'&&value.trim()) out[date]=value.trim(); });
+  Object.entries(raw).forEach(([date,value])=>{ const v=boundedString(value,120,''); if(safeKey(date)&&validDateKey(date)&&v) out[date]=v; });
   return out;
 }
 
 function sanitizeNotes(raw){
-  const out={};
+  const out=Object.create(null);
   if(!isPlainObject(raw)) return out;
-  Object.entries(raw).forEach(([date,value])=>{ if(safeKey(date)&&validDateKey(date)&&typeof value==='string'&&value.trim()) out[date]=value.trim(); });
+  Object.entries(raw).forEach(([date,value])=>{ const v=boundedString(value,5000,''); if(safeKey(date)&&validDateKey(date)&&v) out[date]=v; });
   return out;
 }
 
 
 function sanitizeExerciseNotes(raw){
-  const out={};
+  const out=Object.create(null);
   if(!isPlainObject(raw)) return out;
   Object.entries(raw).forEach(([name,value])=>{
-    if(!safeKey(name)||typeof value!=='string') return;
-    const n=cleanString(name),v=value.trim();
-    if(n&&v) out[n]=v.slice(0,1200);
+    const n=boundedString(name,160,''),v=boundedString(value,1200,'');
+    if(!n||!safeKey(n)||!v) return;
+    out[n]=v;
   });
   return out;
 }
@@ -329,27 +335,40 @@ function sanitizeMeasurements(raw){
 }
 
 function sanitizeRoutines(routines) {
-    const fixed = {};
+    const fixed = Object.create(null);
     if(!isPlainObject(routines)) return fixed;
-    for (const [k,rows] of Object.entries(routines)) {
-        if(!safeKey(k)||!Array.isArray(rows)) continue;
-        fixed[k.trim()] = rows.map((ex,index) => {
-            if (Array.isArray(ex)) return { name: cleanString(ex[0]), sets: Math.max(0,Number(ex[1])||0), reps: cleanString(ex[2]), rir: cleanString(ex[3]), rest: normalizeRestLabel(cleanString(ex[4])) };
-            if(!isPlainObject(ex)) return null;
-            return { name: cleanString(ex.name), sets: Math.max(0,Number(ex.sets)||0), reps: cleanString(ex.reps), rir: cleanString(ex.rir), rest: normalizeRestLabel(cleanString(ex.rest)) };
-        }).filter(ex=>ex&&ex.name);
+    for (const [rawKey,rows] of Object.entries(routines)) {
+        const key=boundedString(rawKey,80,'');
+        if(!key||!safeKey(key)||!Array.isArray(rows)) continue;
+        fixed[key] = rows.slice(0,50).map(ex => {
+            let name,sets,reps,rir,rest;
+            if(Array.isArray(ex)){ [name,sets,reps,rir,rest]=ex; }
+            else if(isPlainObject(ex)){ ({name,sets,reps,rir,rest}=ex); }
+            else return null;
+            const n=boundedString(name,160,'');
+            const count=Math.round(Number(sets)||0);
+            if(!n||count<1||count>20)return null;
+            return { name:n, sets:count, reps:boundedString(reps,32,''), rir:boundedString(rir,24,''), rest:normalizeRestLabel(boundedString(rest,40,'')) };
+        }).filter(Boolean);
     }
     return fixed;
 }
 
 function sanitizeAliases(raw){
-  const out={}; if(!isPlainObject(raw)) return out;
-  Object.entries(raw).forEach(([k,v])=>{ if(safeKey(k)&&typeof v==='string'&&v.trim()) out[k.trim().toLowerCase()]=v.trim(); });
+  const out=Object.create(null); if(!isPlainObject(raw)) return out;
+  Object.entries(raw).slice(0,500).forEach(([k,v])=>{
+    const key=boundedString(k,160,'').toLowerCase(),value=boundedString(v,160,'');
+    if(key&&safeKey(key)&&value) out[key]=value;
+  });
   return out;
 }
 function sanitizeMuscles(raw){
-  const out={}; if(!isPlainObject(raw)) return out;
-  Object.entries(raw).forEach(([k,v])=>{ if(safeKey(k)&&Array.isArray(v)) out[k]=v.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()); });
+  const out=Object.create(null); if(!isPlainObject(raw)) return out;
+  Object.entries(raw).slice(0,100).forEach(([k,v])=>{
+    const key=boundedString(k,80,'');
+    if(!key||!safeKey(key)||!Array.isArray(v))return;
+    out[key]=v.slice(0,500).map(x=>boundedString(x,160,'')).filter(Boolean);
+  });
   return out;
 }
 
@@ -815,6 +834,11 @@ async function writeDayV2(date){
     }catch(e){
       if(!String(e?.message||'').includes('LIFTENGINE_DAY_CONFLICT'))throw e;
       const snap=await fb.getDoc(ref), cloudDoc=snap.exists()?snap.data():{date,deleted:true,revision:0};
+      const remoteContent=cloudDayContent({...cloudDoc,date});
+      if(fingerprint(remoteContent)===fingerprint(content)){
+        cloudMeta.days[date]={revision:Number(cloudDoc.revision)||0,hash:fingerprint(content)};
+        return true;
+      }
       const choice=await resolveDayConflict(date,cloudDoc); if(choice==='cloud')return true;
       expected=Number(cloudDoc.revision)||0; content=buildDayContent(date);
     }
@@ -835,6 +859,11 @@ async function writeSettingsV2(){
     }catch(e){
       if(!String(e?.message||'').includes('LIFTENGINE_SETTINGS_CONFLICT'))throw e;
       const snap=await fb.getDoc(ref), cloud=snap.exists()?snap.data():{};
+      const remoteSettings=sanitizeSettingsSnapshot(cloud);
+      if(fingerprint(remoteSettings)===fingerprint(content)){
+        cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(content)};
+        return true;
+      }
       const keepLocal=await appConfirm('La configuración (rutinas, alias, tema o notas de ejercicios) cambió en otro dispositivo.\\n\\n¿Conservar la configuración de este dispositivo?',{title:'Conflicto de configuración',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
       if(!keepLocal){applyCloudSettings(cloud);const renamed=(typeof migrateNames==='function')?migrateNames():false;cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};persistLocal();if(renamed)saveQueued=true;return true;}
       expected=Number(cloud.revision)||0;

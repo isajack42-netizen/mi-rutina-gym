@@ -9,7 +9,20 @@ const SHELL=[
   'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
 ];
 self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:'reload'}).then(r=>{if(r.ok)c.put(u,r.clone());}).catch(()=>{})))).then(()=>self.skipWaiting()));
+  e.waitUntil((async()=>{
+    const c=await caches.open(VER);
+    try{
+      await Promise.all(SHELL.map(async u=>{
+        const r=await fetch(u,{cache:'reload'});
+        if(!r.ok)throw new Error('No se pudo precachear '+u+' · '+r.status);
+        await c.put(u,r.clone());
+      }));
+      await self.skipWaiting();
+    }catch(err){
+      await caches.delete(VER);
+      throw err;
+    }
+  })());
 });
 self.addEventListener('activate',e=>{
   e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('liftengine-')&&k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));

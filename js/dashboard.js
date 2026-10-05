@@ -279,9 +279,12 @@ window.copyLastWorkout = async function(){
 }
 window.loadLastPerformance = function(){
   const name=normalizeName(document.getElementById('exerciseName').value);if(!name)return;
-  const entries=allWeightEntries(name);if(!entries.length){toast('No hay sesión anterior');return}
-  const e=entries[entries.length-1].e;document.getElementById('setsContainer').innerHTML='';setCounter=0;e.sets.forEach(s=>addSet({reps:s.reps==='-'?'':s.reps,weight:Math.round(fromKg(s.weight)*10)/10,rir:s.rir==='-'?'':s.rir,rest:s.rest==='-'?'':s.rest,type:s.type}));
-  toast('Series cargadas')
+  const last=latestExerciseEntry(name);if(!last){toast('No hay sesión anterior');return}
+  const e=last.e;
+  document.getElementById('setsContainer').innerHTML='';setCounter=0;
+  e.sets.filter(setCountsForHistory).forEach(s=>addSet({reps:s.reps==='-'?'':s.reps,weight:Math.round(fromKg(s.weight)*10)/10,rir:s.rir==='-'?'':s.rir,rest:s.rest==='-'?'':s.rest,type:s.type}));
+  if(!document.querySelectorAll('.set-row').length)addSet();
+  toast('Series cargadas · '+fmtDate(last.date))
 }
 window.offerLastPerformance = function(){
   const raw=document.getElementById('exerciseName').value.trim();
@@ -414,12 +417,14 @@ window.openMeasurementModal=function(existingDate=''){
   document.getElementById('modal').innerHTML=`<h2>${existingDate?'Editar':'Registrar'} medidas corporales</h2><p class="muted">Mide en condiciones similares cada vez. Deja en blanco lo que no quieras registrar.</p><div class="grid grid-2"><div><label>Fecha</label><input id="mmDate" type="date" value="${date}"></div><div><label>Unidad</label><div class="muted" style="padding-top:10px">Centímetros (cm)</div></div></div><div class="measurement-grid" style="margin-top:12px"><div><label>Cintura</label><input id="mmWaist" type="number" step="0.1" min="0" value="${existing.waist??''}"></div><div><label>Pecho</label><input id="mmChest" type="number" step="0.1" min="0" value="${existing.chest??''}"></div><div><label>Brazo</label><input id="mmArm" type="number" step="0.1" min="0" value="${existing.arm??''}"></div><div><label>Muslo</label><input id="mmThigh" type="number" step="0.1" min="0" value="${existing.thigh??''}"></div><div><label>Cadera</label><input id="mmHip" type="number" step="0.1" min="0" value="${existing.hip??''}"></div></div><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveMeasurements()">Guardar</button></div>`;
   document.getElementById('modalBackdrop').classList.add('show');document.body.classList.add('modal-open');document.getElementById('modal').scrollTop=0;
 }
-window.saveMeasurements=function(){
-  const date=document.getElementById('mmDate').value;if(!date)return;
+window.saveMeasurements=async function(){
+  const date=document.getElementById('mmDate').value;if(!date||!validDateKey(date))return;
   const vals={waist:'mmWaist',chest:'mmChest',arm:'mmArm',thigh:'mmThigh',hip:'mmHip'};const entry={date};let has=false;
   Object.entries(vals).forEach(([k,id])=>{const v=parseFloat(document.getElementById(id).value);if(Number.isFinite(v)&&v>0){entry[k]=Math.round(v*10)/10;has=true;}});
   if(!has){toast('Registra al menos una medida');return;}
   const original=window.editingMeasurementDate||'';
+  const occupied=measurements.some(x=>x.date===date&&date!==original);
+  if(occupied&&!(await appConfirm('Ya existen medidas en '+fmtDate(date)+'. ¿Quieres reemplazarlas?',{title:'Medición existente',confirmText:'Reemplazar',danger:true})))return;
   measurements=measurements.filter(x=>x.date!==date && (!original||x.date!==original));measurements.push(entry);
   window.editingMeasurementDate='';saveToFirebase({days:[...new Set([date,original].filter(Boolean))]});closeModal();renderBodyWeights();toast('Medidas guardadas OK');
 }
