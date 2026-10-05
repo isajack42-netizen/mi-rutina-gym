@@ -363,22 +363,27 @@ function weightChangeDays(days){
 function latestMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null}
 function firstMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date))[0]||null}
 function measurementDelta(key){const arr=[...measurements].filter(x=>x[key]!=null).sort((a,b)=>a.date.localeCompare(b.date));if(arr.length<2)return null;return arr.at(-1)[key]-arr[0][key]}
-function trendClass(v,metric='generic'){return typeof bodyMetricTrendClass==='function'?bodyMetricTrendClass(metric,v):'trend-neutral'}
+function trendClass(v,metric='generic',currentValue=null){return typeof bodyMetricTrendClass==='function'?bodyMetricTrendClass(metric,v,currentValue):'trend-neutral'}
 function formatDelta(v,unit='cm'){if(v==null)return '—';return `${v>0?'+':''}${v.toFixed(1)} ${unit}`}
 function renderBodyCompSummary(){
     const box=document.getElementById('bodyCompSummary');if(!box)return;
-    const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));const latest=arr.at(-1);const avg7=avgWeight(7);const d30=weightChangeDays(30);const waist=measurementDelta('waist');
-    const cards=[];
-    cards.push(`<div class="bodycomp-stat"><div class="label">Peso actual</div><div class="value">${latest?formatKgValue(latest.weight):'—'}</div><div class="sub">${latest?fmtDate(latest.date):'Sin registro'}</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Promedio 7 días</div><div class="value">${avg7!=null?formatKgValue(avg7):'—'}</div><div class="sub">Promedio de mediciones disponibles</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30,'weight')}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist,'waist')}">${formatDelta(waist)}</div><div class="sub">Desde la primera medición</div></div>`);
+    const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
+    const latest=arr.at(-1),latestM=latestMeasurement(),avg7=avgWeight(7),d30=weightChangeDays(30),waist=measurementDelta('waist');
     const goal=sanitizeBodyGoal(bodyGoal);
+    const weightTargetSub=latest&&goal.targetWeightKg?`${formatKgValue(latest.weight-goal.targetWeightKg,true)} vs objetivo`:(latest?fmtDate(latest.date):'Sin registro');
+    const waistCurrent=latestM?.waist??null;
+    const waistTargetSub=waistCurrent!=null&&goal.targetWaistCm?`${(waistCurrent-goal.targetWaistCm)>=0?'+':''}${(waistCurrent-goal.targetWaistCm).toFixed(1)} cm vs objetivo`:'Desde la primera medición';
+    const cards=[];
+    cards.push(`<div class="bodycomp-stat"><div class="label">Peso actual</div><div class="value">${latest?formatKgValue(latest.weight):'—'}</div><div class="sub">${weightTargetSub}</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Promedio 7 días</div><div class="value">${avg7!=null?formatKgValue(avg7):'—'}</div><div class="sub">Promedio de mediciones disponibles</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30,'weight',latest?.weight??null)}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist,'waist',waistCurrent)}">${formatDelta(waist)}</div><div class="sub">${waistTargetSub}</div></div>`);
     const goalParts=[bodyGoalLabel(goal.mode)];
     if(goal.targetWeightKg) goalParts.push(`Peso objetivo ${formatKgValue(goal.targetWeightKg)}`);
     if(goal.targetWaistCm) goalParts.push(`Cintura objetivo ${goal.targetWaistCm.toFixed(1)} cm`);
     box.innerHTML=`<div class="body-goal-strip"><span>Objetivo</span><b>${escapeHtml(goalParts.join(' · '))}</b></div><div class="bodycomp-grid">${cards.join('')}</div>`;
-}
+  }
+
 function renderBodyWeights(){
     const box=document.getElementById('bodyWeightList');const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
     box.innerHTML=arr.slice(-10).reverse().map(x=>`<div class="progress-item"><span>${fmtDate(x.date)}</span><span style="display:flex;align-items:center;gap:10px"><b style="color:var(--accent)">${Math.round(fromKg(x.weight)*10)/10} ${unitLabel()}</b><button class="btn-delete-sm" aria-label="Eliminar peso" onclick="deleteBodyWeight('${x.date}')">${ic('trash')}</button></span></div>`).join('')||'<div class="empty">Sin peso corporal registrado.</div>';
