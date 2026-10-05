@@ -225,18 +225,32 @@
     <button class="progress-nav-btn" id="progress-tab-analytics" role="tab" aria-selected="false" aria-controls="progress-analytics" tabindex="-1" data-view="analytics" onclick="setProgressView('analytics',this)">Analítica</button>
     <button class="progress-nav-btn" id="progress-tab-body" role="tab" aria-selected="false" aria-controls="progress-body" tabindex="-1" data-view="body" onclick="setProgressView('body',this)">Cuerpo</button>
   </nav>
+  <aside class="desktop-exercise-browser" id="desktopExerciseBrowser" aria-label="Explorador de ejercicios">
+    <div class="desktop-exercise-browser-head">
+      <span class="eyebrow">Ejercicios</span>
+      <b>Explorador</b>
+      <small id="desktopExerciseCount">0 ejercicios</small>
+    </div>
+    <label class="desktop-exercise-search">
+      <span class="sr-only">Buscar ejercicio</span>
+      <input id="desktopExerciseSearch" type="search" placeholder="Buscar ejercicio…" autocomplete="off" oninput="renderDesktopExerciseBrowser()">
+    </label>
+    <div class="desktop-exercise-list" id="desktopExerciseList"></div>
+  </aside>
   <div class="card progress-view active" id="progress-performance" role="tabpanel" aria-labelledby="progress-tab-performance" data-progress-view="performance">
     <div class="section-title"><div><span class="eyebrow">Rendimiento</span><h2>Evolución por ejercicio</h2></div></div>
-    <div class="grid grid-2" style="margin-bottom:12px">
-      <div><label for="chartExercise">Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
+    <div id="desktopExerciseHero" class="desktop-exercise-hero" aria-live="polite"></div>
+    <div class="grid grid-2 progress-controls" style="margin-bottom:12px">
+      <div class="performance-exercise-select"><label for="chartExercise">Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
       <div><label for="chartMetric">Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
     </div>
     <div class="chart-box"><canvas id="progressChart"></canvas></div>
     <div id="exerciseDetail" style="margin-top:14px"></div>
+    <div id="desktopExerciseHistory" class="desktop-exercise-history"></div>
   </div>
 
   <div class="card progress-view" id="progress-intelligence" role="tabpanel" aria-labelledby="progress-tab-intelligence" data-progress-view="intelligence">
-    <div class="section-title intelligence-section-title"><div><span class="eyebrow">Próxima sesión</span><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p></div></div>
+    <div class="section-title intelligence-section-title"><div><span class="eyebrow">Próxima sesión</span><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p><div id="desktopIntelligenceExercise" class="desktop-intelligence-exercise"></div></div></div>
     <div id="progressionPanel" aria-live="polite"><div class="empty"><b>Selecciona un ejercicio</b><span>Verás aquí la recomendación para tu próxima sesión y el motivo detrás de ella.</span></div></div>
   </div>
 
