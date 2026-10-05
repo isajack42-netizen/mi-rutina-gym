@@ -89,9 +89,19 @@ function validateSettingsInput(raw){
   return '';
 }
 
-function bodyMetricTrendClass(metric,delta){
+function bodyMetricTrendClass(metric,delta,currentValue=null){
   if(delta==null||Math.abs(delta)<0.01) return 'trend-neutral';
-  const mode=bodyGoal?.mode||'neutral';
+  const goal=sanitizeBodyGoal(bodyGoal);
+  const target=metric==='weight'?goal.targetWeightKg:metric==='waist'?goal.targetWaistCm:null;
+  const current=Number(currentValue);
+  if(target&&Number.isFinite(current)){
+    const previous=current-Number(delta);
+    const before=Math.abs(previous-target),after=Math.abs(current-target);
+    if(after<before-.01)return 'trend-positive';
+    if(after>before+.01)return 'trend-negative';
+    return 'trend-neutral';
+  }
+  const mode=goal.mode||'neutral';
   if(mode==='cut'&&(metric==='weight'||metric==='waist')) return delta<0?'trend-positive':'trend-negative';
   if(mode==='recomp'&&metric==='waist') return delta<0?'trend-positive':'trend-negative';
   if(mode==='gain'&&metric==='weight') return delta>0?'trend-positive':'trend-negative';
