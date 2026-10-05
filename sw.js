@@ -1,11 +1,11 @@
 // LiftEngine · service worker: app shell sin conexión
 importScripts('js/version.js');
-const VER=`liftengine-v${self.LIFTENGINE_VERSION || '5.4.0'}`;
+const APPV=self.LIFTENGINE_VERSION || 'dev';
+const VER=`liftengine-v${APPV}`;
+const q=u=>`${u}?v=${APPV}`;
 const SHELL=[
-  './','index.html','styles.css?v=5.4.0',
-  'js/version.js?v=5.4.0','js/config.js?v=5.4.0','js/core.js?v=5.4.0',
-  'js/logbook.js?v=5.4.0','js/dashboard.js?v=5.4.0','js/tools.js?v=5.4.0',
-  'js/routines.js?v=5.4.0','js/notifications.js?v=5.4.0','js/training.js?v=5.4.0','js/bootstrap.js?v=5.4.0',
+  './','index.html','app.js',q('styles.css'),
+  ...['version','config','core','logbook','dashboard','tools','routines','notifications','training','bootstrap'].map(n=>q(`js/${n}.js`)),
   'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
 ];
 self.addEventListener('install',e=>{
@@ -34,15 +34,19 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  // Archivos propios: red primero para no quedar atrapados en una versión vieja.
+  // Archivos propios: red primero, pero con timeout corto. En mala señal
+  // usamos la copia local en vez de esperar indefinidamente.
   e.respondWith((async()=>{
-    const c=await caches.open(VER);
+    const c=await caches.open(VER), controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),2200);
     try{
-      const res=await fetch(r,{cache:'no-store'});
+      const res=await fetch(r,{cache:'no-store',signal:controller.signal});
+      clearTimeout(timeout);
       if(res&&res.ok) c.put(r,res.clone()).catch(()=>{});
       return res;
     }catch(_){
-      const hit=await c.match(r);
+      clearTimeout(timeout);
+      const hit=(await c.match(r)) || (await c.match(u.pathname.replace(/^\//,''))) || (await c.match(u.pathname.replace(/^\//,'')+u.search));
       if(hit) return hit;
       if(r.mode==='navigate') return (await c.match('index.html')) || Response.error();
       return Response.error();

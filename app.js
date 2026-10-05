@@ -1,15 +1,21 @@
-// LiftEngine v5.4.0 · cargador de compatibilidad.
-// El index actual carga /js/*.js directamente; este archivo evita romper una pestaña con HTML antiguo en caché.
+// LiftEngine · cargador estable. La versión vive únicamente en js/version.js.
 (async function(){
   if(window.__liftEngineCompatLoading) return;
   window.__liftEngineCompatLoading=true;
-  const files=['version','config','core','logbook','dashboard','tools','routines','notifications','training','bootstrap'];
+  await import(`./js/version.js?ts=${Date.now()}`);
+  const version=globalThis.LIFTENGINE_VERSION || 'dev';
+  const css=document.querySelector('link[rel="stylesheet"][href^="styles.css"]'); if(css) css.href=`styles.css?v=${encodeURIComponent(version)}`;
+  const files=['config','core','logbook','dashboard','tools','routines','notifications','training','bootstrap'];
   for(const name of files){
     await new Promise((resolve,reject)=>{
       const s=document.createElement('script');
-      s.src=`js/${name}.js?v=5.4.0`;
+      s.src=`js/${name}.js?v=${encodeURIComponent(version)}`;
       s.onload=resolve; s.onerror=()=>reject(new Error(`No se pudo cargar ${name}.js`));
       document.head.appendChild(s);
     });
   }
-})().catch(e=>console.error('LiftEngine no pudo iniciar:',e));
+})().catch(e=>{
+  console.error('LiftEngine no pudo iniciar:',e);
+  const el=document.getElementById('loadingOverlay');
+  if(el) el.innerHTML='<div style="padding:24px;text-align:center"><b>No se pudo iniciar LiftEngine.</b><br><span style="opacity:.7">Recarga la página o revisa tu conexión.</span></div>';
+});

@@ -14,7 +14,7 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
-<link rel="stylesheet" href="styles.css?v=5.4.0">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -46,6 +46,7 @@
   <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
   <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7 13l5-5 5 5M5 4h14"/></symbol>
 </defs></svg>
 
 <!-- PANTALLA DE LOGIN -->
@@ -138,11 +139,11 @@
       <div class="actions" style="margin-top:0"><button class="btn btn-secondary" onclick="copyLastWorkout()">Copiar última sesión completa</button></div>
     </div>
     <div class="datebar">
-      <div><label>Fecha de la sesión</label><input type="date" id="routineDate"></div>
+      <div><label for="routineDate">Fecha de la sesión</label><input type="date" id="routineDate"></div>
       <div><button class="btn btn-secondary" onclick="openWeightModal()">+ Peso corporal</button></div>
     </div>
     <div class="grid grid-2" style="margin-top:10px">
-      <div><label>Rutina / Categoría asignada</label><select id="dayCategory" onchange="saveCategory()"></select></div>
+      <div><label for="dayCategory">Rutina / Categoría asignada</label><select id="dayCategory" onchange="saveCategory()"></select></div>
       <div style="display:flex;align-items:flex-end"><button class="btn btn-primary full" onclick="loadTemplate()">Cargar rutina completa</button></div>
     </div>
   </div>
@@ -155,7 +156,7 @@
     
     <div id="weightsForm">
       <div class="exercise-head" style="margin-bottom:10px">
-        <div><label>Ejercicio</label><input id="exerciseName" list="exerciseList" placeholder="Ej. Press banca" oninput="offerLastPerformance()"><datalist id="exerciseList"></datalist></div>
+        <div><label for="exerciseName">Ejercicio</label><input id="exerciseName" list="exerciseList" placeholder="Ej. Press banca" oninput="offerLastPerformance()"><datalist id="exerciseList"></datalist></div>
         <div><button class="btn btn-secondary" onclick="loadLastPerformance()" style="margin-top:0">Cargar anterior</button></div>
       </div>
       <div id="setsContainer"></div>
@@ -164,9 +165,9 @@
 
     <div id="cardioForm" style="display:none">
       <div class="grid grid-3">
-        <div><label>Tipo de Cardio</label><select id="cardioType"><option>Cinta / Correr</option><option>Eliptica</option><option>Estacionaria</option><option>Escaladora</option><option>Remo</option><option>Otro</option></select></div>
-        <div><label>Tiempo (min)</label><input id="cardioTime" type="number" min="0" placeholder="30"></div>
-        <div><label>Distancia (km)</label><input id="cardioDist" type="number" step="0.1" min="0" placeholder="5"></div>
+        <div><label for="cardioType">Tipo de Cardio</label><select id="cardioType"><option>Cinta / Correr</option><option>Eliptica</option><option>Estacionaria</option><option>Escaladora</option><option>Remo</option><option>Otro</option></select></div>
+        <div><label for="cardioTime">Tiempo (min)</label><input id="cardioTime" type="number" min="0" placeholder="30"></div>
+        <div><label for="cardioDist">Distancia (km)</label><input id="cardioDist" type="number" step="0.1" min="0" placeholder="5"></div>
       </div>
     </div>
 
@@ -207,8 +208,8 @@
   <div class="card">
     <div class="section-title"><h2>Evolución por Ejercicio</h2></div>
     <div class="grid grid-2" style="margin-bottom:12px">
-      <div><label>Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
-      <div><label>Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
+      <div><label for="chartExercise">Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
+      <div><label for="chartMetric">Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
     </div>
     <div class="chart-box"><canvas id="progressChart"></canvas></div>
     <div id="exerciseDetail" style="margin-top:14px"></div>
@@ -286,19 +287,11 @@
   </div>
 </div>
 
+<div class="dialog-backdrop" id="dialogBackdrop" aria-hidden="true"><div class="app-dialog" id="appDialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle"></div></div>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
-<!-- LiftEngine v5.4.0 · módulos por dominio. El orden es intencional. -->
-<script src="js/version.js?v=5.4.0"></script>
-<script src="js/config.js?v=5.4.0"></script>
-<script src="js/core.js?v=5.4.0"></script>
-<script src="js/logbook.js?v=5.4.0"></script>
-<script src="js/dashboard.js?v=5.4.0"></script>
-<script src="js/tools.js?v=5.4.0"></script>
-<script src="js/routines.js?v=5.4.0"></script>
-<script src="js/notifications.js?v=5.4.0"></script>
-<script src="js/training.js?v=5.4.0"></script>
-<script src="js/bootstrap.js?v=5.4.0"></script>
+<!-- LiftEngine · app.js carga los módulos usando la versión de js/version.js. -->
+<script src="app.js"></script>
 </body>
 </html>
