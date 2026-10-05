@@ -76,6 +76,10 @@ if(!core.includes('function sanitizeRecordId')) fail.push('Falta sanitización e
 if(!core.includes("const key=boundedString(rawKey,80,'');")) fail.push('Falta normalizar nombres de rutina antes de safeKey().');
 if(!toolsJs.includes('replaceDays:true')) fail.push('Restore JSON no reemplaza IndexedDB de forma explícita.');
 if(!sw.includes("await caches.delete(VER)")) fail.push('Service Worker no revierte un precache incompleto.');
+if(!html.includes('class="progress-nav"')||!html.includes('data-progress-view="analytics"')) fail.push('Falta la subnavegación de Progreso v6.1.');
+if(!core.includes("const THEME_VALUES=['auto','light','default','ocean','forest','coffee']")) fail.push('Falta el contrato de temas v6.1.');
+if(!core.includes('function applyTheme()')) fail.push('Falta aplicar el tema automático de forma centralizada.');
+if(!css.includes('[data-theme="light"]')||!css.includes('prefers-color-scheme:light')) fail.push('Falta tema claro o seguimiento del tema del sistema.');
 
 const css=read('styles.css');
 let depth=0;

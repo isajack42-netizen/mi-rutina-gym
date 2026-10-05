@@ -85,8 +85,8 @@
   </div>
   <div class="header-actions">
       <span id="syncStatus" class="sync-status" data-state="" role="status" aria-live="polite"><svg class="ic" aria-hidden="true"><use href="#i-cloud"/></svg> Sincronizado</span>
-      <button class="icon-btn" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades" aria-label="Cambiar unidades">KG</button>
-      <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos" aria-label="Calculadora de discos"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg></button>
+      <button class="icon-btn header-utility" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades" aria-label="Cambiar unidades">KG</button>
+      <button class="icon-btn header-utility" id="headerPlateBtn" onclick="openPlateCalc()" title="Calculadora de Discos" aria-label="Calculadora de discos"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg></button>
       <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes" aria-label="Ajustes"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
   </div>
 </header>
@@ -103,31 +103,41 @@
 <section id="resumen" class="tab active">
   <div class="train-cta-slot"></div>
   <div class="card dashboard-v6-card">
-    <div class="section-title"><div><span class="eyebrow">LiftEngine v6</span><h2>Estado actual</h2></div><span class="badge">últimas 8 semanas</span></div>
+    <div class="section-title"><div><span class="eyebrow">LiftEngine v6.1</span><h2>Lo importante ahora</h2></div><span class="badge">últimas 8 semanas</span></div>
     <div id="dashboardV6" aria-live="polite"></div>
   </div>
-  <div class="card">
-    <div class="section-title"><h2>Esta semana</h2><span class="badge" id="weekBadge"></span></div>
-    <div id="weekBody"></div>
-  </div>
-  <div class="card">
-    <div class="section-title"><h2>Rendimiento</h2><span class="badge">vs. semana anterior</span></div>
-    <div id="performanceOverview"></div>
-  </div>
-  <div class="grid grid-2">
+  <div class="summary-glance-grid">
     <div class="card">
-      <div class="section-title"><h2>Distribución Muscular (30 Días)</h2></div>
-      <div class="chart-box chart-box-sm"><canvas id="musclePieChart"></canvas></div>
+      <div class="section-title"><h2>Esta semana</h2><span class="badge" id="weekBadge"></span></div>
+      <div id="weekBody"></div>
     </div>
     <div class="card">
-      <div class="section-title"><h2>Últimos entrenamientos</h2><button class="btn btn-secondary" onclick="switchTab('calendario',document.querySelectorAll('.tab-btn')[2])">Ver calendario</button></div>
+      <div class="section-title"><h2>Últimos entrenamientos</h2><button class="btn btn-secondary" onclick="switchTab('calendario',document.querySelectorAll('.tab-btn')[2])">Calendario</button></div>
       <div class="progress-list" id="recentWorkouts"></div>
     </div>
   </div>
-  <div class="card">
-    <div class="section-title"><h2>Récords Personales (PR) recientes</h2></div>
-    <div class="progress-list" id="recentPRs"></div>
-  </div>
+  <details class="card summary-more" id="summaryMore">
+    <summary>
+      <div><span class="eyebrow">Detalle</span><b>Más métricas</b><small>Rendimiento, distribución muscular y récords recientes.</small></div>
+      <span class="summary-more-toggle">Ver</span>
+    </summary>
+    <div class="summary-more-body">
+      <section class="summary-panel">
+        <div class="section-title"><h2>Rendimiento</h2><span class="badge">vs. semana anterior</span></div>
+        <div id="performanceOverview"></div>
+      </section>
+      <div class="grid grid-2 summary-detail-grid">
+        <section class="summary-panel">
+          <div class="section-title"><h2>Distribución muscular</h2><span class="badge">30 días</span></div>
+          <div class="chart-box chart-box-sm"><canvas id="musclePieChart"></canvas></div>
+        </section>
+        <section class="summary-panel">
+          <div class="section-title"><h2>PR recientes</h2></div>
+          <div class="progress-list" id="recentPRs"></div>
+        </section>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- PESTAÑA: REGISTRO -->
@@ -205,8 +215,14 @@
 <!-- PESTAÑA: PROGRESO -->
 <section id="progreso" class="tab">
   <div class="train-cta-slot"></div>
-  <div class="card">
-    <div class="section-title"><h2>Evolución por Ejercicio</h2></div>
+  <nav class="progress-nav" role="tablist" aria-label="Vistas de progreso">
+    <button class="progress-nav-btn active" role="tab" aria-selected="true" data-view="performance" onclick="setProgressView('performance',this)">Rendimiento</button>
+    <button class="progress-nav-btn" role="tab" aria-selected="false" data-view="intelligence" onclick="setProgressView('intelligence',this)">Inteligencia</button>
+    <button class="progress-nav-btn" role="tab" aria-selected="false" data-view="analytics" onclick="setProgressView('analytics',this)">Analítica</button>
+    <button class="progress-nav-btn" role="tab" aria-selected="false" data-view="body" onclick="setProgressView('body',this)">Cuerpo</button>
+  </nav>
+  <div class="card progress-view active" data-progress-view="performance">
+    <div class="section-title"><div><span class="eyebrow">Rendimiento</span><h2>Evolución por ejercicio</h2></div></div>
     <div class="grid grid-2" style="margin-bottom:12px">
       <div><label for="chartExercise">Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
       <div><label for="chartMetric">Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
@@ -215,12 +231,12 @@
     <div id="exerciseDetail" style="margin-top:14px"></div>
   </div>
 
-  <div class="card">
-    <div class="section-title intelligence-section-title"><div><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p></div></div>
+  <div class="card progress-view" data-progress-view="intelligence">
+    <div class="section-title intelligence-section-title"><div><span class="eyebrow">Próxima sesión</span><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p></div></div>
     <div id="progressionPanel" aria-live="polite"><div class="empty"><b>Selecciona un ejercicio</b><span>Verás aquí la recomendación para tu próxima sesión y el motivo detrás de ella.</span></div></div>
   </div>
 
-  <div class="card" id="analyticsCard">
+  <div class="card progress-view" data-progress-view="analytics" id="analyticsCard">
     <div class="section-title analytics-title">
       <div>
         <h2>Analítica de entrenamiento</h2>
@@ -252,9 +268,9 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card progress-view" data-progress-view="body">
     <div class="section-title">
-      <h2>Composición Corporal</h2>
+      <div><span class="eyebrow">Cuerpo</span><h2>Composición corporal</h2></div>
       <button class="btn btn-secondary" onclick="openMeasurementModal()">+ Registrar medidas</button>
     </div>
     <div id="bodyCompSummary"></div>

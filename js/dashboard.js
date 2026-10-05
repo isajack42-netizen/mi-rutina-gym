@@ -121,23 +121,19 @@ function renderDashboardV6(prs=[]){
     </button>`:'<div class="dashboard-decision empty"><b>Aún sin próxima decisión</b><span>Training Intelligence necesita al menos una sesión comparable por ejercicio.</span></div>';
 
   box.innerHTML=`
-    <div class="dashboard-v6-grid">
-      <div class="dashboard-v6-hero">
-        <div><span class="eyebrow">Adherencia</span><div class="dashboard-v6-score">${pct}%</div><b>${adherenceLabel}</b><small>${adherence.sessions} sesiones · objetivo equivalente ${adherence.expected<10?adherence.expected.toFixed(1):Math.round(adherence.expected)} · meta ${weeklySessionTarget}/sem</small></div>
-        <div class="dashboard-v6-meter" aria-label="Adherencia ${pct}%"><span style="width:${pct}%"></span></div>
-      </div>
-      <div class="dashboard-v6-kpis">
-        <div><span>Esta semana</span><b>${current.sessions}/${weeklySessionTarget}</b><small>sesiones</small></div>
-        <div><span>PR esta semana</span><b>${weekPRs.length}</b><small>${new Set(weekPRs.map(x=>x.name)).size} ejercicios</small></div>
-        <div><span>En mejora</span><b>${improving}</b><small>${attention} para revisar</small></div>
-        <div><span>Objetivo corporal</span><b>${escapeHtml(bodyGoalLabel(goal.mode))}</b><small>${escapeHtml(goalText.slice(1).join(' · ')||'Interpretación neutral')}</small></div>
-      </div>
+    ${decisionHtml}
+    <div class="dashboard-v6-kpis dashboard-v6-kpis-strip">
+      <div><span>Esta semana</span><b>${current.sessions}/${weeklySessionTarget}</b><small>sesiones</small></div>
+      <div><span>Adherencia</span><b>${pct}%</b><small>${adherenceLabel}</small></div>
+      <div><span>PR</span><b>${weekPRs.length}</b><small>esta semana</small></div>
+      <div><span>En mejora</span><b>${improving}</b><small>${attention} para revisar</small></div>
     </div>
-    ${decisionHtml}`;
+    <div class="dashboard-goal-line"><span>Objetivo corporal</span><b>${escapeHtml(bodyGoalLabel(goal.mode))}</b><small>${escapeHtml(goalText.slice(1).join(' · ')||'Sin objetivo numérico')}</small></div>`;
 }
 window.openDashboardDecision=function(name){
   const btn=document.querySelectorAll('.tab-btn')[3];
   switchTab('progreso',btn);
+  if(typeof setProgressView==='function')setProgressView('intelligence');
   const sel=document.getElementById('chartExercise');
   if(sel&&[...sel.options].some(o=>o.value===name)){sel.value=name;updateChart();}
 };
@@ -154,7 +150,7 @@ function renderDashboard(){
       return `<div class="progress-item" onclick="goToDate('${d}')" style="cursor:pointer"><div><b>${fmtDate(d)}</b><br><small>${escapeHtml(categories[d]||'Sin etiqueta')} · ${(data[d]||[]).filter(e=>!e.isCardio&&entryHasData(e)).length} ejercicios</small></div><b>${vol} ${unitLabel()}</b></div>`;
   }).join(''):'<div class="empty">Todavía no hay entrenamientos.</div>';
   
-  document.getElementById('recentPRs').innerHTML=prs.slice(-9).reverse().map(p=>{
+  document.getElementById('recentPRs').innerHTML=prs.slice(-6).reverse().map(p=>{
     const value=p.type==='reps'?`${p.value} reps`:formatKgValue(p.value);
     const detail=p.previous?(p.type==='reps'?`antes ${p.previous} reps`:`antes ${formatKgValue(p.previous)}`):'';
     return `<div class="progress-item"><div><b>${escapeHtml(p.name)}</b><br><small>${fmtDate(p.date)} · ${escapeHtml(p.label)}${detail?' · '+detail:''}</small></div><span class="pr">PR ${value}</span></div>`;
@@ -306,7 +302,7 @@ window.renderCalendar = function(){
   const grid=document.getElementById('calendarGrid'),name=document.getElementById('monthYear');grid.innerHTML='';name.textContent=new Date(currentYear,currentMonth,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(x=>grid.innerHTML+=`<div class="day-name">${x}</div>`);
   const first=new Date(currentYear,currentMonth,1).getDay(),days=new Date(currentYear,currentMonth+1,0).getDate();for(let i=0;i<first;i++)grid.innerHTML+='<div class="cal-day empty"></div>';
-  for(let i=1;i<=days;i++){const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData));const el=document.createElement('div');el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');el.innerHTML=`<div class="cal-num">${i}</div><div class="cal-cat">${escapeHtml(categories[d]||((data[d]||[]).length?' Entreno':''))}</div>`;el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};grid.appendChild(el)}
+  for(let i=1;i<=days;i++){const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData)),label=categories[d]||((data[d]||[]).some(entryHasData)?'Entrenamiento':'Registro');const el=document.createElement('button');el.type='button';el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');el.setAttribute('aria-label',`${i} · ${label||'Sin registro'}`);el.innerHTML=`<div class="cal-num">${i}</div>${has?'<span class="cal-dot" aria-hidden="true"></span>':''}`;el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};grid.appendChild(el)}
   if(selectedDate)showDaySummary(selectedDate)
 }
 

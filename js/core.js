@@ -77,6 +77,22 @@ window.logout = async function() {
 };
 
 const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines', EX_NOTES_KEY='gymExerciseNotes', ANALYTICS_TARGET_KEY='gymWeeklySessionTarget', BODY_GOAL_KEY='gymBodyGoalV1';
+const THEME_VALUES=['auto','light','default','ocean','forest','coffee'];
+function normalizeTheme(v){ const t=cleanString(v,'auto'); return THEME_VALUES.includes(t)?t:'auto'; }
+function systemPrefersLight(){ return typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme: light)').matches; }
+function applyTheme(){
+  currentTheme=normalizeTheme(currentTheme);
+  const resolved=currentTheme==='auto'?(systemPrefersLight()?'light':'dark'):(currentTheme==='light'?'light':'dark');
+  document.documentElement.setAttribute('data-theme',currentTheme);
+  document.documentElement.setAttribute('data-resolved-theme',resolved);
+  document.documentElement.style.colorScheme=resolved;
+  requestAnimationFrame(()=>{
+    const meta=document.querySelector('meta[name="theme-color"]');
+    const bg=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    if(meta&&bg)meta.setAttribute('content',bg);
+  });
+}
+window.applyTheme=applyTheme;
 
 const defaultPPL = {
     "Push": [
@@ -130,7 +146,7 @@ const defaultMuscles = {
 };
 
 // Variables globales del sistema
-let data={}, categories={}, weights=[], measurements=[], notes={}, exerciseNotes={}, customRoutines={}, currentUnit='kg', currentTheme='default', weeklySessionTarget=6, bodyGoal={mode:'neutral',targetWeightKg:null,targetWaistCm:null}, setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, analyticsWeeklyChart=null, saveInFlight=false, saveQueued=false;
+let data={}, categories={}, weights=[], measurements=[], notes={}, exerciseNotes={}, customRoutines={}, currentUnit='kg', currentTheme='auto', weeklySessionTarget=6, bodyGoal={mode:'neutral',targetWeightKg:null,targetWaistCm:null}, setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, analyticsWeeklyChart=null, saveInFlight=false, saveQueued=false;
 let customAliases={}, customMuscles={};
 let localRecoveryDetected=false; // Solo para corrupción real (JSON ilegible o pérdida estructural grave)
 let localNormalizationDetected=false; // Migraciones/normalizaciones compatibles, sin alarmar al usuario
@@ -432,7 +448,7 @@ function loadLegacyLocal(){
   const musclesStored=localStorage.getItem('gymMuscles')!==null;
   customRoutines = routinesStored ? sanitizeRoutines(readLocal(ROUTINES_KEY, {}, x=>x)) : JSON.parse(JSON.stringify(defaultPPL));
   currentUnit=localStorage.getItem(UNIT_KEY)==='lbs'?'lbs':'kg';
-  currentTheme=cleanString(localStorage.getItem(THEME_KEY),'default')||'default';
+  currentTheme=normalizeTheme(localStorage.getItem(THEME_KEY));
   weeklySessionTarget=Math.min(7,Math.max(1,parseInt(localStorage.getItem(ANALYTICS_TARGET_KEY),10)||6));
   bodyGoal=sanitizeBodyGoal(safeParse(localStorage.getItem(BODY_GOAL_KEY),{}));
   customAliases = aliasesStored ? sanitizeAliases(readLocal('gymAliases', {}, x=>x)) : JSON.parse(JSON.stringify(defaultAliases));
@@ -551,7 +567,7 @@ async function load(){
     console.warn('LiftEngine · IndexedDB no disponible, usando compatibilidad localStorage:',e);
   }
   document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
-  document.documentElement.setAttribute('data-theme',currentTheme);
+  applyTheme();
   if(localNormalizationDetected){
     try{
       if(localStoreReady){ markAllDaysDirty({cloud:false,local:true}); markSettingsDirty({cloud:false,local:true}); await persistLocal(); }
@@ -1169,11 +1185,14 @@ window.toggleUnit = function() {
 }
 
 window.setTheme = function(t) {
-    currentTheme = t;
-    document.documentElement.setAttribute('data-theme', currentTheme);
+    currentTheme=normalizeTheme(t);
+    applyTheme();
+    markSettingsDirty({cloud:true,local:true});
+    persistLocal({settings:true});
     saveToFirebase({settings:true});
     renderSettingsModal();
     refreshAll();
-    toast('Tema visual actualizado');
+    const label=({auto:'Automático',light:'Claro',default:'Oscuro',ocean:'Océano',forest:'Bosque',coffee:'Café'})[currentTheme]||'Visual';
+    toast('Tema: '+label);
 }
 

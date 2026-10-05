@@ -34,7 +34,7 @@ function sanitizeSettingsSnapshot(raw){
     customAliases:has('customAliases')?sanitizeAliases(x.customAliases):JSON.parse(JSON.stringify(defaultAliases)),
     customMuscles:has('customMuscles')?sanitizeMuscles(x.customMuscles):JSON.parse(JSON.stringify(defaultMuscles)),
     currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
-    currentTheme:cleanString(x.currentTheme,'default')||'default',
+    currentTheme:normalizeTheme(x.currentTheme),
     weeklySessionTarget:Math.min(7,Math.max(1,parseInt(x.weeklySessionTarget,10)||6)),
     bodyGoal:sanitizeBodyGoal(x.bodyGoal)
   };
@@ -65,7 +65,7 @@ function applySettingsSnapshot(raw){
   bodyGoal=clean.bodyGoal;
   const unit=document.getElementById('unitBtn');
   if(unit) unit.innerText=currentUnit.toUpperCase();
-  document.documentElement.setAttribute('data-theme',currentTheme);
+  applyTheme();
   return clean;
 }
 
@@ -78,6 +78,7 @@ function settingsNeedSeed(raw){
 function validateSettingsInput(raw){
   const x=isPlainObject(raw)?raw:{};
   if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return 'La unidad del archivo no es válida.';
+  if(x.currentTheme!=null&&!THEME_VALUES.includes(String(x.currentTheme))) return 'El tema visual del archivo no es válido.';
   if(x.weeklySessionTarget!=null&&(!Number.isInteger(Number(x.weeklySessionTarget))||Number(x.weeklySessionTarget)<1||Number(x.weeklySessionTarget)>7)) return 'La meta semanal del archivo no es válida.';
   if(x.bodyGoal!=null){
     if(!isPlainObject(x.bodyGoal)) return 'El objetivo corporal del archivo no es válido.';
