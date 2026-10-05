@@ -5,7 +5,7 @@ const root=process.cwd();
 const runtime=[
   'app.js','sw.js',
   'js/config.js','js/storage.js','js/core.js','js/settings.js','js/logbook.js','js/metrics.js','js/dashboard.js',
-  'js/analytics.js','js/intelligence.js','js/tools.js','js/routines.js',
+  'js/analytics.js','js/history.js','js/intelligence.js','js/tools.js','js/routines.js',
   'js/notifications.js','js/training.js','js/bootstrap.js','js/version.js'
 ];
 
@@ -117,6 +117,11 @@ if(!html.includes('id="desktopExerciseComparison"')||!html.includes('id="desktop
 if(!html.includes('<option value="reps">')||!html.includes('<option value="rir">')||!html.includes('<option value="sets">')) fail.push('Faltan métricas de reps/RIR/series en la gráfica de ejercicio.');
 if(!read('js/logbook.js').includes('function exercisePeriodComparison')||!read('js/logbook.js').includes('function exercisePrMilestones')) fail.push('Falta la lógica comparativa o de hitos del perfil v6.4.');
 if(!css.includes('.desktop-compare-grid')||!css.includes('.desktop-milestone-list')) fail.push('Faltan estilos del perfil analítico de ejercicio v6.4.');
+if(!html.includes('id="progress-tab-history"')||!html.includes('id="progress-history"')||!html.includes('id="historyCompareSummary"')) fail.push('Falta el workspace Historial de v6.5.');
+if(!read('js/history.js').includes('function historyPeriodCompare')||!read('js/history.js').includes('window.renderHistory')) fail.push('Falta el motor de historial/comparación v6.5.');
+if(!read('js/bootstrap.js').includes("'performance','intelligence','analytics','history','body'")||!read('js/bootstrap.js').includes("activeProgressView==='history'")) fail.push('Historial no está integrado en la subnavegación de Progreso.');
+if(!css.includes('v6.5 · TRAINING HISTORY & COMPARE')||!css.includes('.desktop-progress-only{display:none!important}')||!css.includes('#progreso .desktop-history-view.active{display:block!important}')) fail.push('Historial debe ser una experiencia exclusiva de escritorio.');
+if(!app.includes("'analytics','history','intelligence'")||!sw.includes("'analytics','history','intelligence'")) fail.push('history.js debe cargarse y precachearse entre Analytics e Intelligence.');
 
 let depth=0;
 for(const ch of css){
