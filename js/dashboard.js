@@ -252,8 +252,28 @@ window.renderCalendar = function(){
 }
 
 function showDaySummary(d){
-  const box=document.getElementById('calendarSummary'),arr=(data[d]||[]).filter(entryHasData);if(!arr.length&&!categories[d]&&!notes[d]){box.innerHTML='<div class="empty">Selecciona un día.</div>';return}
-  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${escapeHtml(categories[d]||'')} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">${ic('pulse')} ${escapeHtml(e.name)} ·${escapeHtml(e.time)} min</div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}</div>`
+  const box=document.getElementById('calendarSummary'),arr=(data[d]||[]).filter(entryHasData);
+  const hasWorkout=arr.length||!!categories[d]||!!notes[d];
+  if(!hasWorkout){
+    box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2></div><div class="empty">No hay entrenamiento registrado para este día.</div></div>`;
+    return;
+  }
+  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${escapeHtml(categories[d]||'')} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">${ic('pulse')} ${escapeHtml(e.name)} ·${escapeHtml(e.time)} min</div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}<div class="calendar-summary-actions"><button class="btn btn-danger full" onclick="deleteCalendarWorkout('${d}')">${ic('trash')} Eliminar entrenamiento completo</button></div></div>`
+}
+window.deleteCalendarWorkout=async function(d){
+  if(!validDateKey(d))return;
+  const hasWorkout=!!categories[d]||!!notes[d]||(data[d]||[]).some(entryHasData);
+  if(!hasWorkout){toast('No hay entrenamiento que eliminar');return;}
+  const active=typeof train!=='undefined'&&train&&train.date===d;
+  const msg=`¿Eliminar el entrenamiento completo del ${fmtDate(d)}?\n\nSe borrarán ejercicios, series, etiqueta de rutina y nota de la sesión.${active?' También se cerrará el entrenamiento que está en curso.':''}\n\nEl peso corporal y las medidas de ese día se conservarán.`;
+  if(!(await appConfirm(msg,{title:'Eliminar entrenamiento completo',confirmText:'Eliminar entrenamiento',cancelText:'Cancelar',danger:true})))return;
+  if(active&&typeof window.discardTrainingForDate==='function')window.discardTrainingForDate(d,{silent:true});
+  delete data[d];delete categories[d];delete notes[d];
+  await saveToFirebase({days:[d]});
+  selectedDate=d;
+  if(typeof refreshAll==='function')refreshAll();else{renderCalendar();renderDashboard();populateExercises();updateChart();renderProgressionPanel();renderAnalytics();}
+  showDaySummary(d);
+  toast('Entrenamiento eliminado');
 }
 window.changeMonth = function(n){currentMonth+=n;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
 function avgWeight(days){

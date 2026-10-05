@@ -81,6 +81,18 @@ function closeTrainUI(){
   clearInterval(trainClock); trainClock=null; try{wakeLock&&wakeLock.release()}catch(e){} wakeLock=null;
 }
 window.trainExit=function(){ closeTrainUI(); renderTrainCTA(); toast('Entrenamiento en pausa · toca "Continuar" para volver'); }
+window.discardTrainingForDate=function(date,{silent=false}={}){
+  if(!train||train.date!==date)return false;
+  closeTrainUI();
+  restCtx=null;
+  try{notifCancel();}catch(e){}
+  clearInterval(window.timerInt);window.timerInt=null;window.timerEndAt=0;window.timerAlarmed=false;
+  const ft=document.getElementById('floatingTimer');if(ft){ft.style.display='none';ft.classList.remove('overtime');}
+  const ov=document.getElementById('trainOverlay');if(ov){ov.classList.remove('resting');ov.classList.remove('overtime');}
+  train=null;saveTrain();renderTrainCTA();
+  if(!silent)toast('Entrenamiento descartado');
+  return true;
+}
 function cleanupAbandonedTraining(){
   if(!train)return;
   const d=train.date, ids=new Set(train.order||[]); let keptAny=false;
