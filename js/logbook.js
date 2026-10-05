@@ -2,13 +2,20 @@
 'use strict';
 function todayStr(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function fmtDate(s){return new Date(s+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}
-function toast(t){const el=document.getElementById('toast');el.textContent=t;el.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>el.style.display='none',2200)}
+function toast(t){
+  const el=document.getElementById('toast'), text=String(t||'');
+  el.textContent=text;el.style.display='block';
+  clearTimeout(window.tt);
+  const duration=Math.min(5200,Math.max(2200,1400+text.length*28));
+  window.tt=setTimeout(()=>el.style.display='none',duration);
+}
 
 window.switchTab = function(id,btn){
   if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-selected','false')});
-  if(btn){btn.classList.add('active');btn.setAttribute('aria-selected','true');}
+  const panel=document.getElementById(id); if(!panel)return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));panel.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-selected','false');x.tabIndex=-1});
+  if(btn){btn.classList.add('active');btn.setAttribute('aria-selected','true');btn.tabIndex=0;}
   if(id==='resumen')renderDashboard();
   if(id==='calendario')renderCalendar();
   if(id==='progreso'){
@@ -19,6 +26,10 @@ window.switchTab = function(id,btn){
     renderAnalytics();
   }
   if(id==='rutinas'){renderRoutines();}
+  if(btn){
+    const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({top:0,behavior:reduced?'auto':'smooth'});
+  }
 }
 
 window.setLogType = function(type){
@@ -223,7 +234,7 @@ function loadDay(){
   document.getElementById('dayCategory').value=categories[date]||'';
   document.getElementById('sessionNote').value=notes[date]||'';
   const arr=data[date]||[];const box=document.getElementById('dailyLog');
-  if(!arr.length){box.innerHTML='<div class="empty">No hay registros para este día.</div>';return}
+  if(!arr.length){box.innerHTML='<div class="empty"><b>Sin registros este día</b><span>Usa el formulario de arriba para añadir un ejercicio, cardio o una nota de sesión.</span></div>';return}
   box.innerHTML=arr.map(e=>renderExerciseCard(e,date)).join('')
 }
 
