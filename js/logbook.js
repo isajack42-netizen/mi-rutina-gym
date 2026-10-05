@@ -7,7 +7,8 @@ function toast(t){const el=document.getElementById('toast');el.textContent=t;el.
 window.switchTab = function(id,btn){
   if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-selected','false')});
+  if(btn){btn.classList.add('active');btn.setAttribute('aria-selected','true');}
   if(id==='resumen')renderDashboard();
   if(id==='calendario')renderCalendar();
   if(id==='progreso'){

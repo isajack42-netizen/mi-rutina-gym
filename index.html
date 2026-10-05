@@ -84,19 +84,19 @@
     <p>Entrena con datos</p>
   </div>
   <div class="header-actions">
-      <span id="syncStatus" class="sync-status" data-state=""><svg class="ic" aria-hidden="true"><use href="#i-cloud"/></svg> Sincronizado</span>
+      <span id="syncStatus" class="sync-status" data-state="" role="status" aria-live="polite"><svg class="ic" aria-hidden="true"><use href="#i-cloud"/></svg> Sincronizado</span>
       <button class="icon-btn" id="unitBtn" onclick="toggleUnit()" title="Cambiar Unidades" aria-label="Cambiar unidades">KG</button>
       <button class="icon-btn" onclick="openPlateCalc()" title="Calculadora de Discos" aria-label="Calculadora de discos"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg></button>
       <button class="icon-btn" id="settingsBtn" type="button" title="Ajustes" aria-label="Ajustes"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
   </div>
 </header>
 
-<nav class="tabs">
-<button class="tab-btn active" onclick="switchTab('resumen',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>Resumen</span></button>
-<button class="tab-btn" onclick="switchTab('registro',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg></span><span>Registro</span></button>
-<button class="tab-btn" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
-<button class="tab-btn" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
-<button class="tab-btn" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
+<nav class="tabs" role="tablist" aria-label="Secciones de LiftEngine">
+<button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('resumen',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>Resumen</span></button>
+<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('registro',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg></span><span>Registro</span></button>
+<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
+<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
+<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
 </nav>
 
 <!-- PESTAÑA: RESUMEN -->
@@ -217,7 +217,7 @@
 
   <div class="card">
     <div class="section-title intelligence-section-title"><div><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p></div></div>
-    <div id="progressionPanel"><div class="empty">Selecciona un ejercicio arriba para ver la recomendación.</div></div>
+    <div id="progressionPanel" aria-live="polite"><div class="empty"><b>Selecciona un ejercicio</b><span>Verás aquí la recomendación para tu próxima sesión y el motivo detrás de ella.</span></div></div>
   </div>
 
   <div class="card" id="analyticsCard">
@@ -320,8 +320,8 @@
 </div>
 
 <div class="dialog-backdrop" id="dialogBackdrop" aria-hidden="true" hidden><div class="app-dialog" id="appDialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle"></div></div>
-<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
-<div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- LiftEngine · app.js carga los módulos usando la versión de js/version.js. -->
 <script src="app.js"></script>

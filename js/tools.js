@@ -268,47 +268,77 @@ Se combinarán con tus medidas actuales sin borrar registros más recientes.`,{t
 function renderSettingsModal(){
     const modal = document.getElementById('modal');
     if(!modal) return;
+    const notificationLabel=({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()];
+    const accountEmail=(fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión';
+    const recoverableCount=recoverableMeasurementsFromLocalBackup().length;
     modal.innerHTML=`
-        <div class="modal-content-wrapper">
-            <h2>Ajustes</h2>
-            
-            <label>Tema visual (Paleta de Colores)</label>
-            <div class="theme-grid">
-                <button class="btn-theme ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="border-left-color:#d8dde5">Gris Clásico</button>
-                <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="border-left-color:#60a5fa">Océano Profundo</button>
-                <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="border-left-color:#4ade80">Verde Bosque</button>
-                <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="border-left-color:#fbbf24">Café/Ámbar</button>
+        <div class="modal-content-wrapper settings-modal">
+            <div class="settings-modal-head">
+                <span class="eyebrow">Configuración</span>
+                <h2>Ajustes de LiftEngine</h2>
+                <p>Personaliza la app, revisa la sincronización y administra tus datos.</p>
             </div>
-            
-            <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
-            <!-- FASE 3: Botón para gestionar Músculos y Alias -->
-            <button class="btn btn-secondary full" style="margin-bottom:12px; border-style:dashed;" onclick="openCatalogsModal('musculos')">${ic('list')} Gestionar Músculos y Alias</button>
-            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
-            <p class="muted" style="font-size:.72rem;margin:-4px 0 14px">Los avisos actuales son locales y dependen de que iOS/Android mantenga activa la PWA. Un aviso garantizado con pantalla bloqueada requiere Push desde un servidor.</p>
-            
-            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.<br><span class="cloud-badge ${cloudMode==='v2'?'v2':''}">${ic('cloud')} ${escapeHtml(cloudModeLabel())}</span><br><span style="font-size:.72rem">Almacenamiento local: <b>${escapeHtml(localStoreLabel())}</b>${cloudMode==='v2'?' · sincronización incremental':''}</span></p>
-            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="retryCloudSync()">${ic('cloud')} Reintentar sincronización</button>
-            ${cloudMode!=='v2'?`<button class="btn btn-secondary full" style="margin-bottom:12px;border-style:dashed" onclick="tryMigrateCloudV2()">${ic('trend')} Activar nube v2</button>`:''}
-            ${recoverableMeasurementsFromLocalBackup().length?`<button class="btn btn-secondary full" style="margin-bottom:12px;border-color:#f2c96d" onclick="restoreMeasurementsFromRecovery()">${ic('trend')} Recuperar medidas desde copia local</button>`:''}
-            <button class="btn full" style="background:#1d6f42; color:#fff; margin-bottom:10px;" onclick="exportCSV()">${ic('table')} Exportar datos a Excel (CSV)</button>
-            <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="document.getElementById('importCSVFile').click()">${ic('upload')} Importar datos desde Excel (CSV)</button>
-            <input id="importCSVFile" type="file" accept=".csv,text/csv" style="display:none" onchange="importCSV(event)">
-            <div class="actions">
-                <button class="btn btn-primary" onclick="exportData()">Crear copia de seguridad</button>
-                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Restaurar copia</button>
-            </div>
-            <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
-            
-            <button class="btn btn-danger full" style="margin-top:12px;" onclick="logout()">Cerrar sesión</button>
-            <p class="muted" style="font-size:.75rem;text-align:center;margin:14px 0 0">LiftEngine v${APP_VERSION} · Creada y diseñada por <b style="color:var(--text)">Isaias Cruz</b><br><a href="mailto:isajack42@gmail.com" style="color:var(--accent);text-decoration:none">isajack42@gmail.com</a></p>
-            
-            <div class="actions" style="margin-top:12px;">
-                <button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button>
-            </div>
+
+            <section class="settings-section">
+                <div class="settings-section-head"><div><h3>Apariencia</h3><p>Elige la paleta visual de la aplicación.</p></div></div>
+                <div class="theme-grid settings-theme-grid">
+                    <button class="btn-theme ${currentTheme==='default'?'active':''}" onclick="setTheme('default')" style="--theme-swatch:#d8dde5">Gris Clásico</button>
+                    <button class="btn-theme ${currentTheme==='ocean'?'active':''}" onclick="setTheme('ocean')" style="--theme-swatch:#60a5fa">Océano Profundo</button>
+                    <button class="btn-theme ${currentTheme==='forest'?'active':''}" onclick="setTheme('forest')" style="--theme-swatch:#4ade80">Verde Bosque</button>
+                    <button class="btn-theme ${currentTheme==='coffee'?'active':''}" onclick="setTheme('coffee')" style="--theme-swatch:#fbbf24">Café/Ámbar</button>
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <div class="settings-section-head"><div><h3>Entrenamiento</h3><p>Catálogos, músculos y avisos de descanso.</p></div></div>
+                <div class="settings-stack">
+                    <button class="btn btn-secondary full settings-action" onclick="openCatalogsModal('musculos')">${ic('list')}<span><b>Gestionar músculos y alias</b><small>Clasificación muscular y nombres equivalentes.</small></span></button>
+                    <button class="btn btn-secondary full settings-action" onclick="toggleNotifications()">${ic('bell')}<span><b>Avisos de descanso: ${notificationLabel}</b><small>Alertas locales mientras el sistema mantiene activa la PWA.</small></span></button>
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <div class="settings-section-head"><div><h3>Cuenta y nube</h3><p>Estado de tu sesión y almacenamiento sincronizado.</p></div><span class="cloud-badge ${cloudMode==='v2'?'v2':''}">${ic('cloud')} ${escapeHtml(cloudModeLabel())}</span></div>
+                <div class="settings-account-card">
+                    <div><span>Sesión</span><b>${escapeHtml(accountEmail)}</b></div>
+                    <div><span>Almacenamiento local</span><b>${escapeHtml(localStoreLabel())}</b></div>
+                    <div><span>Sincronización</span><b>${cloudMode==='v2'?'Incremental':'Modo heredado'}</b></div>
+                </div>
+                <div class="settings-stack settings-stack-tight">
+                    <button class="btn btn-secondary full" onclick="retryCloudSync()">${ic('cloud')} Reintentar sincronización</button>
+                    ${cloudMode!=='v2'?`<button class="btn btn-secondary full settings-dashed" onclick="tryMigrateCloudV2()">${ic('trend')} Activar nube v2</button>`:''}
+                    ${recoverableCount?`<button class="btn btn-secondary full settings-warning" onclick="restoreMeasurementsFromRecovery()">${ic('trend')} Recuperar ${recoverableCount} registro${recoverableCount===1?'':'s'} de medidas</button>`:''}
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <div class="settings-section-head"><div><h3>Datos</h3><p>Exporta para analizar o crea una copia completa para restaurar.</p></div></div>
+                <div class="settings-data-grid">
+                    <button class="btn settings-excel full" onclick="exportCSV()">${ic('table')}<span><b>Exportar a Excel</b><small>CSV editable</small></span></button>
+                    <button class="btn btn-secondary full" onclick="document.getElementById('importCSVFile').click()">${ic('upload')}<span><b>Importar desde Excel</b><small>CSV de LiftEngine</small></span></button>
+                    <button class="btn btn-primary full" onclick="exportData()">${ic('download')}<span><b>Crear copia</b><small>Respaldo JSON completo</small></span></button>
+                    <button class="btn btn-secondary full" onclick="document.getElementById('importFile').click()">${ic('upload')}<span><b>Restaurar copia</b><small>Desde respaldo JSON</small></span></button>
+                </div>
+                <input id="importCSVFile" type="file" accept=".csv,text/csv" hidden onchange="importCSV(event)">
+                <input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
+            </section>
+
+            <section class="settings-section settings-section-last">
+                <div class="settings-section-head"><div><h3>Aplicación</h3><p>LiftEngine v${APP_VERSION}</p></div></div>
+                <div class="settings-about">
+                    <span>Creada y diseñada por <b>Isaias Cruz</b></span>
+                    <a href="mailto:isajack42@gmail.com">isajack42@gmail.com</a>
+                </div>
+                <button class="btn btn-danger full settings-signout" onclick="logout()">Cerrar sesión</button>
+            </section>
+
+            <div class="settings-close-row"><button class="btn btn-secondary full" onclick="closeModal()">Cerrar</button></div>
         </div>`;
     document.getElementById('modalBackdrop').classList.add('show');
     document.body.classList.add('modal-open');
+    improveFormAccessibility(modal);
 }
+
 window.openDataModal = function(){
     renderSettingsModal();
 };

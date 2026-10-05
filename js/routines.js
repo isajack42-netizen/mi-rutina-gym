@@ -112,11 +112,12 @@ window.deleteRoutine = async function(name) {
 }
 
 function renderRoutines(){
-  document.getElementById('routineContent').innerHTML=Object.entries(customRoutines).map(([name,rows])=>`
-    <details>
+  document.getElementById('routineContent').innerHTML=Object.entries(customRoutines).map(([name,rows])=>{
+    const totalSets=rows.reduce((sum,r)=>sum+(parseInt(r.sets,10)||0),0);
+    return `<details>
         <summary>
-            <span>${escapeHtml(name)}</span>
-            <button class="btn-edit-sm" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); openRoutineEditor(this.dataset.name)">${ic('edit')} Editar</button>
+            <span class="routine-summary-copy"><b>${escapeHtml(name)}</b><small>${rows.length} ejercicio${rows.length===1?'':'s'} · ${totalSets} series planificadas</small></span>
+            <button class="btn-edit-sm" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); event.stopPropagation(); openRoutineEditor(this.dataset.name)">${ic('edit')} Editar</button>
         </summary>
         <div class="routine-content">
             <table>
@@ -124,7 +125,8 @@ function renderRoutines(){
                 <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${r.sets}</td><td>${escapeHtml(r.reps)}</td><td>${escapeHtml(r.rir)}</td><td>${escapeHtml(normalizeRestLabel(r.rest))}</td></tr>`).join('')}</tbody>
             </table>
         </div>
-    </details>`).join('') || '<div class="empty">No tienes rutinas creadas. Toca "+ Nueva Rutina" para empezar.</div>';
+    </details>`;
+  }).join('') || '<div class="empty"><b>Aún no tienes rutinas</b><span>Crea tu primera rutina para iniciar entrenamientos guiados.</span></div>';
 }
 
 function refreshAll(){
