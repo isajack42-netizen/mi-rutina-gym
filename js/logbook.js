@@ -239,6 +239,18 @@ function setCountsForHistory(s){return setHasData(s)&&!isWarmupSet(s)}
 function sessionVolume(e){return (e.sets||[]).filter(setCountsForHistory).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}
 function entryHasData(e){return e.isCardio?((parseFloat(e.time)||0)>0||(parseFloat(e.distance)||0)>0):(e.sets||[]).some(setHasData)}
 function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>{if((data[date]||[]).some(e=>!e.isCardio&&e.name===name&&entryHasData(e)))out.push({date})});return out}
+function latestExerciseEntry(name,beforeDate=''){
+  const dates=allWeightEntries(name).map(x=>x.date).filter(d=>!beforeDate||d<beforeDate);
+  for(let i=dates.length-1;i>=0;i--){
+    const date=dates[i];
+    const entries=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name&&entryHasData(e));
+    if(entries.length)return {date,e:entries[entries.length-1]};
+  }
+  return null;
+}
+function exerciseLoadMode(name){ return /asistid|assisted|contrapeso/i.test(String(name||''))?'assistance':'external'; }
+window.latestExerciseEntry=latestExerciseEntry;
+window.exerciseLoadMode=exerciseLoadMode;
 function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps||reps<=0)return 0;return weight*(1+reps/30)} // Epley
 function bestForDate(name,date,metric){
   const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);if(!es.length)return 0;

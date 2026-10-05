@@ -43,11 +43,12 @@ function metricsPeriod(weeks=8){
 function metricsCoverage(period){
   const all=metricsWorkoutDates();
   if(!all.length) return {...period,coverageStart:period.startKey,coverageDays:0,coverageWeeks:0};
-  const first=all.find(d=>d>=period.startKey&&d<=period.endKey) || (all[0]>period.endKey?null:period.startKey);
-  if(!first) return {...period,coverageStart:period.startKey,coverageDays:0,coverageWeeks:0};
-  const startKey=first>period.startKey?first:period.startKey;
+  const hadHistoryBefore=all.some(d=>d<period.startKey);
+  const firstInside=all.find(d=>d>=period.startKey&&d<=period.endKey)||null;
+  if(!firstInside&&!hadHistoryBefore) return {...period,coverageStart:period.startKey,coverageDays:0,coverageWeeks:0};
+  const startKey=hadHistoryBefore?period.startKey:firstInside;
   const days=Math.max(1,Math.floor((metricsDate(period.endKey)-metricsDate(startKey))/86400000)+1);
-  return {...period,coverageStart:startKey,coverageDays:days,coverageWeeks:days/7};
+  return {...period,coverageStart:startKey,coverageDays:days,coverageWeeks:days/7,hadHistoryBefore};
 }
 
 function metricsExpectedSessions(coverage,target=weeklySessionTarget){
@@ -96,7 +97,7 @@ function metricsMuscleStats(coverage){
       sets.forEach(s=>{const r=parseFloat(s.rir);if(Number.isFinite(r))out[muscle].rir.push(r);});
     });
   });
-  const w=Math.max(coverage.coverageWeeks,1/7);
+  const w=Math.max(coverage.coverageWeeks,1);
   return Object.entries(out).map(([muscle,x])=>({
     muscle,
     sets:x.sets,

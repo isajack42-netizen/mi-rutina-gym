@@ -73,6 +73,7 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
 // ===== Shared metrics =====
 {
   const data={
+    '2026-07-01':[{isCardio:false,name:'Press',sets:[{done:true,type:'normal',weight:25,reps:10},{done:true,type:'normal',weight:25,reps:9}]}],
     '2026-09-28':[{isCardio:false,name:'Press',sets:[{done:true,type:'normal',weight:30,reps:10},{done:true,type:'normal',weight:30,reps:9}]}],
     '2026-10-01':[{isCardio:false,name:'Press',sets:[{done:true,type:'normal',weight:32.5,reps:9},{done:true,type:'normal',weight:32.5,reps:8}]}],
     '2026-10-05':[{isCardio:false,name:'Press',sets:[{done:true,type:'normal',weight:32.5,reps:10},{done:true,type:'normal',weight:32.5,reps:9}]}]
@@ -103,7 +104,9 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
 
   const adherence=ctx.metricsAdherence(8,3);
   assert.equal(adherence.sessions,3);
-  assert.ok(adherence.pct>0&&adherence.pct<=100);
+  assert.equal(adherence.coverage.coverageStart,adherence.period.startKey);
+  assert.equal(adherence.coverage.hadHistoryBefore,true);
+  assert.ok(adherence.pct>0&&adherence.pct<25);
 
   const trend=ctx.metricsExerciseTrend('Press','2026-09-01','2026-10-05');
   assert.equal(trend.sessions,3);

@@ -132,7 +132,11 @@ function updateTimerUI() {
 }
 
 window.exportCSV = function() {
-    const csvEscape = value => { const v=String(value ?? ''); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+    const csvEscape = value => {
+      let v=String(value ?? '');
+      if(/^[=+@]/.test(v)||/^-\D/.test(v))v="'"+v;
+      return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+    };
     const addRow = row => { csv += row.map(csvEscape).join(',') + '\n'; };
     let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas,Peso_corporal,Unidad_peso,Cintura_cm,Pecho_cm,Brazo_cm,Muslo_cm,Cadera_cm,Descanso_real_seg,Tipo_serie,Nota_ejercicio\n";
     let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...Object.keys(notes), ...weights.map(w=>w.date), ...measurements.map(m=>m.date)]);
@@ -199,8 +203,10 @@ function parseCSVText(text){
 }
 function csvNum(v){ const n=Number(String(v??'').trim().replace(',','.')); return Number.isFinite(n)?n:null; }
 function csvDate(v){
-  const s=String(v||'').trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  const s=String(v||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return validDateKey(s)?s:null;
+  const m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if(m){const out=`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return validDateKey(out)?out:null;}
   return null;
 }
 window.importCSV=async function(event){
@@ -233,10 +239,14 @@ window.importCSV=async function(event){
     const mode=existing?await appConfirm(`Se encontraron ${valid} registros válidos${skipped?` y ${skipped} filas omitidas`:''}.\n\n${existing} fecha(s) ya tienen entrenamientos.\n\n¿Quieres REEMPLAZAR los entrenamientos de esas fechas?`,{title:'Importar CSV',confirmText:'Reemplazar',cancelText:'Agregar sin borrar',danger:true}):false;
     if(existing && !(await appConfirm(`¿Confirmas la importación? ${mode?'Se reemplazarán':'Se agregarán'} los entrenamientos en las fechas coincidentes.`,{title:'Confirmar importación',confirmText:'Importar'}))){ input.value=''; return; }
     try{ localStorage.setItem('gymBackupBeforeCSVImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo al CSV:',e); }
-    for(const [d,arr] of Object.entries(stagedData)){ data[d]=mode?arr:[...(data[d]||[]),...arr]; }
-    Object.assign(categories,stagedCats); Object.assign(notes,stagedNotes); Object.assign(exerciseNotes,stagedExerciseNotes);
-    const byDate=(arr)=>{const m=new Map();arr.forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
-    weights=byDate([...weights,...stagedWeights]); measurements=byDate([...measurements,...stagedMeasures]);
+    for(const [d,arr] of Object.entries(stagedData)){
+      const merged=mode?arr:[...(data[d]||[]),...arr];
+      const clean=sanitizeData({[d]:merged})[d]||[];
+      if(clean.length)data[d]=clean;else delete data[d];
+    }
+    Object.assign(categories,sanitizeCategories(stagedCats)); Object.assign(notes,sanitizeNotes(stagedNotes)); Object.assign(exerciseNotes,sanitizeExerciseNotes(stagedExerciseNotes));
+    const byDate=(arr,sanitizer)=>{const m=new Map();sanitizer(arr).forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
+    weights=byDate([...weights,...stagedWeights],sanitizeWeights); measurements=byDate([...measurements,...stagedMeasures],sanitizeMeasurements);
     const affectedDates=[...new Set([...Object.keys(stagedData),...Object.keys(stagedCats),...Object.keys(stagedNotes),...stagedWeights.map(x=>x.date),...stagedMeasures.map(x=>x.date)])];
     await saveToFirebase({days:affectedDates,settings:Object.keys(stagedExerciseNotes).length>0}); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
   }catch(err){ await appAlert('No se pudo importar el CSV: '+(err&&err.message?err.message:err),'Error de importación'); }
@@ -461,6 +471,7 @@ function buildBackupPayload(){
 
 function validateBackupPayload(x){
   if(!isPlainObject(x)) return {ok:false,reason:'El archivo no contiene un objeto JSON válido.'};
+  if(x.schemaVersion!=null&&Number(x.schemaVersion)>Number(DATA_SCHEMA_VERSION)) return {ok:false,reason:'Este respaldo pertenece a una versión futura de LiftEngine y no se puede restaurar de forma segura.'};
   if(!isPlainObject(x.data)) return {ok:false,reason:'Falta o es inválida la sección de registros.'};
   if(x.categories!=null&&!isPlainObject(x.categories)) return {ok:false,reason:'La sección de categorías no es válida.'};
   if(x.weights!=null&&!Array.isArray(x.weights)) return {ok:false,reason:'La sección de peso corporal no es válida.'};
@@ -508,13 +519,18 @@ window.importData = function(ev){
       const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
       if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
       try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
+      const previousDates=new Set([...allLocalDates(),...Object.keys(cloudMeta.days||{})]);
       data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes;
       applySettingsSnapshot(clean);
-      markAllDaysDirty({cloud:true,local:true}); markSettingsDirty({cloud:true,local:true});
       migrateNames();
-      await saveToFirebase({allDays:true,settings:true});
+      const currentDates=new Set(allLocalDates());
+      currentDates.forEach(d=>markDayDirty(d,{cloud:true,local:true}));
+      previousDates.forEach(d=>{if(validDateKey(d)&&!currentDates.has(d))markDayDirty(d,{cloud:true,local:true});});
+      markSettingsDirty({cloud:true,local:true});
+      await persistLocal({forceAll:true,replaceDays:true,settings:true});
+      const synced=await saveToFirebase({allDays:true,settings:true});
       closeModal(); refreshAll();
-      toast('Importado y validado correctamente');
+      toast(synced?'Importado y sincronizado correctamente':'Importado localmente · sincronización pendiente');
     }catch(e){ await appAlert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.'),'No se pudo restaurar'); }
     finally{ ev.target.value=''; }
   };
