@@ -816,3 +816,23 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 .train-pending{display:grid;gap:4px;margin:0 0 12px;padding:12px;border:1px solid var(--yellow);border-radius:var(--radius-sm);background:var(--card2)}
 .train-pending b{color:var(--yellow)}
 .train-pending span{color:var(--muted);font-size:var(--fs-sm);line-height:1.4}
+
+
+/* ===== v6.1.3 · UX POLISH ===== */
+.progress-item-button{width:100%;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.progress-item-button:hover{border-left-color:var(--accent);background:var(--soft)}
+.empty-action{margin-top:8px;flex:0 0 auto;min-width:180px}
+
+.tr-row{position:relative}
+.tr-row.next-set{border-color:color-mix(in srgb,var(--accent) 68%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent)}
+.tr-row.active-set{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card));box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 24%,transparent)}
+.tr-row.next-set::before,.tr-row.active-set::before{position:absolute;top:-8px;left:9px;padding:2px 7px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:.7rem;font-weight:850;letter-spacing:.02em;z-index:1}
+.tr-row.next-set::before{content:"SIGUE";color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.tr-row.active-set::before{content:"EN CURSO";color:var(--accent);border-color:var(--accent)}
+.tr-row.active-set .tr-n{color:var(--accent)}
+.tr-row.done::before{display:none}
+
+@media(max-width:560px){
+  .tr-row.next-set,.tr-row.active-set{margin-top:12px}
+  .empty-action{width:100%;min-width:0}
+}
