@@ -255,11 +255,20 @@ function showDaySummary(d){
   const box=document.getElementById('calendarSummary'),arr=(data[d]||[]).filter(entryHasData);
   const hasWorkout=arr.length||!!categories[d]||!!notes[d];
   if(!hasWorkout){
-    box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2></div><div class="empty">No hay entrenamiento registrado para este día.</div></div>`;
+    box.innerHTML=`<div class="card calendar-summary-card"><div class="section-title"><div class="calendar-summary-heading"><span class="eyebrow">Día seleccionado</span><h2>${fmtDate(d)}</h2></div><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><div class="empty"><b>Sin entrenamiento registrado</b><span>Puedes abrir Registro para añadir una sesión, una nota o asignar una rutina a este día.</span></div></div>`;
     return;
   }
-  box.innerHTML=`<div class="card"><div class="section-title"><h2>${fmtDate(d)}</h2><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><p class="muted">${escapeHtml(categories[d]||'')} ${notes[d]?'<br>Nota '+escapeHtml(notes[d]):''}</p>${arr.map(e=>e.isCardio?`<div class="progress-item">${ic('pulse')} ${escapeHtml(e.name)} ·${escapeHtml(e.time)} min</div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} ·${e.sets.length} series</span></div>`).join('')}<div class="calendar-summary-actions"><button class="btn btn-danger full" onclick="deleteCalendarWorkout('${d}')">${ic('trash')} Eliminar entrenamiento completo</button></div></div>`
+  const strength=arr.filter(e=>!e.isCardio), totalSets=strength.reduce((n,e)=>n+(e.sets||[]).filter(setCountsForWork).length,0);
+  const totalVolume=strength.reduce((n,e)=>n+sessionVolume(e),0);
+  const category=categories[d]||'Sesión sin etiqueta';
+  box.innerHTML=`<div class="card calendar-summary-card">
+    <div class="section-title"><div class="calendar-summary-heading"><span class="eyebrow">Día seleccionado</span><h2>${fmtDate(d)}</h2><div class="calendar-summary-sub"><span>${escapeHtml(category)}</span>${totalSets?`<span>${totalSets} series</span>`:''}${totalVolume?`<span>${Math.round(fromKg(totalVolume))} ${unitLabel()} de volumen</span>`:''}</div></div><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div>
+    ${notes[d]?`<div class="calendar-note"><b>Nota de sesión</b><span>${escapeHtml(notes[d])}</span></div>`:''}
+    <div class="calendar-exercise-list">${arr.map(e=>e.isCardio?`<div class="progress-item"><b>${ic('pulse')} ${escapeHtml(e.name)}</b><span>${escapeHtml(e.time)} min</span></div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} · ${(e.sets||[]).filter(setCountsForWork).length} series</span></div>`).join('')}</div>
+    <div class="calendar-summary-actions"><button class="btn btn-danger full" onclick="deleteCalendarWorkout('${d}')">${ic('trash')} Eliminar entrenamiento completo</button></div>
+  </div>`;
 }
+
 window.deleteCalendarWorkout=async function(d){
   if(!validDateKey(d))return;
   const hasWorkout=!!categories[d]||!!notes[d]||(data[d]||[]).some(entryHasData);
