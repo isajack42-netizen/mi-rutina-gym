@@ -779,7 +779,7 @@ async function saveCloudLegacy(){
 async function applyLegacyCloud(cloud,stamp){
   const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
   const protectedContent=protectedDate?buildDayContent(protectedDate):null;
-  data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes); exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x));
+  data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes);
   applySettingsSnapshot({...cloud,exerciseNotes:cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x)});
   if(protectedDate&&protectedContent) applyLocalDayContent(protectedDate,protectedContent);
   const changed=migrateNames();
