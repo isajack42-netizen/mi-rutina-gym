@@ -184,7 +184,7 @@ function renderTrain(){
     const sw=sg&&sg.w?rd(sg.w):'', sr=sg&&sg.r?sg.r:'';
     const ri=has&&s.rir!=='-'&&!isNaN(parseFloat(s.rir))?s.rir:'';
     const tp=normalizeSetType(s.type), weightStep=1;
-    return `<div class="tr-row ${setState} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}" data-set-state="${setState||'idle'}"><div class="tr-n">${i+1}${setState==='active-set'?'<small>EN CURSO</small>':setState==='next-set'?'<small>SIGUE</small>':''}</div>
+    return `<div class="tr-row ${setState} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}" data-set-state="${setState||'idle'}"><div class="tr-n">${i+1}</div>
       <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
       <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
       <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">
