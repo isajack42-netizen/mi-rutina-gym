@@ -514,11 +514,15 @@ function exerciseTrendSignal(comparison){
 
 function renderDesktopExerciseContext(name){
   const hero=document.getElementById('desktopExerciseHero');
+  const comparisonBox=document.getElementById('desktopExerciseComparison');
+  const milestoneBox=document.getElementById('desktopExerciseMilestones');
   const history=document.getElementById('desktopExerciseHistory');
   const intel=document.getElementById('desktopIntelligenceExercise');
-  if(!hero&&!history&&!intel)return;
+  if(!hero&&!history&&!intel&&!comparisonBox&&!milestoneBox)return;
   if(!name){
     if(hero)hero.innerHTML='';
+    if(comparisonBox)comparisonBox.innerHTML='';
+    if(milestoneBox)milestoneBox.innerHTML='';
     if(history)history.innerHTML='';
     if(intel)intel.innerHTML='';
     return;
@@ -549,6 +553,30 @@ function renderDesktopExerciseContext(name){
   }
   if(intel){
     intel.innerHTML=`<span>Analizando</span><b>${escapeHtml(name)}</b>${last?`<small>Última sesión · ${fmtDate(last.date)}</small>`:'<small>Sin historial todavía</small>'}`;
+  }
+  if(comparisonBox){
+    const cmp=exercisePeriodComparison(sessions,28);
+    if(!cmp){
+      comparisonBox.innerHTML='';
+    }else{
+      const signal=exerciseTrendSignal(cmp), c=cmp.current, p=cmp.previous;
+      const pct=v=>Number.isFinite(v)?`${v>=0?'+':''}${v.toFixed(1)}%`:'—';
+      comparisonBox.innerHTML=`
+        <div class="desktop-analysis-head"><div><span class="eyebrow">Comparación</span><h3>Últimas 4 semanas vs. 4 anteriores</h3></div><span class="badge">hasta ${fmtDate(cmp.anchor)}</span></div>
+        <div class="desktop-compare-grid">
+          <div><small>Sesiones</small><b>${c.sessions}</b><span>antes ${p.sessions}</span></div>
+          <div><small>Mejor peso</small><b>${c.bestWeight?formatKgValue(c.bestWeight):'—'}</b><span>${pct(cmp.deltas.bestWeight)}</span></div>
+          <div><small>Mejor e1RM</small><b>${c.bestE1rm?formatKgValue(c.bestE1rm):'—'}</b><span>${pct(cmp.deltas.bestE1rm)}</span></div>
+          <div><small>Volumen / sesión</small><b>${c.volumePerSession?Math.round(fromKg(c.volumePerSession)).toLocaleString()+' '+unitLabel():'—'}</b><span>${pct(cmp.deltas.volumePerSession)}</span></div>
+          <div><small>Reps promedio</small><b>${c.avgReps!==null?c.avgReps.toFixed(1):'—'}</b><span>${p.avgReps!==null?'antes '+p.avgReps.toFixed(1):'sin previo'}</span></div>
+          <div><small>RIR promedio</small><b>${c.avgRir!==null?c.avgRir.toFixed(1):'—'}</b><span>${p.avgRir!==null?'antes '+p.avgRir.toFixed(1):'sin previo'}</span></div>
+        </div>
+        <div class="desktop-period-signal ${signal.kind}"><b>${escapeHtml(signal.title)}</b><span>${escapeHtml(signal.text)}</span></div>`;
+    }
+  }
+  if(milestoneBox){
+    const milestones=exercisePrMilestones(sessions).slice(-6).reverse();
+    milestoneBox.innerHTML=milestones.length?`<div class="desktop-analysis-head"><div><span class="eyebrow">Hitos</span><h3>PR históricos</h3></div></div><div class="desktop-milestone-list">${milestones.map(m=>`<div class="desktop-milestone"><b>${fmtDate(m.date)}</b><span>${m.weight?`Peso ${formatKgValue(m.weight)}`:''}${m.e1rm?` · e1RM ${formatKgValue(m.e1rm)}`:''}${m.reps?` · ${m.reps} reps`:''}</span></div>`).join('')}</div>`:'';
   }
   if(history){
     if(!sessions.length){
