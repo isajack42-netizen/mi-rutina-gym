@@ -31,3 +31,6 @@ jobs:
 
       - name: Static application validation
         run: node scripts/validate.mjs
+
+      - name: Regression suite
+        run: node scripts/regression.mjs
