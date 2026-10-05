@@ -401,6 +401,62 @@ function summarizeSession(session){
   const avgRir=rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null;
   return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
 }
+
+function renderDesktopExerciseContext(name){
+  const hero=document.getElementById('desktopExerciseHero');
+  const history=document.getElementById('desktopExerciseHistory');
+  const intel=document.getElementById('desktopIntelligenceExercise');
+  if(!hero&&!history&&!intel)return;
+  if(!name){
+    if(hero)hero.innerHTML='';
+    if(history)history.innerHTML='';
+    if(intel)intel.innerHTML='';
+    return;
+  }
+  const sessions=getExerciseSessions(name);
+  const last=sessions.at(-1)||null;
+  const lastSum=last?summarizeSession(last):null;
+  const target=routineTargetFor(name,last?categories[last.date]||null:null,last?.date||null);
+  const routineLabel=target?.ambiguous?`${target.routines.length} rutinas`:target?.routine||'Sin rutina';
+  let allRecords=null;
+  try{allRecords=typeof getExerciseRecords==='function'?getExerciseRecords(name):null}catch(_){}
+  if(hero){
+    hero.innerHTML=`
+      <div class="desktop-exercise-hero-copy">
+        <span class="eyebrow">Ejercicio seleccionado</span>
+        <h3>${escapeHtml(name)}</h3>
+        <div class="desktop-exercise-hero-tags">
+          <span>${sessions.length} sesión${sessions.length===1?'':'es'}</span>
+          <span>${last?`Última · ${fmtDate(last.date)}`:'Sin historial'}</span>
+          <span>${escapeHtml(routineLabel)}</span>
+        </div>
+      </div>
+      <div class="desktop-exercise-hero-kpis">
+        <div><small>PR peso</small><b>${allRecords?.weight?formatKgValue(allRecords.weight):'—'}</b></div>
+        <div><small>PR e1RM</small><b>${allRecords?.e1rm?formatKgValue(allRecords.e1rm):'—'}</b></div>
+        <div><small>Última sesión</small><b>${lastSum?.bestWeight?formatKgValue(lastSum.bestWeight):'—'}</b></div>
+      </div>`;
+  }
+  if(intel){
+    intel.innerHTML=`<span>Analizando</span><b>${escapeHtml(name)}</b>${last?`<small>Última sesión · ${fmtDate(last.date)}</small>`:'<small>Sin historial todavía</small>'}`;
+  }
+  if(history){
+    if(!sessions.length){
+      history.innerHTML='<div class="empty"><b>Sin historial</b><span>Registra este ejercicio para empezar a comparar sesiones.</span></div>';
+    }else{
+      const rows=sessions.slice(-8).reverse().map(session=>{
+        const sum=summarizeSession(session);
+        return `<button class="desktop-history-row" type="button" onclick="goToDate('${session.date}')">
+          <span><b>${fmtDate(session.date)}</b><small>${sum.sets} serie${sum.sets===1?'':'s'}</small></span>
+          <span><small>Mejor peso</small><b>${sum.bestWeight?formatKgValue(sum.bestWeight):'—'}</b></span>
+          <span><small>e1RM</small><b>${sum.e1rm?formatKgValue(sum.e1rm):'—'}</b></span>
+          <span><small>Volumen</small><b>${sum.volume?`${Math.round(fromKg(sum.volume)).toLocaleString()} ${unitLabel()}`:'—'}</b></span>
+        </button>`;
+      }).join('');
+      history.innerHTML=`<div class="desktop-history-head"><div><span class="eyebrow">Historial</span><h3>Sesiones recientes</h3></div><span class="badge">últimas ${Math.min(8,sessions.length)}</span></div><div class="desktop-history-list">${rows}</div>`;
+    }
+  }
+}
 function formatKgValue(v, signed=false){
   if(v==null || v==='' || Number.isNaN(Number(v))) return '—';
   const n=Math.round(fromKg(Number(v))*10)/10;
