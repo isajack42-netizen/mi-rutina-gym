@@ -111,13 +111,26 @@ window.deleteRoutine = async function(name) {
     toast('Rutina eliminada');
 }
 
+window.trainRoutineFromLibrary=async function(name){
+  if(train){
+    toast('Ya hay un entrenamiento en curso · continuando la sesión actual');
+    openTraining();
+    return;
+  }
+  if(!customRoutines[name]){toast('La rutina ya no existe');return;}
+  startTraining(name);
+}
+
 function renderRoutines(){
   document.getElementById('routineContent').innerHTML=Object.entries(customRoutines).map(([name,rows])=>{
     const totalSets=rows.reduce((sum,r)=>sum+(parseInt(r.sets,10)||0),0);
     return `<details>
         <summary>
             <span class="routine-summary-copy"><b>${escapeHtml(name)}</b><small>${rows.length} ejercicio${rows.length===1?'':'s'} · ${totalSets} series planificadas</small></span>
-            <button class="btn-edit-sm" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); event.stopPropagation(); openRoutineEditor(this.dataset.name)">${ic('edit')} Editar</button>
+            <span class="routine-summary-actions">
+              <button class="btn btn-primary routine-train-btn" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); event.stopPropagation(); trainRoutineFromLibrary(this.dataset.name)">${ic('play')} Entrenar</button>
+              <button class="btn-edit-sm" data-name="${escapeHtml(name)}" onclick="event.preventDefault(); event.stopPropagation(); openRoutineEditor(this.dataset.name)">${ic('edit')} Editar</button>
+            </span>
         </summary>
         <div class="routine-content">
             <table>
