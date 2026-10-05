@@ -307,7 +307,7 @@ function weightChangeDays(days){
 function latestMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null}
 function firstMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date))[0]||null}
 function measurementDelta(key){const arr=[...measurements].filter(x=>x[key]!=null).sort((a,b)=>a.date.localeCompare(b.date));if(arr.length<2)return null;return arr.at(-1)[key]-arr[0][key]}
-function trendClass(v){return v==null||Math.abs(v)<0.01?'trend-neutral':v<0?'trend-positive':'trend-negative'}
+function trendClass(v,metric='generic'){return typeof bodyMetricTrendClass==='function'?bodyMetricTrendClass(metric,v):'trend-neutral'}
 function formatDelta(v,unit='cm'){if(v==null)return '—';return `${v>0?'+':''}${v.toFixed(1)} ${unit}`}
 function renderBodyCompSummary(){
     const box=document.getElementById('bodyCompSummary');if(!box)return;
@@ -315,9 +315,13 @@ function renderBodyCompSummary(){
     const cards=[];
     cards.push(`<div class="bodycomp-stat"><div class="label">Peso actual</div><div class="value">${latest?formatKgValue(latest.weight):'—'}</div><div class="sub">${latest?fmtDate(latest.date):'Sin registro'}</div></div>`);
     cards.push(`<div class="bodycomp-stat"><div class="label">Promedio 7 días</div><div class="value">${avg7!=null?formatKgValue(avg7):'—'}</div><div class="sub">Promedio de mediciones disponibles</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30)}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
-    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist)}">${formatDelta(waist)}</div><div class="sub">Desde la primera medición</div></div>`);
-    box.innerHTML=`<div class="bodycomp-grid">${cards.join('')}</div>`;
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio 30 días</div><div class="value ${trendClass(d30,'weight')}">${d30!=null?formatKgValue(d30,true):'—'}</div><div class="sub">Respecto a una medición de referencia</div></div>`);
+    cards.push(`<div class="bodycomp-stat"><div class="label">Cambio de cintura</div><div class="value ${trendClass(waist,'waist')}">${formatDelta(waist)}</div><div class="sub">Desde la primera medición</div></div>`);
+    const goal=sanitizeBodyGoal(bodyGoal);
+    const goalParts=[bodyGoalLabel(goal.mode)];
+    if(goal.targetWeightKg) goalParts.push(`Peso objetivo ${formatKgValue(goal.targetWeightKg)}`);
+    if(goal.targetWaistCm) goalParts.push(`Cintura objetivo ${goal.targetWaistCm.toFixed(1)} cm`);
+    box.innerHTML=`<div class="body-goal-strip"><span>Objetivo</span><b>${escapeHtml(goalParts.join(' · '))}</b></div><div class="bodycomp-grid">${cards.join('')}</div>`;
 }
 function renderBodyWeights(){
     const box=document.getElementById('bodyWeightList');const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
