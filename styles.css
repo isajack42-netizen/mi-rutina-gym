@@ -1221,7 +1221,7 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 
 /* ===== v6.3 · DESKTOP ANALYTICS WORKSPACE ===== */
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.desktop-exercise-browser,.desktop-exercise-hero,.desktop-exercise-history,.desktop-intelligence-exercise{display:none}
+.desktop-exercise-browser,.desktop-exercise-hero,.desktop-exercise-history,.desktop-exercise-comparison,.desktop-exercise-milestones,.desktop-intelligence-exercise{display:none}
 
 @media(min-width:1320px){
   #progreso.active[data-progress-mode="exercise"]{
@@ -1348,6 +1348,22 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .desktop-exercise-hero-kpis small{color:var(--muted);font-size:.63rem}
   .desktop-exercise-hero-kpis b{font-size:.82rem;font-variant-numeric:tabular-nums}
 
+  .desktop-exercise-comparison,.desktop-exercise-milestones{display:block;margin-top:14px}
+  .desktop-exercise-comparison:empty,.desktop-exercise-milestones:empty{display:none}
+  .desktop-analysis-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .desktop-analysis-head h3{margin:0!important;font-size:.95rem!important}
+  .desktop-compare-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .desktop-compare-grid>div{display:flex;flex-direction:column;gap:3px;padding:10px 11px;background:var(--card2);border:1px solid var(--line);border-radius:9px}
+  .desktop-compare-grid small,.desktop-compare-grid span{color:var(--muted);font-size:.64rem}
+  .desktop-compare-grid b{font-size:.85rem;font-variant-numeric:tabular-nums}
+  .desktop-period-signal{display:flex;gap:8px;align-items:center;margin-top:8px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--soft);font-size:.72rem}
+  .desktop-period-signal span{color:var(--muted)}
+  .desktop-period-signal.positive b{color:var(--green)}
+  .desktop-period-signal.warning b{color:var(--yellow)}
+  .desktop-milestone-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .desktop-milestone{display:flex;flex-direction:column;gap:3px;padding:9px 11px;background:var(--card2);border:1px solid var(--line);border-radius:9px}
+  .desktop-milestone b{font-size:.76rem}
+  .desktop-milestone span{color:var(--muted);font-size:.66rem;line-height:1.35}
   .desktop-exercise-history{display:block;margin-top:14px}
   .desktop-exercise-history:empty{display:none}
   .desktop-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
