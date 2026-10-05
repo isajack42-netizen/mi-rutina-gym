@@ -21,6 +21,8 @@ let activeProgressView='performance';
 window.setProgressView=function(view,btn=null){
     const allowed=['performance','intelligence','analytics','body'];
     activeProgressView=allowed.includes(view)?view:'performance';
+    const root=document.getElementById('progreso');
+    if(root)root.dataset.progressMode=['performance','intelligence'].includes(activeProgressView)?'exercise':'overview';
     document.querySelectorAll('#progreso .progress-view').forEach(el=>el.classList.toggle('active',el.dataset.progressView===activeProgressView));
     document.querySelectorAll('#progreso .progress-nav-btn').forEach(el=>{
       const on=el.dataset.view===activeProgressView;
@@ -30,6 +32,13 @@ window.setProgressView=function(view,btn=null){
     });
     requestAnimationFrame(()=>{
       if(activeProgressView==='performance'&&typeof updateChart==='function')updateChart();
+      if(activeProgressView==='intelligence'){
+        if(typeof ensureProgressExerciseSelection==='function')ensureProgressExerciseSelection();
+        if(typeof renderDesktopExerciseBrowser==='function')renderDesktopExerciseBrowser();
+        const name=document.getElementById('chartExercise')?.value||'';
+        if(typeof renderDesktopExerciseContext==='function')renderDesktopExerciseContext(name);
+        if(typeof renderProgressionPanel==='function')renderProgressionPanel();
+      }
       if(activeProgressView==='analytics'&&typeof renderAnalytics==='function')renderAnalytics();
       if(activeProgressView==='body'){
         if(typeof renderBodyWeights==='function')renderBodyWeights();
