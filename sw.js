@@ -1,6 +1,13 @@
 // LiftEngine · service worker: app shell sin conexión
-const VER='liftengine-v5.3.0';
-const SHELL=['./','index.html','styles.css?v=5.3.0','app.js?v=5.3.0','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'];
+importScripts('js/version.js');
+const VER=`liftengine-v${self.LIFTENGINE_VERSION || '5.4.0'}`;
+const SHELL=[
+  './','index.html','styles.css?v=5.4.0',
+  'js/version.js?v=5.4.0','js/config.js?v=5.4.0','js/core.js?v=5.4.0',
+  'js/logbook.js?v=5.4.0','js/dashboard.js?v=5.4.0','js/tools.js?v=5.4.0',
+  'js/routines.js?v=5.4.0','js/notifications.js?v=5.4.0','js/training.js?v=5.4.0','js/bootstrap.js?v=5.4.0',
+  'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
+];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:'reload'}).then(r=>{if(r.ok)c.put(u,r.clone());}).catch(()=>{})))).then(()=>self.skipWaiting()));
 });
