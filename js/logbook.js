@@ -305,11 +305,38 @@ function exerciseLoadMode(name){ return /asistid|assisted|contrapeso/i.test(Stri
 window.latestExerciseEntry=latestExerciseEntry;
 window.exerciseLoadMode=exerciseLoadMode;
 function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps||reps<=0)return 0;return weight*(1+reps/30)} // Epley
+function exerciseSetsForDate(name,date){
+  return (data[date]||[]).filter(e=>!e.isCardio&&e.name===name)
+    .flatMap(e=>(e.sets||[]).filter(setCountsForHistory));
+}
 function bestForDate(name,date,metric){
-  const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);if(!es.length)return 0;
-  if(metric==='weight')return Math.max(0,...es.flatMap(e=>e.sets.filter(setCountsForHistory).map(s=>parseFloat(s.weight)||0)));
+  const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);
+  if(!es.length)return null;
+  const sets=exerciseSetsForDate(name,date);
+  if(!sets.length)return null;
+  if(metric==='weight')return Math.max(0,...sets.map(s=>parseFloat(s.weight)||0));
   if(metric==='volume')return es.reduce((a,e)=>a+sessionVolume(e),0);
-  return Math.max(0,...es.flatMap(e=>e.sets.filter(setCountsForHistory).map(s=>e1rm(s.weight,s.reps))))
+  if(metric==='reps')return sets.reduce((a,s)=>a+(parseFloat(s.reps)||0),0)/sets.length;
+  if(metric==='sets')return sets.length;
+  if(metric==='rir'){
+    const vals=sets.map(s=>s.rir).filter(v=>v!==null&&v!==undefined&&v!==''&&v!=='-').map(Number).filter(Number.isFinite);
+    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+  }
+  return Math.max(0,...sets.map(s=>e1rm(s.weight,s.reps)));
+}
+function chartMetricMeta(metric){
+  if(metric==='weight')return {label:'Peso máximo',unit:unitLabel(),decimals:1,convert:true};
+  if(metric==='volume')return {label:'Volumen',unit:unitLabel(),decimals:0,convert:true};
+  if(metric==='reps')return {label:'Reps promedio',unit:'reps',decimals:1,convert:false};
+  if(metric==='rir')return {label:'RIR promedio',unit:'RIR',decimals:1,convert:false};
+  if(metric==='sets')return {label:'Series de trabajo',unit:'series',decimals:0,convert:false};
+  return {label:'e1RM estimado',unit:unitLabel(),decimals:1,convert:true};
+}
+function chartMetricDisplayValue(metric,value){
+  const meta=chartMetricMeta(metric);
+  const raw=meta.convert?fromKg(value):value;
+  const factor=10**meta.decimals;
+  return Math.round(raw*factor)/factor;
 }
 
 window.updateChart = function(){
@@ -331,12 +358,16 @@ window.updateChart = function(){
     return;
   }
   const metric=document.getElementById('chartMetric').value, entries=allWeightEntries(name), labels=[],vals=[];
-  entries.forEach(x=>{const v=bestForDate(name,x.date,metric);if(v){labels.push(fmtDate(x.date));vals.push(Math.round(fromKg(v)*10)/10)}});
+  entries.forEach(x=>{
+    const v=bestForDate(name,x.date,metric);
+    if(v!==null&&Number.isFinite(Number(v))){labels.push(fmtDate(x.date));vals.push(chartMetricDisplayValue(metric,Number(v)));}
+  });
   if(chart)chart.destroy();
   
   const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const metricMeta=chartMetricMeta(metric);
   
-  chart=makeChart(document.getElementById('progressChart'),{type:'line',data:{labels,datasets:[{label:`${metric==='weight'?'Peso máximo':metric==='volume'?'Volumen':'e1RM estimado'} (${unitLabel()})`,data:vals,borderColor:accentColor,backgroundColor:accentColor+'20',fill:true,tension:.28,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:cssVar('--line')}},x:{grid:{color:cssVar('--line')}}}}});
+  chart=makeChart(document.getElementById('progressChart'),{type:'line',data:{labels,datasets:[{label:`${metricMeta.label} (${metricMeta.unit})`,data:vals,borderColor:accentColor,backgroundColor:accentColor+'20',fill:true,tension:.28,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:cssVar('--line')}},x:{grid:{color:cssVar('--line')}}}}});
   // Mantén independientes los bloques de Progreso: un error visual en el
   // resumen del ejercicio no debe impedir que aparezca la inteligencia.
   try{renderExerciseDetail(name)}catch(err){
