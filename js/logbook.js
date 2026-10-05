@@ -85,12 +85,12 @@ window.loadTemplate = async function() {
         
         const sets = [];
         for(let i=1; i<=setsCount; i++) {
-            sets.push({setNumber: i, reps: '-', weight: 0, rir: rir, rest: rest, type:'normal'});
+            sets.push({setNumber: i, reps: '-', weight: 0, rir: rir, rest: rest, type:'normal',done:false});
         }
-        data[date].push({id: Date.now() + Math.random(), isCardio: false, name: name, sets: sets});
+        data[date].push({id: Date.now() + Math.random(), isCardio: false, name: name, sets: sets, trainingDraft:true});
     });
-    saveToFirebase(); loadDay(); renderDashboard(); populateExercises(); updateChart();
-    toast('Rutina cargada con éxito.');
+    persistLocal(); loadDay(); renderDashboard(); populateExercises(); updateChart();
+    toast('Rutina cargada como borrador local.');
 }
 
 window.saveEntry = function(){
@@ -168,12 +168,17 @@ function getAllExercises(){
   return [...s].sort();
 }
 function migrateNames(){
-  const snap=JSON.stringify({data,customRoutines});
+  const snap=JSON.stringify({data,customRoutines,customMuscles,exerciseNotes});
   let changed=false;
-  const fix=o=>{const a=customAliases[String(o.name||'').trim().toLowerCase()];if(a&&a!==o.name){o.name=a;changed=true}};
+  const mapped=n=>customAliases[String(n||'').trim().toLowerCase()]||String(n||'').trim();
+  const fix=o=>{const a=mapped(o.name);if(a&&a!==o.name){o.name=a;changed=true}};
   Object.values(data).forEach(arr=>(arr||[]).forEach(e=>{if(e&&!e.isCardio)fix(e)}));
   Object.values(customRoutines).forEach(rows=>(rows||[]).forEach(r=>{if(r)fix(r)}));
-  Object.keys(exerciseNotes).forEach(k=>{const a=customAliases[String(k).trim().toLowerCase()];if(a&&a!==k){if(!exerciseNotes[a])exerciseNotes[a]=exerciseNotes[k];delete exerciseNotes[k];changed=true;}});
+  Object.keys(exerciseNotes).forEach(k=>{const a=mapped(k);if(a&&a!==k){if(!exerciseNotes[a])exerciseNotes[a]=exerciseNotes[k];delete exerciseNotes[k];changed=true;}});
+  Object.keys(customMuscles).forEach(group=>{
+    const before=customMuscles[group]||[], after=[...new Set(before.map(mapped).filter(Boolean))];
+    if(JSON.stringify(before)!==JSON.stringify(after)){customMuscles[group]=after;changed=true;}
+  });
   if(changed){ try{ if(!localStorage.getItem('gymBackupBeforeRename')) localStorage.setItem('gymBackupBeforeRename',snap); }catch(e){} }
   return changed;
 }
@@ -201,7 +206,7 @@ function setHasData(s){return !!s && s.done!==false && (parseFloat(s.reps)||0)>0
 function setCountsForHistory(s){return setHasData(s)&&!isWarmupSet(s)}
 function sessionVolume(e){return (e.sets||[]).filter(setCountsForHistory).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}
 function entryHasData(e){return e.isCardio?((parseFloat(e.time)||0)>0||(parseFloat(e.distance)||0)>0):(e.sets||[]).some(setHasData)}
-function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>(data[date]||[]).forEach(e=>{if(!e.isCardio&&e.name===name&&entryHasData(e))out.push({date,e})}));return out}
+function allWeightEntries(name){const out=[];Object.keys(data).sort().forEach(date=>{if((data[date]||[]).some(e=>!e.isCardio&&e.name===name&&entryHasData(e)))out.push({date})});return out}
 function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps||reps<=0)return 0;return weight*(1+reps/30)} // Epley
 function bestForDate(name,date,metric){
   const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);if(!es.length)return 0;
@@ -251,16 +256,13 @@ function routineTargetFor(name,routineName=null,date=null){
 function getExerciseSessions(name){
   const out=[];
   Object.keys(data).sort().forEach(date=>{
-    const entries=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);
-    entries.forEach(e=>{
-      const sets=(e.sets||[]).filter(setCountsForHistory).map(s=>({
-        reps:parseFloat(s.reps)||0,
-        weight:parseFloat(s.weight)||0,
-        rir:s.rir==='-'||s.rir===''?null:parseFloat(s.rir),
-        rest:s.rest
-      })).filter(s=>s.reps>0);
-      if(sets.length) out.push({date,sets});
-    });
+    const sets=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name).flatMap(e=>(e.sets||[]).filter(setCountsForHistory).map(s=>({
+      reps:parseFloat(s.reps)||0,
+      weight:parseFloat(s.weight)||0,
+      rir:s.rir==='-'||s.rir===''?null:parseFloat(s.rir),
+      rest:s.rest
+    }))).filter(s=>s.reps>0);
+    if(sets.length) out.push({date,sets});
   });
   return out;
 }

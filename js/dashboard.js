@@ -209,15 +209,17 @@ window.copyLastWorkout = async function(){
         weight:Math.max(0,Number(s.weight)||0),
         rir:s.rir||'-',
         rest:s.rest||'-',
-        type:normalizeSetType(s.type)
-      }))
+        type:normalizeSetType(s.type),
+        done:false
+      })),
+      trainingDraft:true
     };
     if(cloned.sets.length) data[date].push(cloned);
   });
-  saveToFirebase();
+  persistLocal();
   clearEntry();
   loadDay(); renderDashboard(); populateExercises(); updateChart();
-  toast(`Copiados ${source.length} ejercicios de la última sesión`);
+  toast(`Copiados ${source.length} ejercicios como borrador local`);
 }
 window.loadLastPerformance = function(){
   const name=normalizeName(document.getElementById('exerciseName').value);if(!name)return;
@@ -263,15 +265,17 @@ function avgWeight(days){
 function weightChangeDays(days){
     const arr=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
     if(arr.length<2)return null;
-    const latest=arr[arr.length-1];
-    const cutoff=new Date(latest.date+'T00:00:00');cutoff.setDate(cutoff.getDate()-days);
-    let base=arr.find(x=>new Date(x.date+'T00:00:00')>=cutoff);
-    if(!base)base=arr[0];
+    const latest=arr[arr.length-1], latestMs=new Date(latest.date+'T00:00:00Z').getTime();
+    const targetMs=latestMs-days*86400000, candidates=arr.slice(0,-1);
+    let base=candidates[0];
+    candidates.forEach(x=>{ if(Math.abs(new Date(x.date+'T00:00:00Z').getTime()-targetMs)<Math.abs(new Date(base.date+'T00:00:00Z').getTime()-targetMs)) base=x; });
+    const span=Math.round((latestMs-new Date(base.date+'T00:00:00Z').getTime())/86400000);
+    if(span<Math.max(7,Math.floor(days*0.7))) return null;
     return latest.weight-base.weight;
 }
 function latestMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null}
 function firstMeasurement(){return [...measurements].sort((a,b)=>a.date.localeCompare(b.date))[0]||null}
-function measurementDelta(key){const a=firstMeasurement(),b=latestMeasurement();if(!a||!b||a[key]==null||b[key]==null)return null;return b[key]-a[key]}
+function measurementDelta(key){const arr=[...measurements].filter(x=>x[key]!=null).sort((a,b)=>a.date.localeCompare(b.date));if(arr.length<2)return null;return arr.at(-1)[key]-arr[0][key]}
 function trendClass(v){return v==null||Math.abs(v)<0.01?'trend-neutral':v<0?'trend-positive':'trend-negative'}
 function formatDelta(v,unit='cm'){if(v==null)return '—';return `${v>0?'+':''}${v.toFixed(1)} ${unit}`}
 function renderBodyCompSummary(){
@@ -309,6 +313,7 @@ function renderBodyMeasurements(){
     box.innerHTML=`<div class="bodycomp-history"><table class="measurement-table"><thead><tr><th>Fecha</th><th>Cintura</th><th>Pecho</th><th>Brazo</th><th>Muslo</th><th>Cadera</th><th></th></tr></thead><tbody>${arr.map(x=>`<tr><td>${fmtDate(x.date)}</td><td>${x.waist!=null?x.waist.toFixed(1)+' cm':'—'}</td><td>${x.chest!=null?x.chest.toFixed(1)+' cm':'—'}</td><td>${x.arm!=null?x.arm.toFixed(1)+' cm':'—'}</td><td>${x.thigh!=null?x.thigh.toFixed(1)+' cm':'—'}</td><td>${x.hip!=null?x.hip.toFixed(1)+' cm':'—'}</td><td><button class="btn btn-secondary" style="padding:5px 8px" onclick="openMeasurementModal('${x.date}')">Editar</button> <button class="btn btn-secondary" style="padding:5px 8px" onclick="deleteMeasurement('${x.date}')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 window.openMeasurementModal=function(existingDate=''){
+  window.editingMeasurementDate=existingDate||'';
   const existing=measurements.find(x=>x.date===existingDate)||{};const date=existing.date||todayStr();
   document.getElementById('modal').innerHTML=`<h2>${existingDate?'Editar':'Registrar'} medidas corporales</h2><p class="muted">Mide en condiciones similares cada vez. Deja en blanco lo que no quieras registrar.</p><div class="grid grid-2"><div><label>Fecha</label><input id="mmDate" type="date" value="${date}"></div><div><label>Unidad</label><div class="muted" style="padding-top:10px">Centímetros (cm)</div></div></div><div class="measurement-grid" style="margin-top:12px"><div><label>Cintura</label><input id="mmWaist" type="number" step="0.1" min="0" value="${existing.waist??''}"></div><div><label>Pecho</label><input id="mmChest" type="number" step="0.1" min="0" value="${existing.chest??''}"></div><div><label>Brazo</label><input id="mmArm" type="number" step="0.1" min="0" value="${existing.arm??''}"></div><div><label>Muslo</label><input id="mmThigh" type="number" step="0.1" min="0" value="${existing.thigh??''}"></div><div><label>Cadera</label><input id="mmHip" type="number" step="0.1" min="0" value="${existing.hip??''}"></div></div><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveMeasurements()">Guardar</button></div>`;
   document.getElementById('modalBackdrop').classList.add('show');document.body.classList.add('modal-open');document.getElementById('modal').scrollTop=0;
@@ -318,7 +323,9 @@ window.saveMeasurements=function(){
   const vals={waist:'mmWaist',chest:'mmChest',arm:'mmArm',thigh:'mmThigh',hip:'mmHip'};const entry={date};let has=false;
   Object.entries(vals).forEach(([k,id])=>{const v=parseFloat(document.getElementById(id).value);if(Number.isFinite(v)&&v>0){entry[k]=Math.round(v*10)/10;has=true;}});
   if(!has){toast('Registra al menos una medida');return;}
-  measurements=measurements.filter(x=>x.date!==date);measurements.push(entry);saveToFirebase();closeModal();renderBodyWeights();toast('Medidas guardadas OK');
+  const original=window.editingMeasurementDate||'';
+  measurements=measurements.filter(x=>x.date!==date && (!original||x.date!==original));measurements.push(entry);
+  window.editingMeasurementDate='';saveToFirebase();closeModal();renderBodyWeights();toast('Medidas guardadas OK');
 }
 window.deleteMeasurement=async function(date){if(!(await appConfirm('¿Eliminar las medidas del '+fmtDate(date)+'?',{title:'Eliminar medición',confirmText:'Eliminar',danger:true})))return;measurements=measurements.filter(x=>x.date!==date);saveToFirebase();renderBodyWeights();toast('Medición eliminada')}
 

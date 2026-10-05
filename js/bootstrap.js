@@ -45,8 +45,13 @@ async function initApp() {
 
 window.addEventListener('online',()=>{ if(!saveInFlight && DOC_ID) syncFromCloudWithRetry(2).then(ok=>{ if(!ok) updateSyncStatus('Guardado local · sin conexión','error'); }); });
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden && window.timerInt) tickTimer();
-  if(!document.hidden && DOC_ID && !syncing && !saveInFlight && navigator.onLine && document.getElementById('syncStatus')?.dataset.state==='error') retryCloudSync();
+  if(document.hidden) return;
+  if(window.timerInt) tickTimer();
+  if(DOC_ID && !syncing && !saveInFlight && navigator.onLine){
+    const state=document.getElementById('syncStatus')?.dataset.state;
+    if(state==='error') retryCloudSync();
+    else if(Date.now()-lastCloudPullAt>45000) syncFromCloudWithRetry(1).then(ok=>{if(!ok) updateSyncStatus('Guardado local · sin conexión','error');});
+  }
 });
 
 document.getElementById('routineDate').addEventListener('change',()=>loadDay());

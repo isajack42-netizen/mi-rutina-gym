@@ -34,28 +34,41 @@ window.calculatePlates = function() {
     document.getElementById('calcResult').innerHTML = `<span style="color:var(--accent)">Por cada lado pon:</span><br>${res.join('<br>')}<br><small class="muted" style="font-size:0.8rem; display:block; margin-top:8px;">(Restante: ${perSide.toFixed(2)} ${unitLabel()})</small>`;
 }
 
-function parseRestSeconds(raw){
-  const s=String(raw||'').trim().toLowerCase().replace(/–/g,'-');
-  if(!s) return 90;
-  const nums=s.match(/\d+(?:\.\d+)?/g);
-  if(!nums) return 90;
-  const n=parseFloat(nums[0]);
-  if(!Number.isFinite(n) || n<=0) return 90;
-  if(/min/.test(s)) return Math.round(n*60);
-  if(/s|seg/.test(s)) return Math.round(n);
-  if(/m/.test(s)) return Math.round(n*60);
-  return n<=10 ? Math.round(n*60) : Math.round(n);
+function parseRestSpec(raw){
+  let s=String(raw||'').trim().toLowerCase().replace(/–|—/g,'-').replace(/\s+/g,' ');
+  if(!s||s==='-') return null;
+  const hasMin=/\bmin(?:uto|utos)?\b|\bmins?\b|\bm\b/.test(s);
+  const hasSec=/\bseg(?:undo|undos)?\b|\bsecs?\b|\bs\b/.test(s);
+  const parseToken=(token,unitHint='')=>{
+    token=String(token).trim();
+    if(/^\d{1,3}:\d{1,2}$/.test(token)){
+      const [m,sec]=token.split(':').map(Number); return m*60+sec;
+    }
+    const n=parseFloat(token.replace(',','.')); if(!Number.isFinite(n)||n<=0)return null;
+    if(unitHint==='min'||hasMin) return Math.round(n*60);
+    if(unitHint==='sec'||hasSec) return Math.round(n);
+    return n<=10?Math.round(n*60):Math.round(n);
+  };
+  const stripped=s.replace(/\b(min(?:uto|utos)?|mins?|m|seg(?:undo|undos)?|secs?|s)\b/g,'').trim();
+  const parts=stripped.split(/\s*-\s*/).filter(Boolean);
+  let vals=[];
+  if(parts.length>=2){
+    const unitHint=hasMin?'min':hasSec?'sec':'';
+    vals=parts.slice(0,2).map(x=>parseToken(x,unitHint)).filter(Number.isFinite);
+  }else{
+    const token=parts[0]||stripped;
+    const v=parseToken(token,hasMin?'min':hasSec?'sec':''); if(Number.isFinite(v)) vals=[v];
+  }
+  if(!vals.length) return null;
+  const min=Math.min(...vals),max=Math.max(...vals);
+  return {min,max};
 }
-
+function parseRestSeconds(raw){ return parseRestSpec(raw)?.min ?? 90; }
 function normalizeRestLabel(raw){
-  const s=String(raw||'').trim().toLowerCase().replace(/–/g,'-');
-  if(!s || s==='-') return s||'-';
-  const nums=(s.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);
-  if(!nums.length) return String(raw).trim();
-  const mult=/min|\bm\b/.test(s)?60:1;
-  const vals=nums.slice(0,2).map(n=>Math.round(n*mult));
-  return vals.length>1 ? `${vals[0]}–${vals[1]} s` : `${vals[0]} s`;
+  const spec=parseRestSpec(raw); if(!spec) return String(raw||'').trim()||'-';
+  return spec.min===spec.max?`${spec.min} s`:`${spec.min}–${spec.max} s`;
 }
+function persistTimerState(){ try{ if(typeof saveTrain==='function') saveTrain(); }catch(e){} }
 
 function timerRemaining(){ return Math.max(0, Math.ceil((window.timerEndAt - Date.now())/1000)); }
 function timerOvertime(){ return window.timerEndAt ? Math.max(0, Math.floor((Date.now()-window.timerEndAt)/1000)) : 0; }
@@ -70,6 +83,7 @@ window.quickStartTimer = function(btn) {
     const secs = parseRestSeconds(restInput?.value);
     window.timerEndAt = Date.now() + secs*1000;
     window.timerAlarmed=false;
+    persistTimerState();
     ensureTimerRunning();
     toast('Cronómetro iniciado ('+secs+'s)');
 }
@@ -78,6 +92,7 @@ window.addTimer = function(secs) {
     window.timerEndAt = base + secs*1000;
     window.timerAlarmed=false;
     notifCancel();
+    persistTimerState();
     ensureTimerRunning();
 }
 window.stopTimer = function() {
@@ -85,10 +100,11 @@ window.stopTimer = function() {
     clearInterval(window.timerInt); window.timerInt = null; window.timerEndAt = 0; window.timerAlarmed=false;
     const ft=document.getElementById('floatingTimer'); if(ft){ft.style.display = 'none';ft.classList.remove('overtime');}
     const ov=document.getElementById('trainOverlay'); if(ov){ov.classList.remove('resting');ov.classList.remove('overtime');}
+    persistTimerState();
 }
 function fireRestAlarm(){
     if(window.timerAlarmed) return;
-    window.timerAlarmed=true;
+    window.timerAlarmed=true; persistTimerState();
     if(document.hidden && notifState()==='on') notifShow('Descanso terminado', notifBody());
     if ("vibrate" in navigator) navigator.vibrate([200, 100, 200, 100, 200]);
     toast('¡Descanso objetivo terminado! El contador sigue registrando el tiempo real.');
@@ -119,7 +135,7 @@ window.exportCSV = function() {
     const csvEscape = value => { const v=String(value ?? ''); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
     const addRow = row => { csv += row.map(csvEscape).join(',') + '\n'; };
     let csv = "Fecha,Rutina,Tipo,Ejercicio,Serie,Reps,Peso,Unidad,RIR,Descanso,Tiempo_min,Distancia_km,Notas,Peso_corporal,Unidad_peso,Cintura_cm,Pecho_cm,Brazo_cm,Muslo_cm,Cadera_cm,Descanso_real_seg,Tipo_serie,Nota_ejercicio\n";
-    let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...weights.map(w=>w.date), ...measurements.map(m=>m.date)]);
+    let allDates = new Set([...Object.keys(data), ...Object.keys(categories), ...Object.keys(notes), ...weights.map(w=>w.date), ...measurements.map(m=>m.date)]);
     let sortedDates = Array.from(allDates).sort();
 
     sortedDates.forEach(date => {
@@ -136,7 +152,7 @@ window.exportCSV = function() {
 
         const arr = data[date] || [];
         arr.forEach(ex => {
-            const exName = ex.name.replace(/,/g, " ");
+            const exName = ex.name;
             if (ex.isCardio) {
                 addRow([date,cat,"Cardio",exName,"-","-","-","-","-","-",ex.time,ex.distance,note,"","",mEntry?.waist??"",mEntry?.chest??"",mEntry?.arm??"",mEntry?.thigh??"",mEntry?.hip??""]);
             } else {
@@ -360,9 +376,12 @@ window.addAlias = function() {
     let to = document.getElementById('newAliasTo').value.trim();
     if(!from || !to) { toast('Llena ambos campos'); return; }
     customAliases[from] = to;
+    const changed=migrateNames();
+    persistLocal();
     saveToFirebase();
+    populateExercises(); refreshAll();
     openCatalogsModal('alias');
-    toast('Regla de alias añadida');
+    toast(changed?'Alias añadido y nombres unificados':'Regla de alias añadida');
 }
 
 window.deleteAlias = async function(alias) {
@@ -436,9 +455,9 @@ window.importData = function(ev){
         measurements:sanitizeMeasurements(x.measurements||[]),
         notes:sanitizeNotes(x.notes||{}),
         exerciseNotes:sanitizeExerciseNotes(x.exerciseNotes||{}),
-        customRoutines:sanitizeRoutines(x.customRoutines||defaultPPL),
-        customAliases:sanitizeAliases(x.customAliases||defaultAliases),
-        customMuscles:sanitizeMuscles(x.customMuscles||defaultMuscles),
+        customRoutines:Object.prototype.hasOwnProperty.call(x,'customRoutines')?sanitizeRoutines(x.customRoutines):JSON.parse(JSON.stringify(defaultPPL)),
+        customAliases:Object.prototype.hasOwnProperty.call(x,'customAliases')?sanitizeAliases(x.customAliases):JSON.parse(JSON.stringify(defaultAliases)),
+        customMuscles:Object.prototype.hasOwnProperty.call(x,'customMuscles')?sanitizeMuscles(x.customMuscles):JSON.parse(JSON.stringify(defaultMuscles)),
         currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
         currentTheme:cleanString(x.currentTheme,'default')||'default'
       };
@@ -448,9 +467,9 @@ window.importData = function(ev){
       if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
       try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
       data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes; exerciseNotes=clean.exerciseNotes;
-      customRoutines=Object.keys(clean.customRoutines).length?clean.customRoutines:JSON.parse(JSON.stringify(defaultPPL));
-      customAliases=Object.keys(clean.customAliases).length?clean.customAliases:JSON.parse(JSON.stringify(defaultAliases));
-      customMuscles=Object.keys(clean.customMuscles).length?clean.customMuscles:JSON.parse(JSON.stringify(defaultMuscles));
+      customRoutines=clean.customRoutines;
+      customAliases=clean.customAliases;
+      customMuscles=clean.customMuscles;
       currentUnit=clean.currentUnit; currentTheme=clean.currentTheme;
       persistLocal();
       migrateNames();

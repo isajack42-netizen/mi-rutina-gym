@@ -2,7 +2,7 @@
 'use strict';
 let DOC_ID = localStorage.getItem('gymLastUid') || null;
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
-let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0, lastSyncError='';
+let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0, lastSyncError='', lastCloudPullAt=0;
 let cloudMode='unknown', cloudMeta={days:{},settings:{revision:0,hash:''}};
 const CLOUD_META_PREFIX='gymCloudMetaV2:';
 
@@ -135,7 +135,11 @@ function isPlainObject(v){ return !!v && typeof v==='object' && !Array.isArray(v
 function safeKey(k){ return !['__proto__','prototype','constructor'].includes(String(k)); }
 function cleanString(v,fallback=''){ return typeof v==='string' ? v.trim() : (v==null ? fallback : String(v).trim()); }
 function finiteNumber(v,min=0){ const n=Number(v); return Number.isFinite(n)&&n>=min ? n : null; }
-function validDateKey(v){ return /^\d{4}-\d{2}-\d{2}$/.test(String(v)); }
+function validDateKey(v){
+  const s=String(v); if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d=new Date(s+'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0,10)===s;
+}
 
 
 let dialogResolve=null;
@@ -364,16 +368,14 @@ function load(){
   measurements=readLocal(MEASURE,[],sanitizeMeasurements);
   notes=readLocal('trackGym_notes',{},sanitizeNotes);
   exerciseNotes=readLocal(EX_NOTES_KEY,{},sanitizeExerciseNotes);
-  customRoutines = sanitizeRoutines(readLocal(ROUTINES_KEY, defaultPPL, x=>x));
+  const routinesStored=localStorage.getItem(ROUTINES_KEY)!==null;
+  const aliasesStored=localStorage.getItem('gymAliases')!==null;
+  const musclesStored=localStorage.getItem('gymMuscles')!==null;
+  customRoutines = routinesStored ? sanitizeRoutines(readLocal(ROUTINES_KEY, {}, x=>x)) : JSON.parse(JSON.stringify(defaultPPL));
   currentUnit=localStorage.getItem(UNIT_KEY)==='lbs'?'lbs':'kg';
   currentTheme=cleanString(localStorage.getItem(THEME_KEY),'default')||'default';
-  
-  customAliases = sanitizeAliases(readLocal('gymAliases', {}, x=>x));
-  customMuscles = sanitizeMuscles(readLocal('gymMuscles', {}, x=>x));
-  if(Object.keys(customAliases).length===0) customAliases = JSON.parse(JSON.stringify(defaultAliases));
-  if(Object.keys(customMuscles).length===0) customMuscles = JSON.parse(JSON.stringify(defaultMuscles));
-
-  if(Object.keys(customRoutines).length===0) customRoutines = JSON.parse(JSON.stringify(defaultPPL));
+  customAliases = aliasesStored ? sanitizeAliases(readLocal('gymAliases', {}, x=>x)) : JSON.parse(JSON.stringify(defaultAliases));
+  customMuscles = musclesStored ? sanitizeMuscles(readLocal('gymMuscles', {}, x=>x)) : JSON.parse(JSON.stringify(defaultMuscles));
   document.getElementById('unitBtn').innerText = currentUnit.toUpperCase();
   document.documentElement.setAttribute('data-theme', currentTheme);
   if(localNormalizationDetected){
@@ -444,6 +446,43 @@ function buildDayContent(date){
   return has?{deleted:false,...content}:{deleted:true};
 }
 function dayHash(date){ return fingerprint(buildDayContent(date)); }
+function cloneEntries(entries){
+  try{return JSON.parse(JSON.stringify(entries||[]));}catch(_){return [];}
+}
+function captureDraftEntries(){
+  const out={};
+  Object.entries(data).forEach(([date,entries])=>{
+    const drafts=(entries||[]).filter(e=>!e.isCardio&&(e.trainingDraft===true||(e.sets||[]).some(st=>st.done===false)));
+    if(drafts.length) out[date]=cloneEntries(drafts);
+  });
+  return out;
+}
+function mergeDraftEntries(snapshot){
+  Object.entries(snapshot||{}).forEach(([date,drafts])=>{
+    if(!validDateKey(date)) return;
+    if(!data[date]) data[date]=[];
+    const byId=new Map((data[date]||[]).map((e,i)=>[String(e.id),i]));
+    drafts.forEach(d=>{
+      const k=String(d.id), clean=sanitizeEntry(d); if(!clean) return;
+      if(byId.has(k)){
+        const idx=byId.get(k), remote=data[date][idx];
+        if(!remote?.isCardio&&!clean.isCardio){
+          const max=Math.max(remote.sets?.length||0,clean.sets?.length||0), sets=[];
+          for(let i=0;i<max;i++){
+            const ls=clean.sets?.[i], rs=remote.sets?.[i];
+            // Lo pendiente/borrador es local; una serie ya completada en nube
+            // prevalece para no pisar cambios remotos al recuperar el borrador.
+            if(ls&&ls.done===false) sets.push(ls);
+            else if(rs&&rs.done===true) sets.push(rs);
+            else if(ls) sets.push(ls);
+            else if(rs) sets.push(rs);
+          }
+          data[date][idx]={...remote,...clean,sets:sets.map((x,i)=>({...x,setNumber:i+1})),trainingDraft:true};
+        }else data[date][idx]=clean;
+      }else data[date].push(clean);
+    });
+  });
+}
 function cloudDayContent(raw){
   if(!raw||raw.deleted===true) return {deleted:true};
   const date=cleanString(raw.date,'');
@@ -479,10 +518,11 @@ function buildSettingsContent(){
 }
 function settingsHash(){ return fingerprint(buildSettingsContent()); }
 function applyCloudSettings(cloud){
+  const has=(k)=>Object.prototype.hasOwnProperty.call(cloud||{},k);
   exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||{});
-  customRoutines=sanitizeRoutines(cloud.customRoutines||defaultPPL); if(!Object.keys(customRoutines).length) customRoutines=JSON.parse(JSON.stringify(defaultPPL));
-  customAliases=sanitizeAliases(cloud.customAliases||defaultAliases); if(!Object.keys(customAliases).length) customAliases=JSON.parse(JSON.stringify(defaultAliases));
-  customMuscles=sanitizeMuscles(cloud.customMuscles||defaultMuscles); if(!Object.keys(customMuscles).length) customMuscles=JSON.parse(JSON.stringify(defaultMuscles));
+  customRoutines=has('customRoutines')?sanitizeRoutines(cloud.customRoutines):JSON.parse(JSON.stringify(defaultPPL));
+  customAliases=has('customAliases')?sanitizeAliases(cloud.customAliases):JSON.parse(JSON.stringify(defaultAliases));
+  customMuscles=has('customMuscles')?sanitizeMuscles(cloud.customMuscles):JSON.parse(JSON.stringify(defaultMuscles));
   currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg'; currentTheme=cleanString(cloud.currentTheme,'default')||'default';
   document.getElementById('unitBtn').innerText=currentUnit.toUpperCase(); document.documentElement.setAttribute('data-theme',currentTheme);
 }
@@ -528,9 +568,10 @@ function applyLegacyCloud(cloud,stamp){
   const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
   const protectedContent=protectedDate?buildDayContent(protectedDate):null;
   data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes); exerciseNotes=sanitizeExerciseNotes(cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x));
-  customRoutines=sanitizeRoutines(cloud.customRoutines||defaultPPL);if(!Object.keys(customRoutines).length)customRoutines=JSON.parse(JSON.stringify(defaultPPL));
-  customAliases=sanitizeAliases(cloud.customAliases||defaultAliases);customMuscles=sanitizeMuscles(cloud.customMuscles||defaultMuscles);
-  if(!Object.keys(customAliases).length)customAliases=JSON.parse(JSON.stringify(defaultAliases));if(!Object.keys(customMuscles).length)customMuscles=JSON.parse(JSON.stringify(defaultMuscles));
+  const hasCfg=(k)=>Object.prototype.hasOwnProperty.call(cloud||{},k);
+  customRoutines=hasCfg('customRoutines')?sanitizeRoutines(cloud.customRoutines):JSON.parse(JSON.stringify(defaultPPL));
+  customAliases=hasCfg('customAliases')?sanitizeAliases(cloud.customAliases):JSON.parse(JSON.stringify(defaultAliases));
+  customMuscles=hasCfg('customMuscles')?sanitizeMuscles(cloud.customMuscles):JSON.parse(JSON.stringify(defaultMuscles));
   currentUnit=cloud.currentUnit==='lbs'?'lbs':'kg';currentTheme=cleanString(cloud.currentTheme,'default')||'default';document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
   if(protectedDate&&protectedContent) applyLocalDayContent(protectedDate,protectedContent);
   persistLocal();updatedAt=stamp;try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(stamp));localStorage.setItem(UPDATED_KEY,String(stamp));}catch(e){}
@@ -584,7 +625,7 @@ async function writeSettingsV2(){
       if(!String(e?.message||'').includes('LIFTENGINE_SETTINGS_CONFLICT'))throw e;
       const snap=await fb.getDoc(ref), cloud=snap.exists()?snap.data():{};
       const keepLocal=await appConfirm('La configuración (rutinas, alias, tema o notas de ejercicios) cambió en otro dispositivo.\\n\\n¿Conservar la configuración de este dispositivo?',{title:'Conflicto de configuración',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
-      if(!keepLocal){applyCloudSettings(cloud);cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};persistLocal();return true;}
+      if(!keepLocal){applyCloudSettings(cloud);const renamed=(typeof migrateNames==='function')?migrateNames():false;cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};persistLocal();if(renamed)saveQueued=true;return true;}
       expected=Number(cloud.revision)||0;
     }
   }
@@ -595,9 +636,15 @@ async function saveCloudV2Changes(){
   for(const date of [...dates].sort()){
     const hash=dayHash(date), meta=cloudMeta.days[date];
     if(!meta&&buildDayContent(date).deleted)continue;
-    if(!meta||meta.hash!==hash) await writeDayV2(date);
+    if(!meta||meta.hash!==hash){
+      const ok=await writeDayV2(date);
+      if(!ok) throw new Error(`No se pudo confirmar la escritura del día ${date}.`);
+    }
   }
-  if((cloudMeta.settings?.hash||'')!==settingsHash()) await writeSettingsV2();
+  if((cloudMeta.settings?.hash||'')!==settingsHash()){
+    const ok=await writeSettingsV2();
+    if(!ok) throw new Error('No se pudo confirmar la escritura de la configuración.');
+  }
   saveCloudMeta();
 }
 
@@ -624,15 +671,17 @@ async function saveToFirebase(){
 }
 
 async function syncCloudV2(rootCloud){
-  cloudMode='v2';loadCloudMeta(); const query=await withTimeout(fb.getDocs(fb.collection(fb.db,'userData',DOC_ID,'days')),15000); const remote=new Map();
+  cloudMode='v2'; loadCloudMeta();
+  const query=await withTimeout(fb.getDocs(fb.collection(fb.db,'userData',DOC_ID,'days')),15000), remote=new Map();
   query.forEach(snap=>remote.set(snap.id,snap.data()));
-  const pending=localStorage.getItem(PENDING_KEY)==='1'; const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
-  const localProtected=protectedDate?buildDayContent(protectedDate):null;
+  const pending=localStorage.getItem(PENDING_KEY)==='1';
+  const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
+  const localDrafts=captureDraftEntries();
   if(!pending){
     data={};categories={};weights=[];measurements=[];notes={}; applyCloudSettings(rootCloud);
     cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};
-    cloudMeta.days={}; remote.forEach((doc,date)=>{applyCloudDay(date,doc);cloudMeta.days[date]={revision:Number(doc.revision)||0,hash:fingerprint(cloudDayContent({...doc,date}))};});
-    if(protectedDate&&localProtected) applyLocalDayContent(protectedDate,localProtected);
+    cloudMeta.days={};
+    remote.forEach((doc,date)=>{applyCloudDay(date,doc);cloudMeta.days[date]={revision:Number(doc.revision)||0,hash:fingerprint(cloudDayContent({...doc,date}))};});
   }else{
     const dates=new Set([...remote.keys(),...allLocalDates(),...Object.keys(cloudMeta.days||{})]);
     for(const date of [...dates].sort()){
@@ -648,10 +697,16 @@ async function syncCloudV2(rootCloud){
       if(keep)cloudMeta.settings.revision=Number(rootCloud.revision)||0;else{applyCloudSettings(rootCloud);cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};}
     }
   }
+  // Los borradores son locales y no forman parte de estadísticas ni de Firestore.
+  // Se restauran después de aplicar la nube para que una reconexión no borre una
+  // rutina cargada, una sesión copiada o las series pendientes del entrenamiento activo.
+  mergeDraftEntries(localDrafts);
+  const namesChanged=(typeof migrateNames==='function')?migrateNames():false;
   if(!cloudMeta.settings?.revision)cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};
-  persistLocal();saveCloudMeta();updatedAt=Number(rootCloud.updatedAt)||Date.now();refreshAll();
-  if(pending|| (protectedDate&&dayHash(protectedDate)!==(cloudMeta.days[protectedDate]?.hash||fingerprint({deleted:true})))) await saveCloudV2Changes();
-  try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(updatedAt));localStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){} saveCloudMeta();updateSyncStatus('Sincronizado','ok');return true;
+  persistLocal(); saveCloudMeta(); updatedAt=Number(rootCloud.updatedAt)||Date.now(); refreshAll();
+  if(pending || namesChanged || (protectedDate&&dayHash(protectedDate)!==(cloudMeta.days[protectedDate]?.hash||fingerprint({deleted:true})))) await saveCloudV2Changes();
+  try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(updatedAt));localStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){}
+  saveCloudMeta(); updateSyncStatus('Sincronizado','ok'); return true;
 }
 
 async function syncFromCloud(){
@@ -704,7 +759,7 @@ async function syncFromCloudWithRetry(attempts=2){
   let ok=false;
   for(let i=0;i<attempts;i++){
     ok=await syncFromCloud();
-    if(ok) return true;
+    if(ok){ lastCloudPullAt=Date.now(); return true; }
     if(i<attempts-1){
       updateSyncStatus('Reintentando sincronización…','saving');
       await delay(1200*(i+1));

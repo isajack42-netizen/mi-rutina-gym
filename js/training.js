@@ -2,11 +2,25 @@
 'use strict';
 // ===== MODO ENTRENAMIENTO =====
 const TRAIN_KEY='gymTrainState';
-let train=safeParse(localStorage.getItem(TRAIN_KEY),null), trainClock=null, wakeLock=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
+const rawTrainState=safeParse(localStorage.getItem(TRAIN_KEY),null);
+let train=rawTrainState&&typeof rawTrainState==='object'?{...rawTrainState}:null, trainClock=null, wakeLock=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
+let restCtx=train&&train.__restCtx&&typeof train.__restCtx==='object'?train.__restCtx:null;
+if(train){
+  window.timerEndAt=Number(train.__timerEndAt)||0;
+  window.timerAlarmed=!!train.__timerAlarmed;
+  delete train.__restCtx; delete train.__timerEndAt; delete train.__timerAlarmed;
+}
 const isDone=s=>s?.done===true||(s?.done===undefined&&(parseFloat(s.reps)||0)>0);
+function saveTrain(){
+  try{
+    if(train){
+      const payload={...train,__restCtx:restCtx||null,__timerEndAt:Number(window.timerEndAt)||0,__timerAlarmed:!!window.timerAlarmed};
+      localStorage.setItem(TRAIN_KEY,JSON.stringify(payload));
+    }else localStorage.removeItem(TRAIN_KEY);
+  }catch(e){}
+}
 function saveTrainingDraftLocal(){ try{persistLocal();saveTrain();}catch(e){console.warn('No se pudo guardar el borrador de entrenamiento:',e);} }
 const rd=v=>Math.round(fromKg(v)*10)/10;
-let restCtx=null;
 function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
 function restLabel(s){ return s.restUsed?fmtRest(s.restUsed):s.rest; }
 function trainRestEnded(){
@@ -14,9 +28,9 @@ function trainRestEnded(){
   const end=Date.now();
   const secs=Math.round((end-c.startAt)/1000);
   const e=(data[c.date]||[]).find(x=>x.id===c.id), st=e&&e.sets[c.i];
+  saveTrain();
   if(st&&secs>=5&&isDone(st)){ st.restUsed=secs; saveToFirebase(); renderTrain(); }
 }
-function saveTrain(){ try{ if(train) localStorage.setItem(TRAIN_KEY,JSON.stringify(train)); else localStorage.removeItem(TRAIN_KEY); }catch(e){} }
 function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[]).find(x=>x.id===id)).filter(Boolean):[]; }
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
 
@@ -78,12 +92,13 @@ function cleanupAbandonedTraining(){
   });
   if(!(data[d]||[]).length)delete data[d];
   if(keptAny&&train.routine)categories[d]=train.routine;
-  train=null;saveTrain();persistLocal();saveToFirebase();
+  restCtx=null;window.timerEndAt=0;window.timerAlarmed=false;train=null;saveTrain();persistLocal();saveToFirebase();
 }
 function resumeTrainingIfAny(){
   if(!train) return;
   if(Date.now()-train.startedAt>12*3600e3){ cleanupAbandonedTraining(); renderTrainCTA(); return; }
   openTraining();
+  if(restCtx&&window.timerEndAt>0) ensureTimerRunning();
 }
 
 function renderTrain(){
@@ -157,7 +172,7 @@ window.trainToggle=function(i){
   if(!(parseFloat(v.r)>0)){ toast('Escribe las repeticiones'); return; }
   if(restCtx&&!(train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i)){toast('Pulsa “Empezar” al iniciar la serie para cerrar el descanso correctamente.');return;}
   if(restCtx)trainRestEnded(); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase();
-  if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; window.timerAlarmed=false; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; train.activeSet=null; ensureTimerRunning(); }
+  if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; window.timerAlarmed=false; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; train.activeSet=null; saveTrain(); ensureTimerRunning(); }
   if(navigator.vibrate) navigator.vibrate(30);
   renderTrain();
 }
