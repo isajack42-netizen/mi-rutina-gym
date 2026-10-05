@@ -242,10 +242,12 @@
     <div id="desktopExerciseHero" class="desktop-exercise-hero" aria-live="polite"></div>
     <div class="grid grid-2 progress-controls" style="margin-bottom:12px">
       <div class="performance-exercise-select"><label for="chartExercise">Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
-      <div><label for="chartMetric">Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="volume">Volumen total de la sesión</option><option value="e1rm">e1RM estimado (Epley)</option></select></div>
+      <div><label for="chartMetric">Métrica</label><select id="chartMetric" onchange="updateChart()"><option value="weight">Peso máximo levantado</option><option value="e1rm">e1RM estimado (Epley)</option><option value="volume">Volumen total de la sesión</option><option value="reps">Reps promedio por serie</option><option value="rir">RIR promedio</option><option value="sets">Series de trabajo</option></select></div>
     </div>
     <div class="chart-box"><canvas id="progressChart"></canvas></div>
     <div id="exerciseDetail" style="margin-top:14px"></div>
+    <div id="desktopExerciseComparison" class="desktop-exercise-comparison"></div>
+    <div id="desktopExerciseMilestones" class="desktop-exercise-milestones"></div>
     <div id="desktopExerciseHistory" class="desktop-exercise-history"></div>
   </div>
 

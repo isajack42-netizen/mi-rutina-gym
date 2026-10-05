@@ -171,6 +171,41 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   assert.equal(x.plan.weightKg,40);
 }
 
+// ===== Exercise Profile Analytics (v6.4.0) =====
+{
+  const src=read('js/logbook.js');
+  const a=src.indexOf('// <exercise-profile-helpers>'), z=src.indexOf('// </exercise-profile-helpers>');
+  assert.ok(a>=0&&z>a,'faltan los helpers puros del perfil de ejercicio');
+  const ctx=context();
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__p={profileShiftDate,profileSessionSummary,exerciseWindowAggregate,profilePct,exercisePeriodComparison,exercisePrMilestones,exerciseTrendSignal};',ctx);
+  const p=ctx.__p, J=x=>JSON.parse(JSON.stringify(x));
+  const session=(date,weight,reps,rir=2,sets=3)=>({date,sets:Array.from({length:sets},()=>({weight,reps,rir}))});
+  const sessions=[
+    session('2026-08-15',30,10,2),
+    session('2026-09-01',32,10,2),
+    session('2026-09-15',34,10,2),
+    session('2026-10-05',38,10,1.5)
+  ];
+
+  assert.equal(p.profileShiftDate('2026-10-05',-27),'2026-09-08');
+  const cmp=J(p.exercisePeriodComparison(sessions,28));
+  assert.equal(cmp.anchor,'2026-10-05');
+  assert.equal(cmp.current.sessions,2);
+  assert.equal(cmp.previous.sessions,2);
+  assert.ok(cmp.deltas.bestWeight>18&&cmp.deltas.bestWeight<19);
+  assert.ok(cmp.deltas.bestE1rm>18&&cmp.deltas.bestE1rm<19);
+  assert.equal(p.exerciseTrendSignal(cmp).kind,'positive');
+
+  const milestones=J(p.exercisePrMilestones(sessions));
+  assert.equal(milestones.length,4);
+  assert.equal(milestones.at(-1).weight,38);
+  assert.ok(milestones.at(-1).e1rm>50);
+
+  const empty=J(p.exercisePeriodComparison([session('2026-10-05',30,8)],28));
+  assert.equal(empty.previous.sessions,0);
+  assert.equal(p.exerciseTrendSignal(empty).kind,'neutral');
+}
+
 // ===== Entrenamiento: series pendientes y descanso estimado (v6.1.2) =====
 {
   const src=read('js/training.js');

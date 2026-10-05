@@ -305,11 +305,38 @@ function exerciseLoadMode(name){ return /asistid|assisted|contrapeso/i.test(Stri
 window.latestExerciseEntry=latestExerciseEntry;
 window.exerciseLoadMode=exerciseLoadMode;
 function e1rm(weight,reps){weight=parseFloat(weight);reps=parseFloat(reps);if(!weight||!reps||reps<=0)return 0;return weight*(1+reps/30)} // Epley
+function exerciseSetsForDate(name,date){
+  return (data[date]||[]).filter(e=>!e.isCardio&&e.name===name)
+    .flatMap(e=>(e.sets||[]).filter(setCountsForHistory));
+}
 function bestForDate(name,date,metric){
-  const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);if(!es.length)return 0;
-  if(metric==='weight')return Math.max(0,...es.flatMap(e=>e.sets.filter(setCountsForHistory).map(s=>parseFloat(s.weight)||0)));
+  const es=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name);
+  if(!es.length)return null;
+  const sets=exerciseSetsForDate(name,date);
+  if(!sets.length)return null;
+  if(metric==='weight')return Math.max(0,...sets.map(s=>parseFloat(s.weight)||0));
   if(metric==='volume')return es.reduce((a,e)=>a+sessionVolume(e),0);
-  return Math.max(0,...es.flatMap(e=>e.sets.filter(setCountsForHistory).map(s=>e1rm(s.weight,s.reps))))
+  if(metric==='reps')return sets.reduce((a,s)=>a+(parseFloat(s.reps)||0),0)/sets.length;
+  if(metric==='sets')return sets.length;
+  if(metric==='rir'){
+    const vals=sets.map(s=>s.rir).filter(v=>v!==null&&v!==undefined&&v!==''&&v!=='-').map(Number).filter(Number.isFinite);
+    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+  }
+  return Math.max(0,...sets.map(s=>e1rm(s.weight,s.reps)));
+}
+function chartMetricMeta(metric){
+  if(metric==='weight')return {label:'Peso máximo',unit:unitLabel(),decimals:1,convert:true};
+  if(metric==='volume')return {label:'Volumen',unit:unitLabel(),decimals:0,convert:true};
+  if(metric==='reps')return {label:'Reps promedio',unit:'reps',decimals:1,convert:false};
+  if(metric==='rir')return {label:'RIR promedio',unit:'RIR',decimals:1,convert:false};
+  if(metric==='sets')return {label:'Series de trabajo',unit:'series',decimals:0,convert:false};
+  return {label:'e1RM estimado',unit:unitLabel(),decimals:1,convert:true};
+}
+function chartMetricDisplayValue(metric,value){
+  const meta=chartMetricMeta(metric);
+  const raw=meta.convert?fromKg(value):value;
+  const factor=10**meta.decimals;
+  return Math.round(raw*factor)/factor;
 }
 
 window.updateChart = function(){
@@ -331,12 +358,16 @@ window.updateChart = function(){
     return;
   }
   const metric=document.getElementById('chartMetric').value, entries=allWeightEntries(name), labels=[],vals=[];
-  entries.forEach(x=>{const v=bestForDate(name,x.date,metric);if(v){labels.push(fmtDate(x.date));vals.push(Math.round(fromKg(v)*10)/10)}});
+  entries.forEach(x=>{
+    const v=bestForDate(name,x.date,metric);
+    if(v!==null&&Number.isFinite(Number(v))){labels.push(fmtDate(x.date));vals.push(chartMetricDisplayValue(metric,Number(v)));}
+  });
   if(chart)chart.destroy();
   
   const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const metricMeta=chartMetricMeta(metric);
   
-  chart=makeChart(document.getElementById('progressChart'),{type:'line',data:{labels,datasets:[{label:`${metric==='weight'?'Peso máximo':metric==='volume'?'Volumen':'e1RM estimado'} (${unitLabel()})`,data:vals,borderColor:accentColor,backgroundColor:accentColor+'20',fill:true,tension:.28,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:cssVar('--line')}},x:{grid:{color:cssVar('--line')}}}}});
+  chart=makeChart(document.getElementById('progressChart'),{type:'line',data:{labels,datasets:[{label:`${metricMeta.label} (${metricMeta.unit})`,data:vals,borderColor:accentColor,backgroundColor:accentColor+'20',fill:true,tension:.28,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:cssVar('--line')}},x:{grid:{color:cssVar('--line')}}}}});
   // Mantén independientes los bloques de Progreso: un error visual en el
   // resumen del ejercicio no debe impedir que aparezca la inteligencia.
   try{renderExerciseDetail(name)}catch(err){
@@ -402,13 +433,96 @@ function summarizeSession(session){
   return {bestWeight,bestReps,volume,e1rm:e1,avgRir,sets:valid.length};
 }
 
+// <exercise-profile-helpers>
+function profileShiftDate(key,deltaDays){
+  const d=new Date(`${key}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate()+deltaDays);
+  return d.toISOString().slice(0,10);
+}
+function profileSessionSummary(session){
+  const sets=(session?.sets||[]).filter(s=>(Number(s.reps)||0)>0);
+  const weighted=sets.filter(s=>(Number(s.weight)||0)>0);
+  const bestWeight=weighted.length?Math.max(...weighted.map(s=>Number(s.weight)||0)):0;
+  const bestReps=sets.length?Math.max(...sets.map(s=>Number(s.reps)||0)):0;
+  const volume=weighted.reduce((a,s)=>a+(Number(s.reps)||0)*(Number(s.weight)||0),0);
+  const e1=weighted.reduce((best,s)=>Math.max(best,(Number(s.weight)||0)*(1+(Number(s.reps)||0)/30)),0);
+  const rirVals=sets.filter(s=>s.rir!==null&&s.rir!==undefined&&s.rir!==''&&s.rir!=='-').map(s=>Number(s.rir)).filter(Number.isFinite);
+  return {
+    bestWeight,bestReps,volume,e1rm:e1,sets:sets.length,
+    avgReps:sets.length?sets.reduce((a,s)=>a+(Number(s.reps)||0),0)/sets.length:null,
+    avgRir:rirVals.length?rirVals.reduce((a,b)=>a+b,0)/rirVals.length:null
+  };
+}
+function exerciseWindowAggregate(sessions,startKey,endKey){
+  const rows=(sessions||[]).filter(s=>s.date>=startKey&&s.date<=endKey);
+  const sums=rows.map(profileSessionSummary);
+  const rir=sums.map(x=>x.avgRir).filter(v=>v!==null);
+  const reps=sums.map(x=>x.avgReps).filter(v=>v!==null);
+  const totalVolume=sums.reduce((a,x)=>a+x.volume,0);
+  return {
+    startKey,endKey,sessions:rows.length,
+    bestWeight:sums.length?Math.max(0,...sums.map(x=>x.bestWeight)):0,
+    bestE1rm:sums.length?Math.max(0,...sums.map(x=>x.e1rm)):0,
+    workSets:sums.reduce((a,x)=>a+x.sets,0),
+    totalVolume,
+    volumePerSession:rows.length?totalVolume/rows.length:0,
+    avgReps:reps.length?reps.reduce((a,b)=>a+b,0)/reps.length:null,
+    avgRir:rir.length?rir.reduce((a,b)=>a+b,0)/rir.length:null
+  };
+}
+function profilePct(current,previous){return previous>0?((current-previous)/previous)*100:null;}
+function exercisePeriodComparison(sessions,days=28){
+  if(!sessions?.length)return null;
+  const anchor=sessions[sessions.length-1].date;
+  const currentStart=profileShiftDate(anchor,-(days-1));
+  const previousEnd=profileShiftDate(currentStart,-1);
+  const previousStart=profileShiftDate(previousEnd,-(days-1));
+  const current=exerciseWindowAggregate(sessions,currentStart,anchor);
+  const previous=exerciseWindowAggregate(sessions,previousStart,previousEnd);
+  return {anchor,days,current,previous,deltas:{
+    bestWeight:profilePct(current.bestWeight,previous.bestWeight),
+    bestE1rm:profilePct(current.bestE1rm,previous.bestE1rm),
+    volumePerSession:profilePct(current.volumePerSession,previous.volumePerSession),
+    avgReps:profilePct(current.avgReps||0,previous.avgReps||0),
+    sessions:previous.sessions?((current.sessions-previous.sessions)/previous.sessions)*100:null
+  }};
+}
+function exercisePrMilestones(sessions){
+  let weight=0,e1=0,reps=0;
+  const out=[];
+  (sessions||[]).forEach(session=>{
+    const sum=profileSessionSummary(session), gains={};
+    if(sum.bestWeight>weight){weight=sum.bestWeight;gains.weight=weight;}
+    if(sum.e1rm>e1){e1=sum.e1rm;gains.e1rm=e1;}
+    if(sum.bestReps>reps){reps=sum.bestReps;gains.reps=reps;}
+    if(Object.keys(gains).length)out.push({date:session.date,...gains});
+  });
+  return out;
+}
+function exerciseTrendSignal(comparison){
+  if(!comparison||!comparison.previous.sessions)return {kind:'neutral',title:'Aún sin comparación sólida',text:'Necesitas historial también en las 4 semanas anteriores para comparar periodos.'};
+  const d=comparison.deltas;
+  const primary=Number.isFinite(d.bestE1rm)?d.bestE1rm:(Number.isFinite(d.bestWeight)?d.bestWeight:d.avgReps);
+  const pct=Number.isFinite(primary)?primary:0;
+  const kind=pct>=2?'positive':pct<=-2?'warning':'neutral';
+  const title=kind==='positive'?'Señal de mejora':kind==='warning'?'Rendimiento por revisar':'Rendimiento estable';
+  const metric=Number.isFinite(d.bestE1rm)?'e1RM':Number.isFinite(d.bestWeight)?'peso':'reps';
+  const vol=Number.isFinite(d.volumePerSession)?` · volumen/sesión ${d.volumePerSession>=0?'+':''}${d.volumePerSession.toFixed(1)}%`:'';
+  return {kind,title,text:`${metric} ${pct>=0?'+':''}${pct.toFixed(1)}% frente a las 4 semanas anteriores${vol}.`};
+}
+// </exercise-profile-helpers>
+
 function renderDesktopExerciseContext(name){
   const hero=document.getElementById('desktopExerciseHero');
+  const comparisonBox=document.getElementById('desktopExerciseComparison');
+  const milestoneBox=document.getElementById('desktopExerciseMilestones');
   const history=document.getElementById('desktopExerciseHistory');
   const intel=document.getElementById('desktopIntelligenceExercise');
-  if(!hero&&!history&&!intel)return;
+  if(!hero&&!history&&!intel&&!comparisonBox&&!milestoneBox)return;
   if(!name){
     if(hero)hero.innerHTML='';
+    if(comparisonBox)comparisonBox.innerHTML='';
+    if(milestoneBox)milestoneBox.innerHTML='';
     if(history)history.innerHTML='';
     if(intel)intel.innerHTML='';
     return;
@@ -439,6 +553,30 @@ function renderDesktopExerciseContext(name){
   }
   if(intel){
     intel.innerHTML=`<span>Analizando</span><b>${escapeHtml(name)}</b>${last?`<small>Última sesión · ${fmtDate(last.date)}</small>`:'<small>Sin historial todavía</small>'}`;
+  }
+  if(comparisonBox){
+    const cmp=exercisePeriodComparison(sessions,28);
+    if(!cmp){
+      comparisonBox.innerHTML='';
+    }else{
+      const signal=exerciseTrendSignal(cmp), c=cmp.current, p=cmp.previous;
+      const pct=v=>Number.isFinite(v)?`${v>=0?'+':''}${v.toFixed(1)}%`:'—';
+      comparisonBox.innerHTML=`
+        <div class="desktop-analysis-head"><div><span class="eyebrow">Comparación</span><h3>Últimas 4 semanas vs. 4 anteriores</h3></div><span class="badge">hasta ${fmtDate(cmp.anchor)}</span></div>
+        <div class="desktop-compare-grid">
+          <div><small>Sesiones</small><b>${c.sessions}</b><span>antes ${p.sessions}</span></div>
+          <div><small>Mejor peso</small><b>${c.bestWeight?formatKgValue(c.bestWeight):'—'}</b><span>${pct(cmp.deltas.bestWeight)}</span></div>
+          <div><small>Mejor e1RM</small><b>${c.bestE1rm?formatKgValue(c.bestE1rm):'—'}</b><span>${pct(cmp.deltas.bestE1rm)}</span></div>
+          <div><small>Volumen / sesión</small><b>${c.volumePerSession?Math.round(fromKg(c.volumePerSession)).toLocaleString()+' '+unitLabel():'—'}</b><span>${pct(cmp.deltas.volumePerSession)}</span></div>
+          <div><small>Reps promedio</small><b>${c.avgReps!==null?c.avgReps.toFixed(1):'—'}</b><span>${p.avgReps!==null?'antes '+p.avgReps.toFixed(1):'sin previo'}</span></div>
+          <div><small>RIR promedio</small><b>${c.avgRir!==null?c.avgRir.toFixed(1):'—'}</b><span>${p.avgRir!==null?'antes '+p.avgRir.toFixed(1):'sin previo'}</span></div>
+        </div>
+        <div class="desktop-period-signal ${signal.kind}"><b>${escapeHtml(signal.title)}</b><span>${escapeHtml(signal.text)}</span></div>`;
+    }
+  }
+  if(milestoneBox){
+    const milestones=exercisePrMilestones(sessions).slice(-6).reverse();
+    milestoneBox.innerHTML=milestones.length?`<div class="desktop-analysis-head"><div><span class="eyebrow">Hitos</span><h3>PR históricos</h3></div></div><div class="desktop-milestone-list">${milestones.map(m=>`<div class="desktop-milestone"><b>${fmtDate(m.date)}</b><span>${m.weight?`Peso ${formatKgValue(m.weight)}`:''}${m.e1rm?` · e1RM ${formatKgValue(m.e1rm)}`:''}${m.reps?` · ${m.reps} reps`:''}</span></div>`).join('')}</div>`:'';
   }
   if(history){
     if(!sessions.length){
