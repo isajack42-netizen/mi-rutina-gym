@@ -1,84 +1,36 @@
-// LiftEngine · v5.7 Analytics: tendencias, adherencia, frecuencia y estancamientos
+// LiftEngine · Analytics: UI sobre el motor compartido de métricas
 'use strict';
 
-function analyticsDate(s){ return new Date(String(s)+'T12:00:00'); }
+function analyticsDate(s){ return metricsDate(s); }
 function analyticsWeeks(){
   const el=document.getElementById('analyticsWindow');
   const n=parseInt(el?.value,10); return [4,8,12].includes(n)?n:8;
 }
-function analyticsPeriod(weeks=analyticsWeeks()){
-  const end=analyticsDate(todayStr());
-  const start=weekStart(end); start.setDate(start.getDate()-(weeks-1)*7);
-  return {start,end,startKey:ymd(start),endKey:ymd(end),weeks};
-}
-function workoutOnDate(date){ return (data[date]||[]).some(e=>!e.isCardio&&entryHasData(e)); }
-function analyticsWorkoutDates(startKey,endKey){
-  return Object.keys(data).filter(d=>d>=startKey&&d<=endKey&&workoutOnDate(d)).sort();
-}
-function analyticsCoverage(period){
-  const all=Object.keys(data).filter(workoutOnDate).sort();
-  if(!all.length) return {...period,coverageStart:period.startKey,coverageDays:0,coverageWeeks:0};
-  const first=all.find(d=>d>=period.startKey&&d<=period.endKey) || (all[0]>period.endKey?null:period.startKey);
-  if(!first) return {...period,coverageStart:period.startKey,coverageDays:0,coverageWeeks:0};
-  const startKey=first>period.startKey?first:period.startKey;
-  const days=Math.max(1,Math.floor((analyticsDate(period.endKey)-analyticsDate(startKey))/86400000)+1);
-  return {...period,coverageStart:startKey,coverageDays:days,coverageWeeks:days/7};
-}
+function analyticsPeriod(weeks=analyticsWeeks()){ return metricsPeriod(weeks); }
+function workoutOnDate(date){ return metricsWorkoutOnDate(date); }
+function analyticsWorkoutDates(startKey,endKey){ return metricsWorkoutDates(startKey,endKey); }
+function analyticsCoverage(period){ return metricsCoverage(period); }
 function analyticsWeekBuckets(period){
   const buckets=[];
   for(let i=0;i<period.weeks;i++){
     const start=new Date(period.start); start.setDate(period.start.getDate()+i*7);
     const end=new Date(start);end.setDate(start.getDate()+6);
-    const startKey=ymd(start),endKey=ymd(end);
+    const startKey=metricsYmd(start);
     const actualEnd=end>period.end?period.end:end;
-    const dates=analyticsWorkoutDates(startKey,ymd(actualEnd));
-    buckets.push({start:startKey,end:ymd(actualEnd),sessions:dates.length,label:`${start.getDate()} ${start.toLocaleDateString('es-MX',{month:'short'}).replace('.','')}`});
+    const dates=metricsWorkoutDates(startKey,metricsYmd(actualEnd));
+    buckets.push({start:startKey,end:metricsYmd(actualEnd),sessions:dates.length,label:`${start.getDate()} ${start.toLocaleDateString('es-MX',{month:'short'}).replace('.','')}`});
   }
   return buckets;
 }
-function analyticsExpectedSessions(coverage){
-  if(!coverage.coverageDays)return 0;
-  return weeklySessionTarget*(coverage.coverageDays/7);
-}
+function analyticsExpectedSessions(coverage){ return metricsExpectedSessions(coverage,weeklySessionTarget); }
 function analyticsExerciseNames(startKey,endKey){
   const set=new Set();
   Object.keys(data).filter(d=>d>=startKey&&d<=endKey).forEach(d=>(data[d]||[]).forEach(e=>{if(!e.isCardio&&entryHasData(e))set.add(e.name)}));
   return [...set].sort((a,b)=>a.localeCompare(b,'es'));
 }
-function analyticsExerciseTrend(name,startKey,endKey){
-  const sessions=getExerciseSessions(name).filter(s=>s.date>=startKey&&s.date<=endKey);
-  const rows=sessions.map(s=>({date:s.date,...summarizeSession(s)})).filter(x=>x.e1rm>0);
-  if(rows.length<2)return {name,sessions:rows.length,status:'insufficient',deltaPct:null,lastDate:rows.at(-1)?.date||''};
-  const first=rows[0],last=rows.at(-1),deltaPct=first.e1rm?((last.e1rm-first.e1rm)/first.e1rm)*100:null;
-  let stagnant=false;
-  if(rows.length>=4){
-    const recent=rows.slice(-3),before=rows.slice(0,-3);
-    const priorBest=before.length?Math.max(...before.map(x=>x.e1rm)):0;
-    const recentBest=Math.max(...recent.map(x=>x.e1rm));
-    stagnant=priorBest>0&&recentBest<=priorBest*1.005;
-  }
-  const down=deltaPct!=null&&deltaPct<=-3;
-  const improving=deltaPct!=null&&deltaPct>=2;
-  const status=down?'down':stagnant?'watch':improving?'up':'stable';
-  return {name,sessions:rows.length,status,improving,stagnant,down,deltaPct,lastDate:last.date,firstE1:first.e1rm,lastE1:last.e1rm};
-}
-function analyticsExerciseTrends(startKey,endKey){ return analyticsExerciseNames(startKey,endKey).map(n=>analyticsExerciseTrend(n,startKey,endKey)); }
-function analyticsMuscleStats(coverage){
-  const out={};
-  Object.keys(data).filter(d=>d>=coverage.coverageStart&&d<=coverage.endKey).sort().forEach(date=>{
-    (data[date]||[]).forEach(e=>{
-      if(e.isCardio||!entryHasData(e))return;
-      const sets=(e.sets||[]).filter(setCountsForWork); if(!sets.length)return;
-      const muscle=getMuscleGroup(e.name); if(!out[muscle])out[muscle]={sets:0,days:new Set(),rir:[]};
-      out[muscle].sets+=sets.length;out[muscle].days.add(date);
-      sets.forEach(s=>{const r=parseFloat(s.rir);if(Number.isFinite(r))out[muscle].rir.push(r)});
-    });
-  });
-  const w=Math.max(coverage.coverageWeeks,1/7);
-  return Object.entries(out).map(([muscle,x])=>({
-    muscle,sets:x.sets,setsPerWeek:x.sets/w,daysPerWeek:x.days.size/w,avgRir:x.rir.length?x.rir.reduce((a,b)=>a+b,0)/x.rir.length:null
-  })).sort((a,b)=>b.setsPerWeek-a.setsPerWeek);
-}
+function analyticsExerciseTrend(name,startKey,endKey){ return metricsExerciseTrend(name,startKey,endKey); }
+function analyticsExerciseTrends(startKey,endKey){ return analyticsExerciseNames(startKey,endKey).map(n=>metricsExerciseTrend(n,startKey,endKey)); }
+function analyticsMuscleStats(coverage){ return metricsMuscleStats(coverage); }
 function analyticsPRCount(startKey,endKey){ return findPRs().filter(p=>p.date>=startKey&&p.date<=endKey).length; }
 function analyticsPct(v){ if(v==null||!Number.isFinite(v))return '—';return `${v>0?'+':''}${v.toFixed(1)}%`; }
 
