@@ -85,6 +85,12 @@ if(!html.includes('id="summaryMore"')||!css.includes('.summary-glance-grid')) fa
 if(!dashboard.includes("document.createElement('button')")||!css.includes('.cal-dot')) fail.push('Calendario v6.1 no usa celdas accesibles e indicador visual.');
 if(!read('js/training.js').includes('class="train-context')) fail.push('Modo Entrenamiento v6.1 no compacta el contexto previo.');
 
+const trainingJs=read('js/training.js');
+if(trainingJs.includes('Pulsa “Empezar” al iniciar la serie para cerrar el descanso correctamente')) fail.push('Regresión: marcar una serie durante el descanso vuelve a bloquearse.');
+if(!trainingJs.includes('function trainApplyEnd')||!trainingJs.includes('onclick="trainEnd(true)"')) fail.push('Falta proteger las series pendientes al terminar el entrenamiento.');
+if(!/trainEnd=function\(savePending\)/.test(trainingJs)) fail.push('trainEnd debe recibir explícitamente si guarda o descarta las pendientes.');
+if(!trainingJs.includes('Descanso ${restLabel(s)}')||!read('js/logbook.js').includes("s.restEstimated?'≈ ':''")) fail.push('El descanso estimado debe mostrarse con ≈ en Entrenamiento y Registro.');
+
 let depth=0;
 for(const ch of css){
   if(ch==='{') depth++;
