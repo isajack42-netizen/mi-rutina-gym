@@ -42,6 +42,7 @@ window.setWeeklySessionTarget=function(v){
   saveToFirebase({settings:true});
   renderAnalytics();
   if(typeof renderDashboard==='function')renderDashboard();
+  if(typeof resetRoutinePlanScenario==='function')resetRoutinePlanScenario();
   toast(`Meta semanal: ${n} sesión${n===1?'':'es'}`);
 };
 

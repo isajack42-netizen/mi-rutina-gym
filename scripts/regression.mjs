@@ -171,6 +171,65 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   assert.equal(x.plan.weightKg,40);
 }
 
+// ===== Planning Workspace (v6.6.0) =====
+{
+  const src=read('js/planning.js');
+  const a=src.indexOf('// <planning-helpers>'), z=src.indexOf('// </planning-helpers>');
+  assert.ok(a>=0&&z>a,'faltan los helpers puros del Planning Workspace v6.6');
+  const ctx=context();
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__plan={planningClampFrequency,planningDefaultFrequencies,planningMedian,planningComputePlan,planningBalanceSignals};',ctx);
+  const p=ctx.__plan, J=x=>JSON.parse(JSON.stringify(x));
+
+  assert.equal(p.planningClampFrequency(1.24),1);
+  assert.equal(p.planningClampFrequency(1.26),1.5);
+  assert.equal(p.planningClampFrequency(99),7);
+
+  const defaults=J(p.planningDefaultFrequencies(['Push','Pull','Legs'],6));
+  assert.deepEqual(defaults,{Push:2,Pull:2,Legs:2});
+  const defaults5=J(p.planningDefaultFrequencies(['Push','Pull','Legs'],5));
+  assert.equal(defaults5.Push+defaults5.Pull+defaults5.Legs,5);
+
+  const routines={
+    Push:[
+      {name:'Press',sets:3,muscle:'Pecho'},
+      {name:'Aperturas',sets:3,muscle:'Pecho'},
+      {name:'Laterales',sets:3,muscle:'Hombros'}
+    ],
+    Pull:[
+      {name:'Jalón',sets:3,muscle:'Espalda'},
+      {name:'Remo',sets:3,muscle:'Espalda'},
+      {name:'Curl',sets:3,muscle:'Brazos'}
+    ],
+    Legs:[
+      {name:'Hack',sets:3,muscle:'Piernas'},
+      {name:'Prensa',sets:3,muscle:'Piernas'}
+    ]
+  };
+  const plan=J(p.planningComputePlan(routines,{Push:2,Pull:2,Legs:2}));
+  assert.equal(plan.totalSessions,6);
+  assert.equal(plan.totalSets,48);
+  const pecho=plan.muscles.find(x=>x.muscle==='Pecho');
+  const espalda=plan.muscles.find(x=>x.muscle==='Espalda');
+  assert.equal(pecho.sets,12);
+  assert.equal(pecho.frequency,2,'la frecuencia muscular cuenta sesiones, no ejercicios');
+  assert.equal(espalda.sets,12);
+  assert.equal(plan.routineStats.find(x=>x.name==='Push').weeklySets,18);
+
+  const signals=J(p.planningBalanceSignals({
+    totalSessions:6,
+    medianSets:10,
+    muscles:[
+      {muscle:'Pecho',sets:20,frequency:2},
+      {muscle:'Espalda',sets:10,frequency:2},
+      {muscle:'Brazos',sets:4,frequency:2},
+      {muscle:'Otros',sets:6,frequency:1}
+    ]
+  },6));
+  assert.ok(signals.some(x=>x.kind==='high'));
+  assert.ok(signals.some(x=>x.kind==='low'));
+  assert.ok(signals.some(x=>x.title==='Ejercicios sin clasificar'));
+}
+
 // ===== Training History & Compare (v6.5.0) =====
 {
   const src=read('js/history.js');
