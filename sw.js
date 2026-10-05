@@ -1,6 +1,6 @@
 // LiftEngine · service worker: app shell sin conexión
-const VER='liftengine-v5.2.3';
-const SHELL=['./','index.html','styles.css?v=5.2.3','app.js?v=5.2.3','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'];
+const VER='liftengine-v5.3.0';
+const SHELL=['./','index.html','styles.css?v=5.3.0','app.js?v=5.3.0','manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(VER).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:'reload'}).then(r=>{if(r.ok)c.put(u,r.clone());}).catch(()=>{})))).then(()=>self.skipWaiting()));
 });
@@ -65,10 +65,24 @@ self.addEventListener('message',e=>{
         }
       }catch(_){}
       res();
-    },Math.min(ms,280000));
+    },ms);
   }));
 });
 self.addEventListener('notificationclick',e=>{
   e.notification.close();
   e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>cs[0]?cs[0].focus():self.clients.openWindow('./')));
+});
+
+
+// ===== Web Push =====
+// Receptor listo para un backend Push/VAPID. GitHub Pages no puede enviar
+// notificaciones por sí solo; un servidor externo debe programar y enviar el push.
+self.addEventListener('push',e=>{
+  let d={};
+  try{ d=e.data?e.data.json():{}; }catch(_){ d={body:e.data?e.data.text():''}; }
+  e.waitUntil(self.registration.showNotification(d.title||'LiftEngine · Descanso terminado',{
+    body:d.body||'Hora de tu siguiente serie',tag:d.tag||'liftengine-rest-push',renotify:true,
+    vibrate:[200,100,200,100,200],icon:'icons/icon-192.png',badge:'icons/icon-192.png',
+    data:d.data||{}
+  }));
 });
