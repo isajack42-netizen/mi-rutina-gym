@@ -321,10 +321,12 @@ window.updateChart = function(){
   // el panel de inteligencia quedaba en estado "Selecciona un ejercicio".
   if(!sel.value) ensureProgressExerciseSelection();
   const name=sel.value;
+  renderDesktopExerciseBrowser();
   if(!name){
     if(chart){chart.destroy();chart=null}
     const detail=document.getElementById('exerciseDetail');
     if(detail)detail.innerHTML='<div class="empty">Selecciona un ejercicio.</div>';
+    renderDesktopExerciseContext('');
     renderProgressionPanel();
     return;
   }
@@ -347,6 +349,7 @@ window.updateChart = function(){
     const panel=document.getElementById('progressionPanel');
     if(panel)panel.innerHTML='<div class="empty">No se pudo generar la recomendación. Cambia de ejercicio o recarga la vista.</div>';
   }
+  renderDesktopExerciseContext(name);
 }
 
 function parseRepRange(range){
