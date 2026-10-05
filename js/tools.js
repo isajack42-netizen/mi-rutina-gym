@@ -455,13 +455,7 @@ function buildBackupPayload(){
     weights:sanitizeWeights(weights),
     measurements:sanitizeMeasurements(measurements),
     notes:sanitizeNotes(notes),
-    exerciseNotes:sanitizeExerciseNotes(exerciseNotes),
-    customRoutines:sanitizeRoutines(customRoutines),
-    customAliases:sanitizeAliases(customAliases),
-    customMuscles:sanitizeMuscles(customMuscles),
-    currentUnit:currentUnit==='lbs'?'lbs':'kg',
-    currentTheme:cleanString(currentTheme,'default')||'default',
-    weeklySessionTarget:Math.min(7,Math.max(1,parseInt(weeklySessionTarget,10)||6))
+    ...buildSettingsSnapshot()
   };
 }
 
@@ -476,8 +470,8 @@ function validateBackupPayload(x){
   if(x.customRoutines!=null&&!isPlainObject(x.customRoutines)) return {ok:false,reason:'La sección de rutinas no es válida.'};
   if(x.customAliases!=null&&!isPlainObject(x.customAliases)) return {ok:false,reason:'La sección de alias no es válida.'};
   if(x.customMuscles!=null&&!isPlainObject(x.customMuscles)) return {ok:false,reason:'La sección de músculos no es válida.'};
-  if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return {ok:false,reason:'La unidad del archivo no es válida.'};
-  if(x.weeklySessionTarget!=null&&(!Number.isInteger(Number(x.weeklySessionTarget))||Number(x.weeklySessionTarget)<1||Number(x.weeklySessionTarget)>7)) return {ok:false,reason:'La meta semanal del archivo no es válida.'};
+  const settingsError=validateSettingsInput(x);
+  if(settingsError) return {ok:false,reason:settingsError};
   const cleanData=sanitizeData(x.data);
   const sourceDays=Object.keys(x.data).length,cleanDays=Object.keys(cleanData).length;
   if(sourceDays>0&&cleanDays===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
@@ -507,24 +501,15 @@ window.importData = function(ev){
         weights:sanitizeWeights(x.weights||[]),
         measurements:sanitizeMeasurements(x.measurements||[]),
         notes:sanitizeNotes(x.notes||{}),
-        exerciseNotes:sanitizeExerciseNotes(x.exerciseNotes||{}),
-        customRoutines:Object.prototype.hasOwnProperty.call(x,'customRoutines')?sanitizeRoutines(x.customRoutines):JSON.parse(JSON.stringify(defaultPPL)),
-        customAliases:Object.prototype.hasOwnProperty.call(x,'customAliases')?sanitizeAliases(x.customAliases):JSON.parse(JSON.stringify(defaultAliases)),
-        customMuscles:Object.prototype.hasOwnProperty.call(x,'customMuscles')?sanitizeMuscles(x.customMuscles):JSON.parse(JSON.stringify(defaultMuscles)),
-        currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
-        currentTheme:cleanString(x.currentTheme,'default')||'default',
-        weeklySessionTarget:Math.min(7,Math.max(1,parseInt(x.weeklySessionTarget,10)||6))
+        ...sanitizeSettingsSnapshot(x)
       };
       const days=Object.keys(clean.data).length;
       const sourceDays=Object.keys(x.data).length;
       const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
       if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
       try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
-      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes; exerciseNotes=clean.exerciseNotes;
-      customRoutines=clean.customRoutines;
-      customAliases=clean.customAliases;
-      customMuscles=clean.customMuscles;
-      currentUnit=clean.currentUnit; currentTheme=clean.currentTheme; weeklySessionTarget=clean.weeklySessionTarget;
+      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes;
+      applySettingsSnapshot(clean);
       markAllDaysDirty({cloud:true,local:true}); markSettingsDirty({cloud:true,local:true});
       migrateNames();
       await saveToFirebase({allDays:true,settings:true});
