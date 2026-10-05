@@ -102,6 +102,8 @@ if(!css.includes('.train-overlay.open')||!css.includes('.train-chip-name')) fail
 if(!read('js/routines.js').includes('trainRoutineFromLibrary')||!read('js/routines.js').includes('routine-train-btn')) fail.push('Rutinas no ofrece inicio directo en escritorio.');
 if(!read('js/dashboard.js').includes('cal-desktop-stats')) fail.push('Calendario no expone metadatos desktop.');
 if(!read('js/bootstrap.js').includes('function initDesktopExperience')) fail.push('Falta inicialización del comportamiento desktop.');
+if(!html.includes('class="desktop-train-slot"')||!read('js/training.js').includes('desktop-train-btn')) fail.push('La acción de entrenamiento desktop debe vivir en la sidebar.');
+if(!css.includes('.app-main .train-cta-slot{display:none}')||!css.includes('overflow:hidden')||!css.includes('height:calc(100vh - 40px)')) fail.push('El workspace desktop debe conservar márgenes verticales simétricos y scroll interno.');
 
 let depth=0;
 for(const ch of css){
