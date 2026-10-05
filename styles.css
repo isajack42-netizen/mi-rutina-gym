@@ -845,25 +845,28 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 .cal-day-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
 .routine-summary-actions{display:flex;align-items:center;gap:6px;flex:none}
 .routine-train-btn{display:none;min-height:34px;padding:6px 10px;font-size:.76rem}
+.desktop-train-slot{display:none}
 
 @media(min-width:1200px){
   body{
-    padding:20px 24px 32px;
+    padding:20px 24px;
     min-height:100vh;
+    overflow:hidden;
   }
   .app{
     width:min(1600px,100%);
     max-width:none;
+    height:calc(100vh - 40px);
     margin:0 auto;
     display:grid;
     grid-template-columns:248px minmax(0,1fr);
     gap:24px;
-    align-items:start;
+    align-items:stretch;
   }
   .app-sidebar{
-    position:sticky;
-    top:20px;
-    height:calc(100vh - 40px);
+    position:relative;
+    top:auto;
+    height:100%;
     display:flex;
     flex-direction:column;
     min-width:0;
@@ -936,6 +939,41 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
     box-shadow:inset 3px 0 0 var(--accent);
   }
   .app-sidebar .tab-btn .ti{width:24px;justify-content:center}
+  .desktop-train-slot{
+    display:block;
+    margin-top:auto;
+    padding:14px 4px 2px;
+    border-top:1px solid var(--line);
+  }
+  .desktop-train-btn{
+    width:100%;
+    min-height:54px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 11px;
+    text-align:left;
+    color:var(--text);
+    background:var(--soft);
+    border:1px solid var(--line);
+    border-radius:10px;
+    font:inherit;
+  }
+  .desktop-train-btn:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));background:var(--card2)}
+  .desktop-train-btn.active{border-color:color-mix(in srgb,var(--accent) 65%,var(--line));box-shadow:inset 3px 0 0 var(--accent)}
+  .desktop-train-btn>.ic{color:var(--accent);width:1.25em;height:1.25em}
+  .desktop-train-btn>span{display:flex;flex-direction:column;min-width:0}
+  .desktop-train-btn b{font-size:.8rem}
+  .desktop-train-btn small{color:var(--muted);font-size:.67rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+  .app-main{
+    min-width:0;
+    height:100%;
+    overflow:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    padding:0 4px 20px 0;
+  }
+  .app-main .train-cta-slot{display:none}
   .app-main>.tab.active{min-width:0}
   .app-main>.train-cta-slot{max-width:none}
   .credit{margin-top:34px}
@@ -1146,7 +1184,10 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 }
 
 @media(min-width:1200px) and (max-height:760px){
-  .app-sidebar{top:12px;height:calc(100vh - 24px)}
+  body{padding:12px 16px}
+  .app{height:calc(100vh - 24px)}
+  .app-sidebar{height:100%}
+  .app-main{padding-bottom:12px}
   .app-sidebar header{padding-bottom:10px}
   .app-sidebar .tabs{margin-top:10px}
   .app-sidebar .tab-btn{min-height:42px;padding:8px 10px}
