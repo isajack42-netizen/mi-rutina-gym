@@ -247,7 +247,21 @@ function bestForDate(name,date,metric){
 }
 
 window.updateChart = function(){
-  const name=document.getElementById('chartExercise').value;if(!name){if(chart){chart.destroy();chart=null};document.getElementById('exerciseDetail').innerHTML='<div class="empty">Selecciona un ejercicio.</div>';return}
+  const sel=document.getElementById('chartExercise');
+  if(!sel)return;
+  // La selección automática debe funcionar tanto al entrar a Progreso como
+  // después de un refreshAll()/sincronización. Antes solo se ejecutaba al
+  // cambiar de pestaña, por lo que el gráfico podía conservar datos mientras
+  // el panel de inteligencia quedaba en estado "Selecciona un ejercicio".
+  if(!sel.value) ensureProgressExerciseSelection();
+  const name=sel.value;
+  if(!name){
+    if(chart){chart.destroy();chart=null}
+    const detail=document.getElementById('exerciseDetail');
+    if(detail)detail.innerHTML='<div class="empty">Selecciona un ejercicio.</div>';
+    renderProgressionPanel();
+    return;
+  }
   const metric=document.getElementById('chartMetric').value, entries=allWeightEntries(name), labels=[],vals=[];
   entries.forEach(x=>{const v=bestForDate(name,x.date,metric);if(v){labels.push(fmtDate(x.date));vals.push(Math.round(fromKg(v)*10)/10)}});
   if(chart)chart.destroy();
@@ -255,8 +269,18 @@ window.updateChart = function(){
   const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
   
   chart=makeChart(document.getElementById('progressChart'),{type:'line',data:{labels,datasets:[{label:`${metric==='weight'?'Peso máximo':metric==='volume'?'Volumen':'e1RM estimado'} (${unitLabel()})`,data:vals,borderColor:accentColor,backgroundColor:accentColor+'20',fill:true,tension:.28,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:cssVar('--line')}},x:{grid:{color:cssVar('--line')}}}}});
-  renderExerciseDetail(name);
-  renderProgressionPanel();
+  // Mantén independientes los bloques de Progreso: un error visual en el
+  // resumen del ejercicio no debe impedir que aparezca la inteligencia.
+  try{renderExerciseDetail(name)}catch(err){
+    console.error('LiftEngine: no se pudo renderizar el detalle del ejercicio',err);
+    const detail=document.getElementById('exerciseDetail');
+    if(detail)detail.innerHTML='<div class="empty">No se pudo mostrar el resumen del ejercicio.</div>';
+  }
+  try{renderProgressionPanel()}catch(err){
+    console.error('LiftEngine: no se pudo renderizar la inteligencia de entrenamiento',err);
+    const panel=document.getElementById('progressionPanel');
+    if(panel)panel.innerHTML='<div class="empty">No se pudo generar la recomendación. Cambia de ejercicio o recarga la vista.</div>';
+  }
 }
 
 function parseRepRange(range){
@@ -411,10 +435,30 @@ function renderProgressionPanel(){
 }
 
 function renderExerciseDetail(name){
-  const es=allWeightEntries(name);if(!es.length){document.getElementById('exerciseDetail').innerHTML='<div class="empty">Sin registros.</div>';return}
-  let maxW=0,bestE=0,totalVol=0;es.forEach(x=>x.e.sets.filter(setCountsForHistory).forEach(s=>{maxW=Math.max(maxW,parseFloat(s.weight)||0);bestE=Math.max(bestE,e1rm(s.weight,s.reps));}));es.forEach(x=>totalVol+=sessionVolume(x.e));
-  const last=es[es.length-1],prev=es.length>1?es[es.length-2]:null;let delta='—';
-  if(prev){const a=fromKg(bestForDate(name,last.date,'weight')),b=fromKg(bestForDate(name,prev.date,'weight'));delta=(a-b>=0?'+':'')+(a-b).toFixed(1)+' '+unitLabel()}
-  document.getElementById('exerciseDetail').innerHTML=`<div class="stat-grid"><div class="stat"><div class="label">Peso máximo</div><div class="value">${Math.round(fromKg(maxW)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">e1RM máximo</div><div class="value">${Math.round(fromKg(bestE)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">Sesiones</div><div class="value">${es.length}</div></div><div class="stat"><div class="label">Cambio vs anterior</div><div class="value">${delta}</div></div></div><p class="muted" style="margin-bottom:0">Volumen acumulado: <b style="color:var(--accent)">${Math.round(fromKg(totalVol)).toLocaleString()} ${unitLabel()}</b>.</p>`
+  const dates=allWeightEntries(name);
+  const box=document.getElementById('exerciseDetail');
+  if(!box)return;
+  if(!dates.length){box.innerHTML='<div class="empty">Sin registros.</div>';return}
+
+  let maxW=0,bestE=0,totalVol=0;
+  dates.forEach(({date})=>{
+    const entries=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name&&entryHasData(e));
+    entries.forEach(entry=>{
+      (entry.sets||[]).filter(setCountsForHistory).forEach(set=>{
+        maxW=Math.max(maxW,parseFloat(set.weight)||0);
+        bestE=Math.max(bestE,e1rm(set.weight,set.reps));
+      });
+      totalVol+=sessionVolume(entry);
+    });
+  });
+
+  const last=dates[dates.length-1],prev=dates.length>1?dates[dates.length-2]:null;
+  let delta='—';
+  if(prev){
+    const a=fromKg(bestForDate(name,last.date,'weight'));
+    const b=fromKg(bestForDate(name,prev.date,'weight'));
+    delta=(a-b>=0?'+':'')+(a-b).toFixed(1)+' '+unitLabel();
+  }
+  box.innerHTML=`<div class="stat-grid"><div class="stat"><div class="label">Peso máximo</div><div class="value">${Math.round(fromKg(maxW)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">e1RM máximo</div><div class="value">${Math.round(fromKg(bestE)*10)/10} ${unitLabel()}</div></div><div class="stat"><div class="label">Sesiones</div><div class="value">${dates.length}</div></div><div class="stat"><div class="label">Cambio vs anterior</div><div class="value">${delta}</div></div></div><p class="muted" style="margin-bottom:0">Volumen acumulado: <b style="color:var(--accent)">${Math.round(fromKg(totalVol)).toLocaleString()} ${unitLabel()}</b>.</p>`;
 }
 
