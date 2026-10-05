@@ -78,6 +78,7 @@
 </div>
 
 <div class="app">
+<div class="app-sidebar">
 <header>
   <div class="brand">
     <h1><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><span class="wm">Lift<b>Engine</b></span></h1>
@@ -98,12 +99,14 @@
 <button class="tab-btn" id="tab-progreso" role="tab" aria-selected="false" aria-controls="progreso" tabindex="-1" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
 <button class="tab-btn" id="tab-rutinas" role="tab" aria-selected="false" aria-controls="rutinas" tabindex="-1" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
 </nav>
+</div>
+<main class="app-main">
 
 <!-- PESTAÑA: RESUMEN -->
 <section id="resumen" class="tab active" role="tabpanel" aria-labelledby="tab-resumen">
   <div class="train-cta-slot"></div>
   <div class="card dashboard-v6-card">
-    <div class="section-title"><div><span class="eyebrow">LiftEngine v6.1</span><h2>Lo importante ahora</h2></div><span class="badge">últimas 8 semanas</span></div>
+    <div class="section-title"><div><span class="eyebrow">LiftEngine v6.2</span><h2>Lo importante ahora</h2></div><span class="badge">últimas 8 semanas</span></div>
     <div id="dashboardV6" aria-live="polite"></div>
   </div>
   <div class="summary-glance-grid">
@@ -143,7 +146,7 @@
 <!-- PESTAÑA: REGISTRO -->
 <section id="registro" class="tab" role="tabpanel" aria-labelledby="tab-registro">
   <div class="train-cta-slot"></div>
-  <div class="card">
+  <div class="card register-session-card">
     <div class="section-title">
       <h2>Registro Diario</h2>
       <div class="actions record-head-actions" style="margin-top:0"><button class="btn btn-secondary" onclick="copyLastWorkout()">Copiar última sesión</button><button class="btn btn-secondary" onclick="openPlateCalc()"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg> Discos</button></div>
@@ -158,7 +161,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card register-entry-card">
     <div class="type-toggle">
       <button id="weightMode" class="active" onclick="setLogType('pesas')">Entrenamiento de Pesas</button>
       <button id="cardioMode" onclick="setLogType('cardio')">Cardio</button>
@@ -187,12 +190,12 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card register-note-card">
     <div class="section-title"><h2>Nota de la sesión</h2></div>
     <textarea id="sessionNote" class="note" style="width:100%;min-height:70px;background:var(--input);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--text);padding:10px;resize:vertical;" placeholder="Ej. Buen bombeo, buena energía..." oninput="saveNote()"></textarea>
   </div>
 
-  <div class="card">
+  <div class="card register-history-card">
     <div class="section-title"><h2>Registros del día</h2></div>
     <div id="dailyLog"></div>
   </div>
@@ -305,6 +308,7 @@
   </div>
 </section>
 <footer class="credit"><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><b>LiftEngine</b><span>Creada y diseñada por <b>Isaias Cruz</b></span><a href="mailto:isajack42@gmail.com">isajack42@gmail.com</a></footer>
+</main>
 </div>
 
 <!-- OVERLAY DE ENTRENAMIENTO -->

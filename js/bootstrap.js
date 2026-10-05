@@ -90,6 +90,26 @@ function initModalFocusManagement(){
   sync();
 }
 
+let desktopExperienceBound=false;
+function initDesktopExperience(){
+  if(desktopExperienceBound||typeof matchMedia!=='function')return;
+  desktopExperienceBound=true;
+  const mq=matchMedia('(min-width:1200px)');
+  const apply=()=>{
+    const details=document.getElementById('summaryMore');
+    if(!details)return;
+    if(mq.matches){
+      if(!details.open){details.open=true;details.dataset.desktopOpened='1';}
+    }else if(details.dataset.desktopOpened==='1'){
+      details.open=false;
+      delete details.dataset.desktopOpened;
+    }
+  };
+  if(typeof mq.addEventListener==='function')mq.addEventListener('change',apply);
+  else if(typeof mq.addListener==='function')mq.addListener(apply);
+  apply();
+}
+
 let themePreferenceBound=false;
 function initThemePreferenceListener(){
     if(themePreferenceBound||typeof matchMedia!=='function')return;
@@ -108,6 +128,7 @@ async function initApp() {
     initThemePreferenceListener();
     initTabKeyboard();
     initModalFocusManagement();
+    initDesktopExperience();
     setProgressView('performance');
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
