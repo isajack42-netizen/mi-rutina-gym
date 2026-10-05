@@ -274,7 +274,7 @@ function sanitizeSet(set,index=0){
     rest: normalizeRestLabel(boundedString(set.rest,40,'-') || '-'),
     type: normalizeSetType(set.type||set.setType),
     done,
-    ...(restUsed!==null ? {restUsed} : {})
+    ...(restUsed!==null ? {restUsed,...(set.restEstimated===true?{restEstimated:true}:{})} : {})
   };
 }
 
