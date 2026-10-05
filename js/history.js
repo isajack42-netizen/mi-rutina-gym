@@ -98,8 +98,9 @@ function historyPopulateFilters(){
   const exerciseEl=document.getElementById('historyExercise');
   if(!routineEl||!exerciseEl)return;
   const routineCurrent=routineEl.value,exerciseCurrent=exerciseEl.value;
-  const routines=[...new Set(Object.keys(data).sort().map(d=>categories[d]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
-  const exercises=getAllExercises();
+  const workoutDates=Object.keys(data).sort().filter(date=>(data[date]||[]).some(e=>!e.isCardio&&(e.sets||[]).some(historyValidSet)));
+  const routines=[...new Set(workoutDates.map(d=>categories[d]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const exercises=[...new Set(workoutDates.flatMap(date=>(data[date]||[]).filter(e=>!e.isCardio&&(e.sets||[]).some(historyValidSet)).map(e=>e.name)))].sort((a,b)=>a.localeCompare(b,'es'));
   routineEl.innerHTML='<option value="">Todas las rutinas</option>'+routines.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('');
   exerciseEl.innerHTML='<option value="">Todos los ejercicios</option>'+exercises.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('');
   if(routines.includes(routineCurrent))routineEl.value=routineCurrent;
