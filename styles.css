@@ -810,3 +810,9 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .header-actions .header-utility{display:none}.settings-appearance-grid{grid-template-columns:1fr}.settings-palette-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .settings-unit-row{align-items:stretch;flex-direction:column}.settings-unit-row .btn{width:100%}.train-tags{gap:4px}.train-context>summary{padding:8px 9px}
 }
+
+
+/* ===== v6.1.2 · Series pendientes al terminar ===== */
+.train-pending{display:grid;gap:4px;margin:0 0 12px;padding:12px;border:1px solid var(--yellow);border-radius:var(--radius-sm);background:var(--card2)}
+.train-pending b{color:var(--yellow)}
+.train-pending span{color:var(--muted);font-size:var(--fs-sm);line-height:1.4}

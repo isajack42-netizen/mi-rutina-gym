@@ -40,7 +40,7 @@ window.addSet = function(values=null){
       }
   }
 
-  setCounter++;const d=document.createElement('div');d.className='set-row';d.id=`set-${setCounter}`; if(v.restUsed) d.dataset.restused=v.restUsed;
+  setCounter++;const d=document.createElement('div');d.className='set-row';d.id=`set-${setCounter}`; if(v.restUsed) d.dataset.restused=v.restUsed; if(v.restEstimated) d.dataset.restest='1';
   d.innerHTML=`
     <div class="set-main">
         <div class="set-num">${setCounter}</div>
@@ -113,7 +113,7 @@ window.saveEntry = function(){
         reps:r.querySelector('.set-reps').value||'-',
         weight:toKg(r.querySelector('.set-weight').value),
         rir:r.querySelector('.set-rir').value||'-',
-        rest:r.querySelector('.set-rest').value||'-', type:normalizeSetType(r.querySelector('.set-type')?.value),...(r.dataset.restused?{restUsed:Number(r.dataset.restused)}:{})
+        rest:r.querySelector('.set-rest').value||'-', type:normalizeSetType(r.querySelector('.set-type')?.value),...(r.dataset.restused?{restUsed:Number(r.dataset.restused)}:{}),...(r.dataset.restused&&r.dataset.restest==='1'?{restEstimated:true}:{})
     })).filter(s=>(parseFloat(s.reps)||0)>0);
     if(!sets.length){toast('Registra al menos una serie con repeticiones');return}
     newEntry = {id: window.editingId || Date.now(), isCardio:false, name:normalizeName(name), sets:sets};
@@ -153,7 +153,7 @@ window.editEntry = function(date, id) {
             reps: s.reps!=='-'?s.reps:'', 
             weight: fromKg(s.weight) ? Math.round(fromKg(s.weight)*10)/10 : '', 
             rir: s.rir, 
-            rest: s.rest, type:s.type, restUsed: s.restUsed
+            rest: s.rest, type:s.type, restUsed: s.restUsed, restEstimated: s.restEstimated
         }));
     }
     window.editingId = id;
@@ -230,7 +230,7 @@ function loadDay(){
 function renderExerciseCard(e,date){
   if(e.isCardio)return `<div class="exercise-card"><div class="exercise-title"><span>${ic('pulse')} ${escapeHtml(e.name)}</span><span class="badge">Cardio</span></div><div class="muted">Tiempo ${escapeHtml(e.time)} min &nbsp; · &nbsp; Distancia ${escapeHtml(e.distance)} km</div><div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`;
   const volDisplay = Math.round(fromKg(sessionVolume(e))*10)/10;
-  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}${e.substitutedFrom?` <small class="muted">· sustituyó a ${escapeHtml(e.substitutedFrom)}</small>`:''}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log ${isWarmupSet(s)?'warmup-set':''}"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>${isWarmupSet(s)?'Calent.':isFailureSet(s)?'Fallo':'RIR '+escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?fmtRest(s.restUsed):normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
+  return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}${e.substitutedFrom?` <small class="muted">· sustituyó a ${escapeHtml(e.substitutedFrom)}</small>`:''}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log ${isWarmupSet(s)?'warmup-set':''}"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>${isWarmupSet(s)?'Calent.':isFailureSet(s)?'Fallo':'RIR '+escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?(s.restEstimated?'≈ ':'')+fmtRest(s.restUsed):normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
 window.deleteEntry = async function(date,id){if(!(await appConfirm('¿Eliminar este registro?',{title:'Eliminar registro',confirmText:'Eliminar',danger:true})))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase({days:[date]});loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
