@@ -13,13 +13,14 @@ function refreshAll(){
     // updateChart() ya refresca el detalle y Training Intelligence.
     updateChart();
     renderAnalytics();
+    if(typeof renderHistory==='function')renderHistory();
     renderRoutines();
     renderTrainCTA();
     renderTrain();
 }
 let activeProgressView='performance';
 window.setProgressView=function(view,btn=null){
-    const allowed=['performance','intelligence','analytics','body'];
+    const allowed=['performance','intelligence','analytics','history','body'];
     activeProgressView=allowed.includes(view)?view:'performance';
     const root=document.getElementById('progreso');
     if(root)root.dataset.progressMode=['performance','intelligence'].includes(activeProgressView)?'exercise':'overview';
@@ -40,6 +41,7 @@ window.setProgressView=function(view,btn=null){
         if(typeof renderProgressionPanel==='function')renderProgressionPanel();
       }
       if(activeProgressView==='analytics'&&typeof renderAnalytics==='function')renderAnalytics();
+      if(activeProgressView==='history'&&typeof renderHistory==='function')renderHistory();
       if(activeProgressView==='body'){
         if(typeof renderBodyWeights==='function')renderBodyWeights();
         if(typeof renderMeasurementChart==='function')renderMeasurementChart();
@@ -51,7 +53,7 @@ function bindRovingTablist(root,selector){
     root.dataset.keyboardBound='1';
     root.addEventListener('keydown',e=>{
       if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
-      const tabs=[...root.querySelectorAll(selector)].filter(x=>!x.disabled);
+      const tabs=[...root.querySelectorAll(selector)].filter(x=>!x.disabled&&x.offsetParent!==null);
       if(!tabs.length)return;
       const cur=Math.max(0,tabs.indexOf(document.activeElement));
       let next=cur;
@@ -106,6 +108,10 @@ function initDesktopExperience(){
   const mq=matchMedia('(min-width:1200px)');
   const apply=()=>{
     const details=document.getElementById('summaryMore');
+    if(!mq.matches&&activeProgressView==='history'){
+      const analyticsBtn=document.getElementById('progress-tab-analytics');
+      if(analyticsBtn)setProgressView('analytics',analyticsBtn);
+    }
     if(!details)return;
     if(mq.matches){
       if(!details.open){details.open=true;details.dataset.desktopOpened='1';}
