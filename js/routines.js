@@ -6,7 +6,8 @@ window.openRoutineEditor = function(origName = '') {
     const exercises = isEdit && customRoutines[origName] ? customRoutines[origName] : [];
 
     let html = `
-    <div class="modal-content-wrapper">
+    <div class="modal-content-wrapper routine-editor-grid">
+      <div class="routine-editor-form">
         <h2 style="margin-top:0">${isEdit ? 'Editar Rutina' : 'Crear Rutina'}</h2>
         <label>Nombre de la rutina</label>
         <input type="text" id="editRoutineName" value="${escapeHtml(rName)}" placeholder="Ej. Push, Pull, Pierna..." style="margin-bottom: 12px;" ${isEdit ? 'data-orig="'+escapeHtml(origName)+'"' : ''}>
@@ -21,10 +22,14 @@ window.openRoutineEditor = function(origName = '') {
             <button class="btn btn-primary" onclick="saveRoutine()">Guardar</button>
         </div>
         ${isEdit ? `<div style="margin-top:10px;"><button class="btn btn-danger full" data-name="${escapeHtml(origName)}" onclick="deleteRoutine(this.dataset.name)">Eliminar Rutina</button></div>` : ''}
+      </div>
+      <aside class="routine-editor-preview desktop-planner-only" id="routineEditorPreview" aria-live="polite"></aside>
     </div>`;
 
     const modal = document.getElementById('modal');
+    modal.classList.add('routine-editor-modal');
     modal.innerHTML = html;
+    modal.oninput=()=>{ if(typeof renderRoutineEditorPreview==='function')renderRoutineEditorPreview(); };
     
     if(exercises.length === 0) {
         addRoutineExerciseRow();
@@ -32,6 +37,7 @@ window.openRoutineEditor = function(origName = '') {
         exercises.forEach(ex => addRoutineExerciseRow(ex));
     }
 
+    if(typeof renderRoutineEditorPreview==='function')renderRoutineEditorPreview();
     document.getElementById('modalBackdrop').classList.add('show');
     document.body.classList.add('modal-open');
 }
@@ -48,7 +54,7 @@ window.addRoutineExerciseRow = function(ex = null) {
     div.innerHTML = `
         <div class="re-head">
             <input class="re-name" placeholder="Nombre del ejercicio" value="${escapeHtml(name)}" list="exerciseList">
-            <button class="remove-set" aria-label="Quitar ejercicio" onclick="this.closest('.routine-edit-row').remove()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+            <button class="remove-set" aria-label="Quitar ejercicio" onclick="this.closest('.routine-edit-row').remove(); if(typeof renderRoutineEditorPreview==='function')renderRoutineEditorPreview()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
         </div>
         <div class="re-subgrid">
             <div><label>Series</label><input class="re-sets" type="number" value="${sets}"></div>
@@ -58,6 +64,7 @@ window.addRoutineExerciseRow = function(ex = null) {
         </div>
     `;
     document.getElementById('editRoutineExercises').appendChild(div);
+    if(typeof renderRoutineEditorPreview==='function')renderRoutineEditorPreview();
 }
 
 window.saveRoutine = async function() {
@@ -140,6 +147,7 @@ function renderRoutines(){
         </div>
     </details>`;
   }).join('') || '<div class="empty"><b>Aún no tienes rutinas</b><span>Crea tu primera rutina para iniciar entrenamientos guiados.</span><button class="btn btn-primary empty-action" type="button" onclick="openRoutineEditor()">Crear primera rutina</button></div>';
+  if(typeof renderRoutinePlanner==='function')renderRoutinePlanner();
 }
 
 
