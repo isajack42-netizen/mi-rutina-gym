@@ -129,8 +129,4 @@ function renderRoutines(){
   }).join('') || '<div class="empty"><b>Aún no tienes rutinas</b><span>Crea tu primera rutina para iniciar entrenamientos guiados.</span></div>';
 }
 
-function refreshAll(){
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();renderAnalytics();renderRoutines();renderTrainCTA();renderTrain();
-}
 
