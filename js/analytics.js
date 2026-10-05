@@ -92,33 +92,67 @@ window.setWeeklySessionTarget=function(v){
   toast(`Meta semanal: ${n} sesión${n===1?'':'es'}`);
 };
 
+function analyticsSafe(label,fn){
+  try{return fn();}catch(e){console.error(`Analytics · ${label}:`,e);return null;}
+}
+function analyticsAdherenceMarkup(coverage,dates,expected){
+  if(!coverage.coverageDays){
+    return `<div class="analytics-adherence-hero empty-state"><div><span class="eyebrow">Adherencia</span><strong>Empieza con tu primera semana</strong><p>Aún no hay entrenamientos completados dentro del periodo seleccionado.</p></div></div>`;
+  }
+  const raw=expected?dates.length/expected*100:0;
+  const adherence=Math.min(100,Math.max(0,raw));
+  const pct=Math.round(adherence);
+  const expectedText=expected<10?expected.toFixed(1):Math.round(expected).toString();
+  const status=pct>=90?'Meta cubierta':pct>=70?'Buen ritmo':pct>=50?'Ritmo parcial':'Por debajo de la meta';
+  return `<div class="analytics-adherence-hero">
+    <div class="analytics-adherence-copy"><span class="eyebrow">Adherencia a tu meta</span><div class="analytics-adherence-value">${pct}%</div><strong>${status}</strong><p>${dates.length} sesiones completadas · objetivo equivalente ${expectedText} · meta ${weeklySessionTarget}/sem</p></div>
+    <div class="analytics-adherence-meter" aria-label="Adherencia ${pct}%"><span style="width:${pct}%"></span></div>
+  </div>`;
+}
 window.renderAnalytics=function(){
   const overview=document.getElementById('analyticsOverview'); if(!overview)return;
   const target=document.getElementById('analyticsWeeklyTarget'); if(target)target.value=String(weeklySessionTarget);
-  const period=analyticsPeriod(),coverage=analyticsCoverage(period);
-  const dates=coverage.coverageDays?analyticsWorkoutDates(coverage.coverageStart,period.endKey):[];
-  const expected=analyticsExpectedSessions(coverage);
-  const adherence=expected?Math.min(100,(dates.length/expected)*100):0;
+
+  let period,coverage,dates=[],expected=0;
+  try{
+    period=analyticsPeriod();
+    coverage=analyticsCoverage(period);
+    dates=coverage.coverageDays?analyticsWorkoutDates(coverage.coverageStart,period.endKey):[];
+    expected=analyticsExpectedSessions(coverage);
+  }catch(e){
+    console.error('Analytics · resumen base:',e);
+    overview.innerHTML='<div class="analytics-adherence-hero empty-state"><div><span class="eyebrow">Adherencia</span><strong>No se pudo calcular</strong><p>Recarga la vista de Progreso. Tus entrenamientos no se modificaron.</p></div></div>';
+    return;
+  }
+
+  // La adherencia se pinta primero y de forma independiente: si un gráfico o
+  // análisis avanzado falla, este indicador básico nunca debe quedar vacío.
+  overview.innerHTML=analyticsAdherenceMarkup(coverage,dates,expected)+'<div id="analyticsSecondaryKpis"></div><div id="analyticsNoteSlot"></div>';
+
+  let prs=0,trends=[],up=[],attention=[],evaluated=0;
+  analyticsSafe('PR del periodo',()=>{prs=coverage.coverageDays?analyticsPRCount(coverage.coverageStart,period.endKey):0;});
+  analyticsSafe('tendencias por ejercicio',()=>{
+    trends=coverage.coverageDays?analyticsExerciseTrends(coverage.coverageStart,period.endKey):[];
+    up=trends.filter(x=>x.improving);
+    attention=trends.filter(x=>x.stagnant||x.down);
+    evaluated=trends.filter(x=>x.status!=='insufficient').length;
+  });
   const avg=coverage.coverageWeeks?dates.length/coverage.coverageWeeks:0;
-  const prs=coverage.coverageDays?analyticsPRCount(coverage.coverageStart,period.endKey):0;
-  const trends=coverage.coverageDays?analyticsExerciseTrends(coverage.coverageStart,period.endKey):[];
-  const up=trends.filter(x=>x.improving);
-  const attention=trends.filter(x=>x.stagnant||x.down);
-  const evaluated=trends.filter(x=>x.status!=='insufficient').length;
-  overview.innerHTML=`<div class="analytics-kpis">
-    <div class="analytics-kpi"><div class="label">Adherencia a meta</div><div class="value">${coverage.coverageDays?Math.round(adherence)+'%':'—'}</div><small>${dates.length} sesiones · meta ${weeklySessionTarget}/sem</small></div>
+  const secondary=document.getElementById('analyticsSecondaryKpis');
+  if(secondary) secondary.innerHTML=`<div class="analytics-kpis analytics-kpis-secondary">
     <div class="analytics-kpi"><div class="label">Promedio semanal</div><div class="value">${coverage.coverageDays?avg.toFixed(1):'—'}</div><small>${coverage.coverageDays?`${coverage.coverageDays} días de cobertura`:'Aún sin historial'}</small></div>
     <div class="analytics-kpi"><div class="label">PR en el periodo</div><div class="value">${prs}</div><small>peso, e1RM y reps @ carga</small></div>
-    <div class="analytics-kpi"><div class="label">Ejercicios en mejora</div><div class="value">${up.length}</div><small>${evaluated?`${attention.length} para revisar · ${evaluated} evaluados`:'Faltan sesiones comparables'}</small></div>
-  </div>
-  <div class="analytics-note">La adherencia usa tu meta semanal y el tiempo cubierto desde el primer entrenamiento disponible dentro del periodo. “Para revisar” significa ausencia de mejora reciente o caída de e1RM; no implica por sí sola fatiga ni que debas cambiar la rutina.</div>`;
+    <div class="analytics-kpi"><div class="label">Ejercicios en mejora</div><div class="value">${up.length}</div><small>${evaluated?`${attention.length} para revisar · ${evaluated} evaluados`:'Con 1–3 sesiones aún priorizamos propuestas provisionales'}</small></div>
+  </div>`;
+  const note=document.getElementById('analyticsNoteSlot');
+  if(note)note.innerHTML='<div class="analytics-note">La adherencia se prorratea desde tu primer entrenamiento disponible dentro del periodo. Con poco historial, LiftEngine muestra propuestas provisionales; las señales de meseta o caída requieren más sesiones comparables.</div>';
 
   const cov=document.getElementById('analyticsCoverage');
   if(cov)cov.textContent=coverage.coverageDays?`${fmtDate(coverage.coverageStart)} → ${fmtDate(period.endKey)}`:'Sin datos';
-  renderAnalyticsWeeklyChart(period,coverage);
-  renderAnalyticsMuscles(coverage);
-  renderAnalyticsExerciseLists(up,attention,trends);
-  if(typeof window.renderIntelligenceAnalytics==='function') window.renderIntelligenceAnalytics(coverage);
+  analyticsSafe('gráfica semanal',()=>renderAnalyticsWeeklyChart(period,coverage));
+  analyticsSafe('músculos',()=>renderAnalyticsMuscles(coverage));
+  analyticsSafe('listas de progreso',()=>renderAnalyticsExerciseLists(up,attention,trends));
+  analyticsSafe('próximas decisiones',()=>{if(typeof window.renderIntelligenceAnalytics==='function')window.renderIntelligenceAnalytics(coverage);});
 };
 
 function renderAnalyticsWeeklyChart(period,coverage){

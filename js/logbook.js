@@ -10,7 +10,13 @@ window.switchTab = function(id,btn){
   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');
   if(id==='resumen')renderDashboard();
   if(id==='calendario')renderCalendar();
-  if(id==='progreso'){populateExercises();updateChart();renderBodyWeights();renderProgressionPanel();renderAnalytics()}
+  if(id==='progreso'){
+    populateExercises();
+    ensureProgressExerciseSelection();
+    updateChart();
+    renderBodyWeights();
+    renderAnalytics();
+  }
   if(id==='rutinas'){renderRoutines();}
 }
 
@@ -190,6 +196,24 @@ function migrateNames(){
   return changed;
 }
 function populateExercises(){const all=getAllExercises();document.getElementById('exerciseList').innerHTML=all.map(x=>`<option value="${escapeHtml(x)}">`).join('');const sel=document.getElementById('chartExercise');const cur=sel.value;sel.innerHTML='<option value="">-- Elige un ejercicio --</option>'+all.map(x=>`<option>${escapeHtml(x)}</option>`).join('');if(all.includes(cur))sel.value=cur}
+function mostRecentExerciseName(){
+  const dates=Object.keys(data).sort().reverse();
+  for(const date of dates){
+    const rows=(data[date]||[]).filter(e=>!e.isCardio&&entryHasData(e));
+    if(rows.length)return rows[rows.length-1].name||'';
+  }
+  return '';
+}
+function ensureProgressExerciseSelection(){
+  const sel=document.getElementById('chartExercise');
+  if(!sel||sel.value)return false;
+  const name=mostRecentExerciseName();
+  if(!name)return false;
+  const option=[...sel.options].find(o=>o.value===name||o.textContent===name);
+  if(!option)return false;
+  sel.value=name;
+  return true;
+}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
 function loadDay(){

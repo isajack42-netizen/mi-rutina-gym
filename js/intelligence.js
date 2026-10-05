@@ -96,9 +96,18 @@ function intelConfidence(profiles,target){
   const rirCoverage=intelMean(profiles.slice(-3).map(x=>x.rirCoverage).filter(Number.isFinite))||0;
   const latestRirKnown=(profiles[profiles.length-1]?.rirCoverage||0)>0;
   if(n>=4&&exact&&rirCoverage>=.5&&latestRirKnown)return {level:'high',label:'Alta',text:'Historial suficiente, objetivo definido y RIR reciente disponible.'};
-  if(n>=2&&exact)return {level:'medium',label:'Media',text:'Hay historial comparable y objetivo de rutina, pero faltan más sesiones o RIR consistente.'};
+  if(n>=3&&exact)return {level:'medium',label:'Media',text:'Ya hay varias sesiones comparables; la recomendación puede usar progresión reciente, aunque la tendencia larga aún es limitada.'};
+  if(n>=2&&exact)return {level:'medium',label:'Media',text:'Hay dos sesiones comparables y un objetivo de rutina. La propuesta ya puede orientarte, pero todavía tiene poco historial.'};
+  if(n===1&&exact)return {level:'low',label:'Baja',text:'Propuesta provisional basada en una sola sesión y el objetivo de la rutina.'};
   if(n>=2)return {level:'medium',label:'Media',text:'Hay historial comparable, aunque no existe un objetivo único de rutina.'};
-  return {level:'low',label:'Baja',text:'La recomendación se apoya en muy poco historial; úsala solo como referencia.'};
+  return {level:'low',label:'Baja',text:'La recomendación se apoya en muy poco historial; úsala como referencia y deja que gane confianza con nuevas sesiones.'};
+}
+function intelMaturity(profiles,target){
+  const n=profiles.length;
+  if(!n)return {level:'initial',label:'Referencia inicial',detail:'Aún no hay una sesión previa completa.'};
+  if(n<=2)return {level:'provisional',label:'Propuesta provisional',detail:`${n} sesión${n===1?'':'es'} registrada${n===1?'':'s'}: útil para orientar la próxima sesión, todavía sin tendencia sólida.`};
+  if(n===3)return {level:'standard',label:'Recomendación',detail:'Tres sesiones comparables permiten una recomendación más estable, pero aún no una lectura fuerte de meseta o fatiga.'};
+  return {level:'trend',label:'Recomendación + tendencia',detail:'Hay suficiente historial para combinar la próxima decisión con señales de tendencia reciente.'};
 }
 function intelPlanSuggestions(last,target,action,nextWeightKg){
   const previous=last?.validSets||[];
@@ -164,6 +173,7 @@ function getTrainingIntelligence(name,opts={}){
   const last=profiles[profiles.length-1]||null;
   const trend=intelTrend(profiles,target);
   const confidence=intelConfidence(profiles,target);
+  const maturity=intelMaturity(profiles,target);
   const reasons=[];
   let action='reference',title='Usa una sesión de referencia',summary='Todavía no hay suficiente información para prescribir una progresión con confianza.';
   let nextWeightKg=last?.primaryWeight||last?.bestWeight||0;
@@ -188,8 +198,12 @@ function getTrainingIntelligence(name,opts={}){
       summary='No aparece un nuevo máximo reciente. Repite una sesión comparable y busca una mejora pequeña antes de cambiar la carga.';
       reasons.push(`${trend.sessionsSinceBest} sesiones desde el último mejor e1RM.`);
     }else{
-      action='reference';title='Usa la última sesión como referencia';
-      summary=`Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca igualar o superar ligeramente el rendimiento con técnica estable.`;
+      action=profiles.length<=2?'reps':'reference';
+      title=profiles.length<=2?'Repite la carga y busca una mejora pequeña':'Usa la última sesión como referencia';
+      summary=profiles.length<=2
+        ?`Con el historial actual, la opción más prudente es repetir aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} e intentar una repetición total adicional o una ejecución más cómoda.`
+        :`Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca igualar o superar ligeramente el rendimiento con técnica estable.`;
+      reasons.push(profiles.length<=2?`${profiles.length} sesión${profiles.length===1?'':'es'} disponible${profiles.length===1?'':'s'}: todavía no hay base suficiente para interpretar una tendencia.`:'Usamos la sesión más reciente como referencia comparable.');
       if(trend.periodDeltaPct!=null)reasons.push(`Tendencia del historial: ${trend.periodDeltaPct>=0?'+':''}${trend.periodDeltaPct.toFixed(1)}% de e1RM.`);
     }
   }else{
@@ -274,7 +288,7 @@ function getTrainingIntelligence(name,opts={}){
   };
   return {
     name,action,...intelActionMeta(action),title,summary,reasons:[...new Set(reasons)].slice(0,5),
-    confidence,trend,target,profiles,last,plan,
+    confidence,maturity,trend,target,profiles,last,plan,
     hasHistory:!!last,historyCount:profiles.length,lastDate:last?.date||'',
     warning:trend.fatigueLike?'possible-fatigue':trend.performanceDown?'performance-down':trend.plateau?'plateau':''
   };
@@ -301,13 +315,15 @@ function intelligenceSignalChips(intel){
   if(intel.trend?.performanceDown)chips.push('<span class="intel-chip down">Rendimiento ↓</span>');
   else if(intel.trend?.status==='improving')chips.push('<span class="intel-chip up">Tendencia ↑</span>');
   if(intel.trend?.fatigueLike)chips.push('<span class="intel-chip watch">Revisar recuperación</span>');
+  if(intel.maturity?.label)chips.push(`<span class="intel-chip">${escapeHtml(intel.maturity.label)}</span>`);
   chips.push(`<span class="intel-chip">Confianza ${escapeHtml(intel.confidence.label.toLowerCase())}</span>`);
   return chips.join('');
 }
 window.renderIntelligenceCard=function(intel,{compact=false,whyAction='openCurrentIntelligenceWhy()'}={}){
   if(!intel)return '<div class="empty">No hay suficiente información.</div>';
+  const eyebrow=intel.maturity?.label||'Próxima decisión';
   return `<div class="intelligence-card ${escapeHtml(intel.tone)} ${compact?'compact':''}">
-    <div class="intelligence-head"><div><span class="eyebrow">Próxima decisión</span><strong>${escapeHtml(intel.title)}</strong></div><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span></div>
+    <div class="intelligence-head"><div><span class="eyebrow">${escapeHtml(eyebrow)}</span><strong>${escapeHtml(intel.title)}</strong></div><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span></div>
     <div class="intelligence-plan">${escapeHtml(intelligencePlanText(intel))}</div>
     <p>${escapeHtml(intel.summary)}</p>
     <div class="intelligence-chips">${intelligenceSignalChips(intel)}</div>
@@ -328,6 +344,7 @@ function intelligenceWhyHtml(intel){
     <div class="intel-detail-grid">
       <div><small>Última referencia</small><b>${escapeHtml(history)}</b></div>
       <div><small>Objetivo de rutina</small><b>${escapeHtml(targetText)}</b></div>
+      <div><small>Madurez de la recomendación</small><b>${escapeHtml(intel.maturity?.label||'Referencia')}</b><span>${escapeHtml(intel.maturity?.detail||intel.confidence.text)}</span></div>
       <div><small>Confianza</small><b>${escapeHtml(intel.confidence.label)}</b><span>${escapeHtml(intel.confidence.text)}</span></div>
       <div><small>Lectura de tendencia</small><b>${escapeHtml(intel.trend.status==='down'?'Descendente':intel.trend.status==='plateau'?'Meseta reciente':intel.trend.status==='improving'?'En mejora':'Estable / insuficiente')}</b><span>Una señal no equivale a un diagnóstico de fatiga.</span></div>
     </div>
@@ -356,5 +373,5 @@ window.renderIntelligenceAnalytics=function(coverage){
     const bw=b.warning==='possible-fatigue'?0:b.warning==='performance-down'?1:b.warning==='plateau'?2:3;
     return aw-bw||(priority[a.action]??9)-(priority[b.action]??9)||String(b.lastDate).localeCompare(String(a.lastDate));
   }).slice(0,6);
-  box.innerHTML=rows.length?rows.map(x=>`<div class="intel-list-item"><div><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.title)} · ${escapeHtml(intelligencePlanText(x))}</small></div><span class="intelligence-action ${escapeHtml(x.tone)}">${escapeHtml(x.label)}</span></div>`).join(''):'<div class="empty">No hay ejercicios evaluables en este periodo.</div>';
+  box.innerHTML=rows.length?rows.map(x=>`<div class="intel-list-item"><div><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.maturity?.label||'Recomendación')} · ${escapeHtml(x.title)} · ${escapeHtml(intelligencePlanText(x))}</small></div><span class="intelligence-action ${escapeHtml(x.tone)}">${escapeHtml(x.label)}</span></div>`).join(''):'<div class="empty">No hay ejercicios evaluables en este periodo.</div>';
 };
