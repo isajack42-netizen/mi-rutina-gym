@@ -92,15 +92,15 @@
 </header>
 
 <nav class="tabs" role="tablist" aria-label="Secciones de LiftEngine">
-<button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('resumen',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>Resumen</span></button>
-<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('registro',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg></span><span>Registro</span></button>
-<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
-<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
-<button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
+<button class="tab-btn active" id="tab-resumen" role="tab" aria-selected="true" aria-controls="resumen" tabindex="0" onclick="switchTab('resumen',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>Resumen</span></button>
+<button class="tab-btn" id="tab-registro" role="tab" aria-selected="false" aria-controls="registro" tabindex="-1" onclick="switchTab('registro',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg></span><span>Registro</span></button>
+<button class="tab-btn" id="tab-calendario" role="tab" aria-selected="false" aria-controls="calendario" tabindex="-1" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
+<button class="tab-btn" id="tab-progreso" role="tab" aria-selected="false" aria-controls="progreso" tabindex="-1" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
+<button class="tab-btn" id="tab-rutinas" role="tab" aria-selected="false" aria-controls="rutinas" tabindex="-1" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
 </nav>
 
 <!-- PESTAÑA: RESUMEN -->
-<section id="resumen" class="tab active">
+<section id="resumen" class="tab active" role="tabpanel" aria-labelledby="tab-resumen">
   <div class="train-cta-slot"></div>
   <div class="card dashboard-v6-card">
     <div class="section-title"><div><span class="eyebrow">LiftEngine v6.1</span><h2>Lo importante ahora</h2></div><span class="badge">últimas 8 semanas</span></div>
@@ -141,7 +141,7 @@
 </section>
 
 <!-- PESTAÑA: REGISTRO -->
-<section id="registro" class="tab">
+<section id="registro" class="tab" role="tabpanel" aria-labelledby="tab-registro">
   <div class="train-cta-slot"></div>
   <div class="card">
     <div class="section-title">
@@ -199,7 +199,7 @@
 </section>
 
 <!-- PESTAÑA: CALENDARIO -->
-<section id="calendario" class="tab">
+<section id="calendario" class="tab" role="tabpanel" aria-labelledby="tab-calendario">
   <div class="train-cta-slot"></div>
   <div class="card">
     <div class="calendar-head">
@@ -213,15 +213,15 @@
 </section>
 
 <!-- PESTAÑA: PROGRESO -->
-<section id="progreso" class="tab">
+<section id="progreso" class="tab" role="tabpanel" aria-labelledby="tab-progreso">
   <div class="train-cta-slot"></div>
   <nav class="progress-nav" role="tablist" aria-label="Vistas de progreso">
-    <button class="progress-nav-btn active" role="tab" aria-selected="true" data-view="performance" onclick="setProgressView('performance',this)">Rendimiento</button>
-    <button class="progress-nav-btn" role="tab" aria-selected="false" data-view="intelligence" onclick="setProgressView('intelligence',this)">Inteligencia</button>
-    <button class="progress-nav-btn" role="tab" aria-selected="false" data-view="analytics" onclick="setProgressView('analytics',this)">Analítica</button>
-    <button class="progress-nav-btn" role="tab" aria-selected="false" data-view="body" onclick="setProgressView('body',this)">Cuerpo</button>
+    <button class="progress-nav-btn active" id="progress-tab-performance" role="tab" aria-selected="true" aria-controls="progress-performance" tabindex="0" data-view="performance" onclick="setProgressView('performance',this)">Rendimiento</button>
+    <button class="progress-nav-btn" id="progress-tab-intelligence" role="tab" aria-selected="false" aria-controls="progress-intelligence" tabindex="-1" data-view="intelligence" onclick="setProgressView('intelligence',this)">Inteligencia</button>
+    <button class="progress-nav-btn" id="progress-tab-analytics" role="tab" aria-selected="false" aria-controls="progress-analytics" tabindex="-1" data-view="analytics" onclick="setProgressView('analytics',this)">Analítica</button>
+    <button class="progress-nav-btn" id="progress-tab-body" role="tab" aria-selected="false" aria-controls="progress-body" tabindex="-1" data-view="body" onclick="setProgressView('body',this)">Cuerpo</button>
   </nav>
-  <div class="card progress-view active" data-progress-view="performance">
+  <div class="card progress-view active" id="progress-performance" role="tabpanel" aria-labelledby="progress-tab-performance" data-progress-view="performance">
     <div class="section-title"><div><span class="eyebrow">Rendimiento</span><h2>Evolución por ejercicio</h2></div></div>
     <div class="grid grid-2" style="margin-bottom:12px">
       <div><label for="chartExercise">Ejercicio</label><select id="chartExercise" onchange="updateChart()"></select></div>
@@ -231,12 +231,12 @@
     <div id="exerciseDetail" style="margin-top:14px"></div>
   </div>
 
-  <div class="card progress-view" data-progress-view="intelligence">
+  <div class="card progress-view" id="progress-intelligence" role="tabpanel" aria-labelledby="progress-tab-intelligence" data-progress-view="intelligence">
     <div class="section-title intelligence-section-title"><div><span class="eyebrow">Próxima sesión</span><h2>Inteligencia de entrenamiento</h2><p class="muted intelligence-subtitle">Recomendación explicable para tu próxima sesión, basada en carga, reps, RIR, objetivo de rutina y tendencia.</p></div></div>
     <div id="progressionPanel" aria-live="polite"><div class="empty"><b>Selecciona un ejercicio</b><span>Verás aquí la recomendación para tu próxima sesión y el motivo detrás de ella.</span></div></div>
   </div>
 
-  <div class="card progress-view" data-progress-view="analytics" id="analyticsCard">
+  <div class="card progress-view" id="progress-analytics" role="tabpanel" aria-labelledby="progress-tab-analytics" data-progress-view="analytics">
     <div class="section-title analytics-title">
       <div>
         <h2>Analítica de entrenamiento</h2>
@@ -268,7 +268,7 @@
     </div>
   </div>
 
-  <div class="card progress-view" data-progress-view="body">
+  <div class="card progress-view" id="progress-body" role="tabpanel" aria-labelledby="progress-tab-body" data-progress-view="body">
     <div class="section-title">
       <div><span class="eyebrow">Cuerpo</span><h2>Composición corporal</h2></div>
       <button class="btn btn-secondary" onclick="openMeasurementModal()">+ Registrar medidas</button>
@@ -293,7 +293,7 @@
 </section>
 
 <!-- PESTAÑA: RUTINAS -->
-<section id="rutinas" class="tab">
+<section id="rutinas" class="tab" role="tabpanel" aria-labelledby="tab-rutinas">
   <div class="train-cta-slot"></div>
   <div class="card">
     <div class="section-title">
