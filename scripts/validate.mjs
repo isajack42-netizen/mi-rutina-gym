@@ -110,6 +110,8 @@ if(!read('js/logbook.js').includes('renderDesktopExerciseBrowser')||!read('js/lo
 if(!read('js/bootstrap.js').includes("dataset.progressMode=['performance','intelligence'].includes(activeProgressView)?'exercise':'overview'")) fail.push('Progreso no distingue modo ejercicio/overview en escritorio.');
 if(!css.includes('v6.3 · DESKTOP ANALYTICS WORKSPACE')||!css.includes('#progreso.active[data-progress-mode="exercise"]')) fail.push('Falta el layout Desktop Analytics Workspace v6.3.');
 if(!css.includes('@media(min-width:1320px)')) fail.push('El explorador de ejercicios debe activarse solo con ancho desktop suficiente.');
+if(!css.includes('--progress-workspace-min:calc(100vh - 40px)')||!css.includes('min-height:var(--progress-workspace-min)')||!css.includes('height:var(--progress-workspace-min)')) fail.push('El workspace de Progreso debe mantener una altura visual estable entre subpestañas.');
+if(!html.includes('id="summaryVersionLabel"')||!read('js/bootstrap.js').includes('summaryVersionLabel')) fail.push('La versión visible debe provenir de LIFTENGINE_VERSION y no quedar estática.');
 
 let depth=0;
 for(const ch of css){
