@@ -237,7 +237,8 @@ window.importCSV=async function(event){
     Object.assign(categories,stagedCats); Object.assign(notes,stagedNotes); Object.assign(exerciseNotes,stagedExerciseNotes);
     const byDate=(arr)=>{const m=new Map();arr.forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
     weights=byDate([...weights,...stagedWeights]); measurements=byDate([...measurements,...stagedMeasures]);
-    persistLocal(); await saveToFirebase(); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
+    const affectedDates=[...new Set([...Object.keys(stagedData),...Object.keys(stagedCats),...Object.keys(stagedNotes),...stagedWeights.map(x=>x.date),...stagedMeasures.map(x=>x.date)])];
+    await saveToFirebase({days:affectedDates,settings:Object.keys(stagedExerciseNotes).length>0}); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
   }catch(err){ await appAlert('No se pudo importar el CSV: '+(err&&err.message?err.message:err),'Error de importación'); }
   finally{ input.value=''; }
 }
@@ -261,7 +262,7 @@ Se combinarán con tus medidas actuales sin borrar registros más recientes.`,{t
     const backup=safeParse(localStorage.getItem('gymRecoveryBackup'),{});delete backup[MEASURE];
     if(Object.keys(backup).length)localStorage.setItem('gymRecoveryBackup',JSON.stringify(backup));else localStorage.removeItem('gymRecoveryBackup');
   }catch(e){}
-  persistLocal();await saveToFirebase();renderBodyWeights();renderSettingsModal();toast('Medidas recuperadas y sincronizadas');
+  await saveToFirebase({days:recovered.map(x=>x.date)});renderBodyWeights();renderSettingsModal();toast('Medidas recuperadas y sincronizadas');
 }
 
 function renderSettingsModal(){
@@ -285,7 +286,7 @@ function renderSettingsModal(){
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="toggleNotifications()">${ic('bell')} Avisos de descanso: ${({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()]}</button>
             <p class="muted" style="font-size:.72rem;margin:-4px 0 14px">Los avisos actuales son locales y dependen de que iOS/Android mantenga activa la PWA. Un aviso garantizado con pantalla bloqueada requiere Push desde un servidor.</p>
             
-            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.<br><span class="cloud-badge ${cloudMode==='v2'?'v2':''}">${ic('cloud')} ${escapeHtml(cloudModeLabel())}</span></p>
+            <p class="muted">Sesión: <b>${escapeHtml((fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión')}</b><br>Tus datos se sincronizan con tu cuenta de Google.<br><span class="cloud-badge ${cloudMode==='v2'?'v2':''}">${ic('cloud')} ${escapeHtml(cloudModeLabel())}</span><br><span style="font-size:.72rem">Almacenamiento local: <b>${escapeHtml(localStoreLabel())}</b>${cloudMode==='v2'?' · sincronización incremental':''}</span></p>
             <button class="btn btn-secondary full" style="margin-bottom:12px;" onclick="retryCloudSync()">${ic('cloud')} Reintentar sincronización</button>
             ${cloudMode!=='v2'?`<button class="btn btn-secondary full" style="margin-bottom:12px;border-style:dashed" onclick="tryMigrateCloudV2()">${ic('trend')} Activar nube v2</button>`:''}
             ${recoverableMeasurementsFromLocalBackup().length?`<button class="btn btn-secondary full" style="margin-bottom:12px;border-color:#f2c96d" onclick="restoreMeasurementsFromRecovery()">${ic('trend')} Recuperar medidas desde copia local</button>`:''}
@@ -367,7 +368,7 @@ window.updateExerciseMuscle = function(ex, newMuscle) {
         if(!customMuscles[newMuscle]) customMuscles[newMuscle] = [];
         if(!customMuscles[newMuscle].includes(ex)) customMuscles[newMuscle].push(ex);
     }
-    saveToFirebase();
+    saveToFirebase({settings:true});
     refreshAll();
 }
 
@@ -377,8 +378,7 @@ window.addAlias = function() {
     if(!from || !to) { toast('Llena ambos campos'); return; }
     customAliases[from] = to;
     const changed=migrateNames();
-    persistLocal();
-    saveToFirebase();
+    saveToFirebase({settings:true});
     populateExercises(); refreshAll();
     openCatalogsModal('alias');
     toast(changed?'Alias añadido y nombres unificados':'Regla de alias añadida');
@@ -387,7 +387,7 @@ window.addAlias = function() {
 window.deleteAlias = async function(alias) {
     if(!(await appConfirm('¿Eliminar esta regla de alias?',{title:'Eliminar alias',confirmText:'Eliminar',danger:true}))) return;
     delete customAliases[alias];
-    saveToFirebase();
+    saveToFirebase({settings:true});
     openCatalogsModal('alias');
     toast('Regla eliminada');
 }
@@ -409,7 +409,8 @@ function buildBackupPayload(){
     customAliases:sanitizeAliases(customAliases),
     customMuscles:sanitizeMuscles(customMuscles),
     currentUnit:currentUnit==='lbs'?'lbs':'kg',
-    currentTheme:cleanString(currentTheme,'default')||'default'
+    currentTheme:cleanString(currentTheme,'default')||'default',
+    weeklySessionTarget:Math.min(7,Math.max(1,parseInt(weeklySessionTarget,10)||6))
   };
 }
 
@@ -425,6 +426,7 @@ function validateBackupPayload(x){
   if(x.customAliases!=null&&!isPlainObject(x.customAliases)) return {ok:false,reason:'La sección de alias no es válida.'};
   if(x.customMuscles!=null&&!isPlainObject(x.customMuscles)) return {ok:false,reason:'La sección de músculos no es válida.'};
   if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return {ok:false,reason:'La unidad del archivo no es válida.'};
+  if(x.weeklySessionTarget!=null&&(!Number.isInteger(Number(x.weeklySessionTarget))||Number(x.weeklySessionTarget)<1||Number(x.weeklySessionTarget)>7)) return {ok:false,reason:'La meta semanal del archivo no es válida.'};
   const cleanData=sanitizeData(x.data);
   const sourceDays=Object.keys(x.data).length,cleanDays=Object.keys(cleanData).length;
   if(sourceDays>0&&cleanDays===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
@@ -459,7 +461,8 @@ window.importData = function(ev){
         customAliases:Object.prototype.hasOwnProperty.call(x,'customAliases')?sanitizeAliases(x.customAliases):JSON.parse(JSON.stringify(defaultAliases)),
         customMuscles:Object.prototype.hasOwnProperty.call(x,'customMuscles')?sanitizeMuscles(x.customMuscles):JSON.parse(JSON.stringify(defaultMuscles)),
         currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
-        currentTheme:cleanString(x.currentTheme,'default')||'default'
+        currentTheme:cleanString(x.currentTheme,'default')||'default',
+        weeklySessionTarget:Math.min(7,Math.max(1,parseInt(x.weeklySessionTarget,10)||6))
       };
       const days=Object.keys(clean.data).length;
       const sourceDays=Object.keys(x.data).length;
@@ -470,10 +473,10 @@ window.importData = function(ev){
       customRoutines=clean.customRoutines;
       customAliases=clean.customAliases;
       customMuscles=clean.customMuscles;
-      currentUnit=clean.currentUnit; currentTheme=clean.currentTheme;
-      persistLocal();
+      currentUnit=clean.currentUnit; currentTheme=clean.currentTheme; weeklySessionTarget=clean.weeklySessionTarget;
+      markAllDaysDirty({cloud:true,local:true}); markSettingsDirty({cloud:true,local:true});
       migrateNames();
-      await saveToFirebase();
+      await saveToFirebase({allDays:true,settings:true});
       closeModal(); refreshAll();
       toast('Importado y validado correctamente');
     }catch(e){ await appAlert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.'),'No se pudo restaurar'); }

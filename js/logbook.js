@@ -9,7 +9,7 @@ window.switchTab = function(id,btn){
   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');
   if(id==='resumen')renderDashboard();
   if(id==='calendario')renderCalendar();
-  if(id==='progreso'){populateExercises();updateChart();renderBodyWeights();renderProgressionPanel()}
+  if(id==='progreso'){populateExercises();updateChart();renderBodyWeights();renderProgressionPanel();renderAnalytics()}
   if(id==='rutinas'){renderRoutines();}
 }
 
@@ -59,15 +59,15 @@ window.clearEntry = function(){
   document.getElementById('saveEntryBtn').innerText = 'Guardar registro';
 }
 
-window.saveCategory = function(){const d=document.getElementById('routineDate').value,c=document.getElementById('dayCategory').value;if(c)categories[d]=c;else delete categories[d];saveToFirebase();renderCalendar()}
+window.saveCategory = function(){const d=document.getElementById('routineDate').value,c=document.getElementById('dayCategory').value;if(c)categories[d]=c;else delete categories[d];saveToFirebase({days:[d]});renderCalendar()}
 
 window.saveNote = function(){
   const d=document.getElementById('routineDate').value; if(!d) return;
   const t=document.getElementById('sessionNote').value.trim();
   if(t) notes[d]=t; else delete notes[d];
-  try{ localStorage.setItem(PENDING_KEY,'1'); }catch(e){}
-  persistLocal();
-  clearTimeout(window.noteT); window.noteT=setTimeout(saveToFirebase,900);
+  markDayDirty(d,{cloud:true,local:true});
+  queuePersistLocal(80);
+  clearTimeout(window.noteT); window.noteT=setTimeout(()=>saveToFirebase(),900);
 }
 
 window.loadTemplate = async function() {
@@ -89,7 +89,7 @@ window.loadTemplate = async function() {
         }
         data[date].push({id: Date.now() + Math.random(), isCardio: false, name: name, sets: sets, trainingDraft:true});
     });
-    persistLocal(); loadDay(); renderDashboard(); populateExercises(); updateChart();
+    markDayDirty(date,{cloud:false,local:true}); persistLocal(); loadDay(); renderDashboard(); populateExercises(); updateChart();
     toast('Rutina cargada como borrador local.');
 }
 
@@ -124,7 +124,7 @@ window.saveEntry = function(){
 
   const sessionNote=document.getElementById('sessionNote').value.trim(); if(sessionNote) notes[date]=sessionNote; else delete notes[date];
   
-  const wasEditing=!!window.editingId; saveToFirebase(); clearEntry(); loadDay(); renderDashboard(); populateExercises(); updateChart(); toast(wasEditing ? 'Registro actualizado' : 'Guardado OK');
+  const wasEditing=!!window.editingId; saveToFirebase({days:[date]}); clearEntry(); loadDay(); renderDashboard(); populateExercises(); updateChart(); toast(wasEditing ? 'Registro actualizado' : 'Guardado OK');
 }
 
 window.editEntry = function(date, id) {
@@ -169,17 +169,23 @@ function getAllExercises(){
 }
 function migrateNames(){
   const snap=JSON.stringify({data,customRoutines,customMuscles,exerciseNotes});
-  let changed=false;
+  let changed=false, settingsChanged=false; const changedDates=new Set();
   const mapped=n=>customAliases[String(n||'').trim().toLowerCase()]||String(n||'').trim();
-  const fix=o=>{const a=mapped(o.name);if(a&&a!==o.name){o.name=a;changed=true}};
-  Object.values(data).forEach(arr=>(arr||[]).forEach(e=>{if(e&&!e.isCardio)fix(e)}));
-  Object.values(customRoutines).forEach(rows=>(rows||[]).forEach(r=>{if(r)fix(r)}));
-  Object.keys(exerciseNotes).forEach(k=>{const a=mapped(k);if(a&&a!==k){if(!exerciseNotes[a])exerciseNotes[a]=exerciseNotes[k];delete exerciseNotes[k];changed=true;}});
+  Object.entries(data).forEach(([date,arr])=>(arr||[]).forEach(e=>{
+    if(!e||e.isCardio)return; const a=mapped(e.name);
+    if(a&&a!==e.name){e.name=a;changed=true;changedDates.add(date);}
+  }));
+  Object.values(customRoutines).forEach(rows=>(rows||[]).forEach(r=>{if(!r)return;const a=mapped(r.name);if(a&&a!==r.name){r.name=a;changed=true;settingsChanged=true;}}));
+  Object.keys(exerciseNotes).forEach(k=>{const a=mapped(k);if(a&&a!==k){if(!exerciseNotes[a])exerciseNotes[a]=exerciseNotes[k];delete exerciseNotes[k];changed=true;settingsChanged=true;}});
   Object.keys(customMuscles).forEach(group=>{
     const before=customMuscles[group]||[], after=[...new Set(before.map(mapped).filter(Boolean))];
-    if(JSON.stringify(before)!==JSON.stringify(after)){customMuscles[group]=after;changed=true;}
+    if(JSON.stringify(before)!==JSON.stringify(after)){customMuscles[group]=after;changed=true;settingsChanged=true;}
   });
-  if(changed){ try{ if(!localStorage.getItem('gymBackupBeforeRename')) localStorage.setItem('gymBackupBeforeRename',snap); }catch(e){} }
+  if(changed){
+    try{ if(!localStorage.getItem('gymBackupBeforeRename')) localStorage.setItem('gymBackupBeforeRename',snap); }catch(e){}
+    changedDates.forEach(date=>markDayDirty(date,{cloud:true,local:true}));
+    if(settingsChanged) markSettingsDirty({cloud:true,local:true});
+  }
   return changed;
 }
 function populateExercises(){const all=getAllExercises();document.getElementById('exerciseList').innerHTML=all.map(x=>`<option value="${escapeHtml(x)}">`).join('');const sel=document.getElementById('chartExercise');const cur=sel.value;sel.innerHTML='<option value="">-- Elige un ejercicio --</option>'+all.map(x=>`<option>${escapeHtml(x)}</option>`).join('');if(all.includes(cur))sel.value=cur}
@@ -201,7 +207,7 @@ function renderExerciseCard(e,date){
   return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}${e.substitutedFrom?` <small class="muted">· sustituyó a ${escapeHtml(e.substitutedFrom)}</small>`:''}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log ${isWarmupSet(s)?'warmup-set':''}"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>${isWarmupSet(s)?'Calent.':isFailureSet(s)?'Fallo':'RIR '+escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?fmtRest(s.restUsed):normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
-window.deleteEntry = async function(date,id){if(!(await appConfirm('¿Eliminar este registro?',{title:'Eliminar registro',confirmText:'Eliminar',danger:true})))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase();loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
+window.deleteEntry = async function(date,id){if(!(await appConfirm('¿Eliminar este registro?',{title:'Eliminar registro',confirmText:'Eliminar',danger:true})))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase({days:[date]});loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
 function setHasData(s){return !!s && s.done!==false && (parseFloat(s.reps)||0)>0}
 function setCountsForHistory(s){return setHasData(s)&&!isWarmupSet(s)}
 function sessionVolume(e){return (e.sets||[]).filter(setCountsForHistory).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}

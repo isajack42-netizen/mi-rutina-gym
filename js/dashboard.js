@@ -216,7 +216,7 @@ window.copyLastWorkout = async function(){
     };
     if(cloned.sets.length) data[date].push(cloned);
   });
-  persistLocal();
+  markDayDirty(date,{cloud:false,local:true}); persistLocal();
   clearEntry();
   loadDay(); renderDashboard(); populateExercises(); updateChart();
   toast(`Copiados ${source.length} ejercicios como borrador local`);
@@ -325,9 +325,9 @@ window.saveMeasurements=function(){
   if(!has){toast('Registra al menos una medida');return;}
   const original=window.editingMeasurementDate||'';
   measurements=measurements.filter(x=>x.date!==date && (!original||x.date!==original));measurements.push(entry);
-  window.editingMeasurementDate='';saveToFirebase();closeModal();renderBodyWeights();toast('Medidas guardadas OK');
+  window.editingMeasurementDate='';saveToFirebase({days:[...new Set([date,original].filter(Boolean))]});closeModal();renderBodyWeights();toast('Medidas guardadas OK');
 }
-window.deleteMeasurement=async function(date){if(!(await appConfirm('¿Eliminar las medidas del '+fmtDate(date)+'?',{title:'Eliminar medición',confirmText:'Eliminar',danger:true})))return;measurements=measurements.filter(x=>x.date!==date);saveToFirebase();renderBodyWeights();toast('Medición eliminada')}
+window.deleteMeasurement=async function(date){if(!(await appConfirm('¿Eliminar las medidas del '+fmtDate(date)+'?',{title:'Eliminar medición',confirmText:'Eliminar',danger:true})))return;measurements=measurements.filter(x=>x.date!==date);saveToFirebase({days:[date]});renderBodyWeights();toast('Medición eliminada')}
 
 window.openWeightModal = function(){
     const modalEl=document.getElementById('modal');
@@ -341,12 +341,12 @@ window.openWeightModal = function(){
 window.saveBodyWeight = function(){
     const date=document.getElementById('mwDate').value,w=parseFloat(document.getElementById('mwWeight').value);if(!date||!w)return;
     weights=weights.filter(x=>x.date!==date);weights.push({date,weight:toKg(w)});
-    saveToFirebase(); closeModal(); renderBodyWeights(); toast('Peso guardado OK');
+    saveToFirebase({days:[date]}); closeModal(); renderBodyWeights(); toast('Peso guardado OK');
 }
 
 window.deleteBodyWeight = async function(date){
     if(!(await appConfirm('¿Eliminar el peso del '+fmtDate(date)+'?',{title:'Eliminar peso',confirmText:'Eliminar',danger:true}))) return;
     weights=weights.filter(x=>x.date!==date);
-    saveToFirebase(); renderBodyWeights(); toast('Peso eliminado');
+    saveToFirebase({days:[date]}); renderBodyWeights(); toast('Peso eliminado');
 }
 

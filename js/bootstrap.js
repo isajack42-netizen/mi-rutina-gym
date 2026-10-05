@@ -3,8 +3,8 @@
 async function initApp() {
     if(DOC_ID) setTimeout(()=>{ document.getElementById('loadingOverlay').style.display='none'; },4000);
     document.getElementById('routineDate').value=todayStr();
-    load();
-    if(migrateNames()) persistLocal();
+    await load();
+    if(migrateNames()) await persistLocal();
     document.documentElement.setAttribute('data-theme', currentTheme);
     updateCategorySelect();
     addSet(); populateExercises(); loadDay(); renderDashboard(); renderCalendar(); renderRoutines();
@@ -14,10 +14,10 @@ async function initApp() {
 
     updateSyncStatus('Conectando…','saving');
     if(await connectFirebase()) {
-        fb.onAuthStateChanged(fb.auth, user => {
+        fb.onAuthStateChanged(fb.auth, async user => {
             if(user) {
                 const prevUid=localStorage.getItem('gymLastUid');
-                if(prevUid && prevUid!==user.uid){ wipeLocalData(); train=null; load(); refreshAll(); }
+                if(prevUid && prevUid!==user.uid){ await wipeLocalData(); train=null; DOC_ID=user.uid; localStorage.setItem('gymLastUid',user.uid); await load(); refreshAll(); }
                 DOC_ID = user.uid;
                 localStorage.setItem('gymLastUid', user.uid);
                 document.getElementById('authOverlay').classList.add('hidden');

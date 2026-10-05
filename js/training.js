@@ -19,7 +19,7 @@ function saveTrain(){
     }else localStorage.removeItem(TRAIN_KEY);
   }catch(e){}
 }
-function saveTrainingDraftLocal(){ try{persistLocal();saveTrain();}catch(e){console.warn('No se pudo guardar el borrador de entrenamiento:',e);} }
+function saveTrainingDraftLocal(){ try{if(train?.date)markDayDirty(train.date,{cloud:false,local:true});queuePersistLocal(60);saveTrain();}catch(e){console.warn('No se pudo guardar el borrador de entrenamiento:',e);} }
 const rd=v=>Math.round(fromKg(v)*10)/10;
 function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
 function restLabel(s){ return s.restUsed?fmtRest(s.restUsed):s.rest; }
@@ -29,7 +29,7 @@ function trainRestEnded(){
   const secs=Math.round((end-c.startAt)/1000);
   const e=(data[c.date]||[]).find(x=>x.id===c.id), st=e&&e.sets[c.i];
   saveTrain();
-  if(st&&secs>=5&&isDone(st)){ st.restUsed=secs; saveToFirebase(); renderTrain(); }
+  if(st&&secs>=5&&isDone(st)){ st.restUsed=secs; saveToFirebase({days:[c.date]}); renderTrain(); }
 }
 function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[]).find(x=>x.id===id)).filter(Boolean):[]; }
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
@@ -92,7 +92,7 @@ function cleanupAbandonedTraining(){
   });
   if(!(data[d]||[]).length)delete data[d];
   if(keptAny&&train.routine)categories[d]=train.routine;
-  restCtx=null;window.timerEndAt=0;window.timerAlarmed=false;train=null;saveTrain();persistLocal();saveToFirebase();
+  restCtx=null;window.timerEndAt=0;window.timerAlarmed=false;train=null;saveTrain();saveToFirebase({days:[d]});
 }
 function resumeTrainingIfAny(){
   if(!train) return;
@@ -134,10 +134,10 @@ function renderTrain(){
     const sg=sug?sug(i):null, dn=isDone(s), has=parseFloat(s.reps)>0;
     const sw=sg&&sg.w?rd(sg.w):'', sr=sg&&sg.r?sg.r:'';
     const ri=has&&s.rir!=='-'&&!isNaN(parseFloat(s.rir))?s.rir:'';
-    const tp=normalizeSetType(s.type), step=currentUnit==='lbs'?5:2.5;
+    const tp=normalizeSetType(s.type), weightStep=1;
     return `<div class="tr-row ${dn?'done':''} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}"><div class="tr-n">${i+1}</div>
-      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${step})" aria-label="Bajar peso ${step} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${step})" aria-label="Subir peso ${step} ${unitLabel()}">+</button></div>
-      <input class="tr-r" type="number" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}">
+      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
+      <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
       <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">
       <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?ic('check'):ic('circle')}</button>
       <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${!dn&&restCtx?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">${train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i?'En curso':'Empezar'}</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${fmtRest(s.restUsed)}</span>`:'<span></span>')}</div></div>`;
@@ -158,7 +158,9 @@ function trainRead(i,useSug){
 }
 window.trainSave=function(i){
   const e=trainCur(); if(!e) return; const s=e.sets[i], v=trainRead(i,false);
-  s.reps=v.r!==''?v.r:'-'; s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(s.done!==true)s.done=false; saveTrainingDraftLocal();
+  s.reps=v.r!==''?v.r:'-'; s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type;
+  if(s.done===true) saveToFirebase({days:[train.date]});
+  else { s.done=false; saveTrainingDraftLocal(); }
 }
 window.trainStartSet=function(i){
   const e=trainCur();if(!e||!e.sets[i]||isDone(e.sets[i]))return;
@@ -167,11 +169,11 @@ window.trainStartSet=function(i){
 }
 window.trainToggle=function(i){
   const es=trainEntries(), e=es[train.idx]; if(!e) return; const s=e.sets[i];
-  if(isDone(s)){ s.done=false; delete s.restUsed; saveToFirebase(); renderTrain(); return; }
+  if(isDone(s)){ s.done=false; delete s.restUsed; saveToFirebase({days:[train.date]}); renderTrain(); return; }
   const v=trainRead(i,true);
   if(!(parseFloat(v.r)>0)){ toast('Escribe las repeticiones'); return; }
   if(restCtx&&!(train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i)){toast('Pulsa “Empezar” al iniciar la serie para cerrar el descanso correctamente.');return;}
-  if(restCtx)trainRestEnded(); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase();
+  if(restCtx)trainRestEnded(); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase({days:[train.date]});
   if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; window.timerAlarmed=false; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; train.activeSet=null; saveTrain(); ensureTimerRunning(); }
   if(navigator.vibrate) navigator.vibrate(30);
   renderTrain();
@@ -183,6 +185,13 @@ window.trainAdjustWeight=function(i,deltaDisplay){
   const base=parseFloat(input.value!==''?input.value:(input.dataset.sug||0))||0;
   const next=Math.max(0,Math.round((base+Number(deltaDisplay))*10)/10);
   input.value=next||''; trainSave(i);
+}
+window.trainAdjustReps=function(i,delta){
+  const row=document.querySelectorAll('#trainBody .tr-row')[i]; if(!row) return;
+  const input=row.querySelector('.tr-r');
+  const base=parseInt(input.value!==''?input.value:(input.dataset.sug||0),10)||0;
+  const next=Math.max(0,base+Number(delta||0));
+  input.value=next>0?String(next):''; trainSave(i);
 }
 window.openTrainPlateCalc=function(i){
   const row=document.querySelectorAll('#trainBody .tr-row')[i]; if(!row) return;
@@ -199,7 +208,7 @@ window.trainSaveExerciseNote=function(){
   const e=trainCur(); if(!e) return;
   const v=(document.getElementById('trExerciseNote')?.value||'').trim();
   if(v) exerciseNotes[e.name]=v.slice(0,1200); else delete exerciseNotes[e.name];
-  saveToFirebase(); closeModal(); renderTrain(); toast(v?'Nota del ejercicio guardada':'Nota eliminada');
+  saveToFirebase({settings:true}); closeModal(); renderTrain(); toast(v?'Nota del ejercicio guardada':'Nota eliminada');
 }
 window.trainSubstitute=function(){
   const e=trainCur(); if(!e) return;
@@ -269,6 +278,6 @@ window.trainEnd=function(){
   data[d]=(data[d]||[]).filter(e=>e.isCardio||entryHasData(e));
   if((data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))&&routine)categories[d]=routine;
   if(!data[d]?.length) delete data[d];
-  train=null; restCtx=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase(); refreshAll(); toast('¡Entrenamiento guardado!');
+  train=null; restCtx=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase({days:[d]}); refreshAll(); toast('¡Entrenamiento guardado!');
 }
 

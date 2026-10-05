@@ -64,13 +64,14 @@ window.saveRoutine = async function() {
     const nameInput = document.getElementById('editRoutineName');
     const newName = nameInput.value.trim();
     const origName = nameInput.getAttribute('data-orig');
+    const affectedDates=[];
 
     if(!newName) { toast('Ingresa un nombre para la rutina'); return; }
 
     if(origName && origName !== newName) {
         if(customRoutines[newName] && !(await appConfirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true}))) return;
         delete customRoutines[origName];
-        Object.keys(categories).forEach(d=>{ if(categories[d]===origName) categories[d]=newName; });
+        Object.keys(categories).forEach(d=>{ if(categories[d]===origName){ categories[d]=newName; affectedDates.push(d); } });
         if(train&&train.routine===origName){ train.routine=newName; saveTrain(); }
     } else if(!origName && customRoutines[newName]) {
         if(!(await appConfirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true}))) return;
@@ -93,7 +94,7 @@ window.saveRoutine = async function() {
     if(newExercises.length === 0) { toast('Agrega al menos un ejercicio con series válidas'); return; }
 
     customRoutines[newName] = newExercises;
-    saveToFirebase();
+    saveToFirebase({days:affectedDates,settings:true});
     updateCategorySelect();
     renderRoutines();
     closeModal();
@@ -103,7 +104,7 @@ window.saveRoutine = async function() {
 window.deleteRoutine = async function(name) {
     if(!(await appConfirm(`¿Estás seguro de eliminar la rutina "${name}"?`,{title:'Eliminar rutina',confirmText:'Eliminar',danger:true}))) return;
     delete customRoutines[name];
-    saveToFirebase();
+    saveToFirebase({settings:true});
     updateCategorySelect();
     renderRoutines();
     closeModal();
@@ -128,6 +129,6 @@ function renderRoutines(){
 
 function refreshAll(){
     document.documentElement.setAttribute('data-theme', currentTheme);
-    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();renderRoutines();renderTrainCTA();renderTrain();
+    populateExercises();loadDay();renderDashboard();renderCalendar();renderBodyWeights();updateChart();renderProgressionPanel();renderAnalytics();renderRoutines();renderTrainCTA();renderTrain();
 }
 
