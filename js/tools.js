@@ -271,6 +271,9 @@ function renderSettingsModal(){
     const notificationLabel=({on:'Activados',off:'Desactivados',denied:'Bloqueados','needs-install':'Instala la app',unsupported:'No disponibles'})[notifState()];
     const accountEmail=(fb&&fb.auth&&fb.auth.currentUser&&fb.auth.currentUser.email)||'sin conexión';
     const recoverableCount=recoverableMeasurementsFromLocalBackup().length;
+    const goal=sanitizeBodyGoal(bodyGoal);
+    const goalWeight=goal.targetWeightKg?Math.round(fromKg(goal.targetWeightKg)*10)/10:'';
+    const weeklyOptions=[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${n===weeklySessionTarget?'selected':''}>${n} sesión${n===1?'':'es'}</option>`).join('');
     modal.innerHTML=`
         <div class="modal-content-wrapper settings-modal">
             <div class="settings-modal-head">
@@ -295,6 +298,24 @@ function renderSettingsModal(){
                     <button class="btn btn-secondary full settings-action" onclick="openCatalogsModal('musculos')">${ic('list')}<span><b>Gestionar músculos y alias</b><small>Clasificación muscular y nombres equivalentes.</small></span></button>
                     <button class="btn btn-secondary full settings-action" onclick="toggleNotifications()">${ic('bell')}<span><b>Avisos de descanso: ${notificationLabel}</b><small>Alertas locales mientras el sistema mantiene activa la PWA.</small></span></button>
                 </div>
+            </section>
+
+            <section class="settings-section">
+                <div class="settings-section-head"><div><h3>Objetivos</h3><p>Define la referencia con la que LiftEngine interpreta tu constancia y composición corporal.</p></div></div>
+                <div class="settings-goal-grid">
+                    <div><label for="settingsWeeklyTarget">Meta semanal</label><select id="settingsWeeklyTarget">${weeklyOptions}</select></div>
+                    <div><label for="settingsBodyGoalMode">Objetivo corporal</label><select id="settingsBodyGoalMode">
+                        <option value="neutral" ${goal.mode==='neutral'?'selected':''}>Sin objetivo</option>
+                        <option value="recomp" ${goal.mode==='recomp'?'selected':''}>Recomposición</option>
+                        <option value="cut" ${goal.mode==='cut'?'selected':''}>Pérdida de grasa</option>
+                        <option value="gain" ${goal.mode==='gain'?'selected':''}>Ganancia de masa</option>
+                        <option value="maintain" ${goal.mode==='maintain'?'selected':''}>Mantenimiento</option>
+                    </select></div>
+                    <div><label for="settingsTargetWeight">Peso objetivo (${unitLabel()}) · opcional</label><input id="settingsTargetWeight" type="number" step="0.1" min="0" value="${goalWeight}" placeholder="Sin objetivo"></div>
+                    <div><label for="settingsTargetWaist">Cintura objetivo (cm) · opcional</label><input id="settingsTargetWaist" type="number" step="0.1" min="0" value="${goal.targetWaistCm??''}" placeholder="Sin objetivo"></div>
+                </div>
+                <p class="settings-goal-note">Si eliges “Sin objetivo”, los cambios de peso y cintura se muestran de forma neutral: LiftEngine no asumirá que subir o bajar es mejor.</p>
+                <button class="btn btn-primary full" onclick="saveGoalSettings()">Guardar objetivos</button>
             </section>
 
             <section class="settings-section">
