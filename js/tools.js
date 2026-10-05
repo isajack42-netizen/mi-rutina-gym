@@ -463,7 +463,7 @@ window.deleteAlias = async function(alias) {
 }
 // ==========================================
 
-window.closeModal = function(){const b=document.getElementById('modalBackdrop');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('modal').scrollTop=0;document.getElementById('modal').scrollLeft=0}
+window.closeModal = function(){const b=document.getElementById('modalBackdrop'),m=document.getElementById('modal');b.classList.remove('show');document.body.classList.remove('modal-open');m.scrollTop=0;m.scrollLeft=0;m.classList.remove('routine-editor-modal');m.oninput=null}
 function buildBackupPayload(){
   return {
     appVersion:APP_VERSION,
