@@ -146,7 +146,7 @@
 <!-- PESTAÑA: REGISTRO -->
 <section id="registro" class="tab" role="tabpanel" aria-labelledby="tab-registro">
   <div class="train-cta-slot"></div>
-  <div class="card">
+  <div class="card register-session-card">
     <div class="section-title">
       <h2>Registro Diario</h2>
       <div class="actions record-head-actions" style="margin-top:0"><button class="btn btn-secondary" onclick="copyLastWorkout()">Copiar última sesión</button><button class="btn btn-secondary" onclick="openPlateCalc()"><svg class="ic" aria-hidden="true"><use href="#i-plate"/></svg> Discos</button></div>
@@ -161,7 +161,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card register-entry-card">
     <div class="type-toggle">
       <button id="weightMode" class="active" onclick="setLogType('pesas')">Entrenamiento de Pesas</button>
       <button id="cardioMode" onclick="setLogType('cardio')">Cardio</button>
@@ -190,12 +190,12 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card register-note-card">
     <div class="section-title"><h2>Nota de la sesión</h2></div>
     <textarea id="sessionNote" class="note" style="width:100%;min-height:70px;background:var(--input);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--text);padding:10px;resize:vertical;" placeholder="Ej. Buen bombeo, buena energía..." oninput="saveNote()"></textarea>
   </div>
 
-  <div class="card">
+  <div class="card register-history-card">
     <div class="section-title"><h2>Registros del día</h2></div>
     <div id="dailyLog"></div>
   </div>
