@@ -92,6 +92,22 @@ window.plannedRoutineForDate=function(date){
 window.weeklyPlanConfigured=function(){
   return scheduleHasPlan(weeklyPlan);
 };
+window.renameWeeklyPlanRoutine=function(oldName,newName){
+  if(!oldName||!newName||oldName===newName)return false;
+  weeklyPlan=sanitizeWeeklyPlan(weeklyPlan);
+  let changed=false;
+  Object.keys(weeklyPlan.template).forEach(k=>{if(weeklyPlan.template[k]===oldName){weeklyPlan.template[k]=newName;changed=true;}});
+  Object.keys(weeklyPlan.overrides).forEach(k=>{if(weeklyPlan.overrides[k]===oldName){weeklyPlan.overrides[k]=newName;changed=true;}});
+  return changed;
+};
+window.removeWeeklyPlanRoutine=function(name){
+  if(!name)return false;
+  weeklyPlan=sanitizeWeeklyPlan(weeklyPlan);
+  let changed=false;
+  Object.keys(weeklyPlan.template).forEach(k=>{if(weeklyPlan.template[k]===name){weeklyPlan.template[k]='';changed=true;}});
+  Object.keys(weeklyPlan.overrides).forEach(k=>{if(weeklyPlan.overrides[k]===name){weeklyPlan.overrides[k]='';changed=true;}});
+  return changed;
+};
 function scheduleHasStrengthWorkout(date){
   return (data[date]||[]).some(e=>!e.isCardio&&entryHasData(e));
 }
