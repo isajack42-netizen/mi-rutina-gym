@@ -120,7 +120,7 @@ window.scheduleStatusForDate=function(date){
 window.scheduleWeekCompliance=function(anchor=todayStr()){
   const days=scheduleWeekDates(anchor),today=todayStr();
   const rows=days.map(d=>scheduleStatusForDate(d));
-  const due=rows.filter(r=>r.planned&&r.planned!=='Descanso'&&r.date<=today);
+  const due=rows.filter(r=>r.planned&&r.planned!=='Descanso'&&(r.date<today||r.completed));
   const planned=rows.filter(r=>r.planned&&r.planned!=='Descanso');
   const completed=due.filter(r=>r.status==='completed').length;
   const changed=due.filter(r=>r.status==='changed').length;
@@ -185,10 +185,11 @@ async function persistWeeklyPlanChange(message){
   if(message)toast(message);
 }
 function scheduleOptions(selected,includeBlank=true){
-  let html=includeBlank?'<option value="">Sin plan</option>':'';
-  html+='<option value="Descanso">Descanso</option>';
+  const value=String(selected||'');
+  let html=includeBlank?'<option value=""'+(value===''?' selected':'')+'>Sin plan</option>':'';
+  html+='<option value="Descanso"'+(value==='Descanso'?' selected':'')+'>Descanso</option>';
   Object.keys(customRoutines).forEach(name=>{
-    html+='<option value="'+escapeHtml(name)+'"'+(name===selected?' selected':'')+'>'+escapeHtml(name)+'</option>';
+    html+='<option value="'+escapeHtml(name)+'"'+(name===value?' selected':'')+'>'+escapeHtml(name)+'</option>';
   });
   return html;
 }
@@ -230,7 +231,7 @@ window.renderWeeklySchedulePlanner=function(){
     +'<div class="weekly-template-grid">'
     +SCHEDULE_DAY_ORDER.map(day=>{
       const value=weeklyPlan.template?.[day]||'';
-      return '<label class="weekly-template-day"><span>'+SCHEDULE_DAY_LABEL[day]+'</span><select onchange="setWeeklyTemplateDay(\''+day+'\',this.value)">'+scheduleOptions(value,true).replace('value="'+escapeHtml(value)+'"','value="'+escapeHtml(value)+'" selected')+'</select></label>';
+      return '<label class="weekly-template-day"><span>'+SCHEDULE_DAY_LABEL[day]+'</span><select onchange="setWeeklyTemplateDay(\''+day+'\',this.value)">'+scheduleOptions(value,true)+'</select></label>';
     }).join('')
     +'</div><div class="weekly-template-actions"><button class="btn btn-primary" type="button" onclick="applyPlanningScenarioToSchedule()">Usar escenario</button><button class="btn btn-secondary" type="button" onclick="clearWeeklySchedule()">Limpiar</button></div>';
 };
