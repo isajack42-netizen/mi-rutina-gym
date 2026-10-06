@@ -238,3 +238,8 @@ La prioridad es: **claridad técnica + consistencia visual + acceso rápido + ce
 ## Estado de Fase 5
 
 First Pack completado con 15/15 fichas canónicas y paquetes visuales propios. Todos los ejercicios del lote están marcados como `ready`, forman parte del índice navegable y se incluyen en el shell offline. La siguiente fase no debe ampliar el catálogo hasta cerrar la evaluación del pack en UI real y corregir cualquier defecto encontrado.
+
+
+## Development version
+
+La rama de Exercise Library usa `1.1.0-alpha.1` para aislar Service Worker, cachés y assets de la versión estable `1.0.0-rc.1` que permanece en `main`. Este identificador no implica promoción a release.
