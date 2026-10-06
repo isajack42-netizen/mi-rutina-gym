@@ -112,12 +112,7 @@
     "Ajusta el accesorio si aparece molestia en muñeca o codo.",
     "Evita bloquear de forma agresiva los codos al final."
   ],
-  "variants": [
-    {
-      "exerciseId": "parallel-bar-dip",
-      "note": "Alternativa compuesta con participación de pecho y hombro."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "parallel-bar-dip",

@@ -132,16 +132,7 @@
       "note": "Tirón vertical si buscas enfatizar dorsal con un vector diferente."
     }
   ],
-  "relatedExercises": [
-    {
-      "exerciseId": "lat-pulldown",
-      "note": "Complementa el remo con un tirón vertical."
-    },
-    {
-      "exerciseId": "one-arm-dumbbell-row",
-      "note": "Permite trabajar cada lado por separado."
-    }
-  ],
+  "relatedExercises": [],
   "media": {
     "status": "ready",
     "thumbnail": "assets/exercise-library/seated-cable-row/thumbnail.svg",
