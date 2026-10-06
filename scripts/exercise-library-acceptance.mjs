@@ -137,8 +137,8 @@ for(const ex of exercises){
     if(stat.size<250) fail(rel+': suspiciously small SVG.');
     if(stat.size>300*1024) fail(rel+': exceeds 300 KiB asset budget.');
     const svg=fs.readFileSync(abs,'utf8');
-    if(!/<svg\b/i.test(svg)||!/viewBox=/.test(svg)) fail(rel+': invalid SVG structure.');
-    if(!/role="img"/.test(svg)||!/aria-label=/.test(svg)) fail(rel+': SVG lacks image semantics.');
+    if(!svg.includes('<svg')||!svg.includes('viewBox=')) fail(rel+': invalid SVG structure.');
+    if(!svg.includes('role="img"')||!svg.includes('aria-label=')) fail(rel+': SVG lacks image semantics.');
     if(/<script\b|<foreignObject\b|\son[a-z]+\s*=/i.test(svg)) fail(rel+': unsafe active SVG content.');
     if(/<text\b/i.test(svg)) fail(rel+': essential text must stay in UI, not SVG.');
     if(!sw.includes(rel)) fail(rel+': missing from offline warmup manifest.');
