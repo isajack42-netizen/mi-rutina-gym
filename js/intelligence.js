@@ -36,8 +36,16 @@ function intelSessionProfile(session){
   const primaryWeight=intelPrimaryWeight(loaded);
   const primarySets=primaryWeight?loaded.filter(s=>Math.abs((Number(s.weight)||0)-primaryWeight)<0.001):performed;
   const e1=loaded.reduce((m,s)=>Math.max(m,e1rm(s.weight,s.reps)),0);
+  const firstPrimary=primarySets[0]||null,lastPrimary=primarySets[primarySets.length-1]||null;
+  const firstReps=Number(firstPrimary?.reps)||0,lastReps=Number(lastPrimary?.reps)||0;
+  const repDropPct=primarySets.length>=2&&firstReps>0?((firstReps-lastReps)/firstReps)*100:null;
+  const exerciseIndex=Number.isFinite(Number(session?.exerciseIndex))?Number(session.exerciseIndex):null;
+  const exerciseCount=Number.isFinite(Number(session?.exerciseCount))?Number(session.exerciseCount):null;
+  const positionRatio=exerciseIndex!=null&&exerciseCount>1?exerciseIndex/(exerciseCount-1):null;
   return {
     date:session?.date||'',
+    routine:session?.routine||'',
+    exerciseIndex,exerciseCount,positionRatio,
     validSets:performed,
     loadedSets:loaded,
     setCount:performed.length,
@@ -48,6 +56,9 @@ function intelSessionProfile(session){
     avgPrimaryReps:primarySets.length?intelMean(primarySets.map(s=>Number(s.reps)||0)):null,
     minReps:performed.length?Math.min(...performed.map(s=>Number(s.reps)||0)):0,
     maxReps:performed.length?Math.max(...performed.map(s=>Number(s.reps)||0)):0,
+    firstPrimaryReps:firstReps||null,
+    lastPrimaryReps:lastReps||null,
+    repDropPct,
     avgRir:rir.length?intelMean(rir):null,
     rirCoverage:performed.length?rir.length/performed.length:0,
     e1rm:e1,
@@ -109,6 +120,93 @@ function intelMaturity(profiles,target){
   if(n===3)return {level:'standard',label:'Recomendación',detail:'Tres sesiones comparables permiten una recomendación más estable, pero aún no una lectura fuerte de meseta o fatiga.'};
   return {level:'trend',label:'Recomendación + tendencia',detail:'Hay suficiente historial para combinar la próxima decisión con señales de tendencia reciente.'};
 }
+
+// <intelligence-2-patterns>
+function intelPersonalPatterns(name,profiles){
+  const rows=(profiles||[]).slice(-8);
+  let repOpportunities=0,repWins=0,loadIncreases=0,loadSustained=0;
+  const assistance=intelAssistanceLike(name);
+  for(let i=1;i<rows.length;i++){
+    const prev=rows[i-1],cur=rows[i];
+    if(prev.primaryWeight<=0||cur.primaryWeight<=0||assistance)continue;
+    const deltaWeight=cur.primaryWeight-prev.primaryWeight;
+    if(Math.abs(deltaWeight)<=.25&&Number.isFinite(prev.avgPrimaryReps)&&Number.isFinite(cur.avgPrimaryReps)){
+      repOpportunities++;
+      if(cur.avgPrimaryReps>=prev.avgPrimaryReps+.5)repWins++;
+    }else if(deltaWeight>.25){
+      loadIncreases++;
+      if(prev.e1rm>0&&cur.e1rm>=prev.e1rm*.98)loadSustained++;
+    }
+  }
+  const repRate=repOpportunities?repWins/repOpportunities:null;
+  const loadRate=loadIncreases?loadSustained/loadIncreases:null;
+  let strategy={status:'forming',label:'Patrón en formación',detail:'Aún faltan transiciones comparables de carga y repeticiones.',repOpportunities,repWins,loadIncreases,loadSustained,repRate,loadRate};
+  if(!assistance&&(repOpportunities+loadIncreases)>=3){
+    if(repOpportunities>=2&&repWins>=2&&(loadIncreases<2||loadRate==null||repRate>=loadRate+.15)){
+      strategy={...strategy,status:'reps-first',label:'Progresión por reps',detail:`${repWins}/${repOpportunities} comparaciones con la misma carga mejoraron las reps antes de subir peso.`};
+    }else if(loadIncreases>=2&&loadRate>=.67){
+      strategy={...strategy,status:'load-tolerant',label:'Carga bien tolerada',detail:`${loadSustained}/${loadIncreases} aumentos recientes de carga sostuvieron el e1RM.`};
+    }else{
+      strategy={...strategy,status:'mixed',label:'Progresión mixta',detail:'Tu historial no muestra una ventaja clara entre acumular reps y subir carga.'};
+    }
+  }
+
+  const dropRows=rows.filter(x=>Number.isFinite(x.repDropPct));
+  const avgDrop=dropRows.length?intelMean(dropRows.slice(-4).map(x=>x.repDropPct)):null;
+  const setConsistency=dropRows.length>=3
+    ? (avgDrop>=15
+      ? {status:'drop',label:'Caída entre series',detail:`Las reps caen en promedio ${avgDrop.toFixed(1)}% entre la primera y la última serie reciente.`,avgDrop}
+      : {status:'stable',label:'Series consistentes',detail:`La caída media entre primera y última serie es ${Math.max(0,avgDrop).toFixed(1)}%.`,avgDrop})
+    : {status:'forming',label:'Consistencia por aprender',detail:'Faltan sesiones comparables para medir la caída entre series.',avgDrop};
+
+  const rirRows=rows.filter(x=>Number.isFinite(x.avgRir));
+  let effort={status:'forming',label:'Esfuerzo sin patrón',detail:'Falta RIR suficiente para comparar bloques recientes.',delta:null};
+  if(rirRows.length>=4){
+    const prior=intelMean(rirRows.slice(-4,-2).map(x=>x.avgRir));
+    const recent=intelMean(rirRows.slice(-2).map(x=>x.avgRir));
+    const delta=recent-prior;
+    effort=delta<=-.75
+      ? {status:'harder',label:'Esfuerzo en aumento',detail:`El RIR medio reciente bajó ${Math.abs(delta).toFixed(1)} puntos frente a las dos sesiones anteriores.`,delta}
+      : delta>=.75
+        ? {status:'easier',label:'Más margen reciente',detail:`El RIR medio reciente subió ${delta.toFixed(1)} puntos frente a las dos sesiones anteriores.`,delta}
+        : {status:'stable',label:'Esfuerzo estable',detail:`El RIR medio cambió solo ${Math.abs(delta).toFixed(1)} puntos entre bloques recientes.`,delta};
+  }
+
+  const positioned=rows.filter(x=>x.e1rm>0&&Number.isFinite(x.positionRatio));
+  const early=positioned.filter(x=>x.positionRatio<=.4),late=positioned.filter(x=>x.positionRatio>=.6);
+  let position={status:'forming',label:'Posición sin señal',detail:'El ejercicio no ha variado suficiente de posición para comparar su rendimiento.',deltaPct:null,earlyCount:early.length,lateCount:late.length};
+  if(early.length>=2&&late.length>=2){
+    const earlyMean=intelMean(early.map(x=>x.e1rm)),lateMean=intelMean(late.map(x=>x.e1rm));
+    const deltaPct=intelPctChange(earlyMean,lateMean);
+    position=deltaPct!=null&&deltaPct<=-5
+      ? {status:'late-down',label:'Rinde menos al final',detail:`Cuando aparece tarde en la sesión, el e1RM medio es ${Math.abs(deltaPct).toFixed(1)}% menor que cuando aparece temprano.`,deltaPct,earlyCount:early.length,lateCount:late.length}
+      : {status:'stable',label:'Posición estable',detail:`No aparece una diferencia grande por posición (${deltaPct==null?'—':`${deltaPct>=0?'+':''}${deltaPct.toFixed(1)}%`}).`,deltaPct,earlyCount:early.length,lateCount:late.length};
+  }
+
+  const signals=[];
+  if(strategy.status!=='forming')signals.push({key:'strategy',kind:strategy.status==='load-tolerant'||strategy.status==='reps-first'?'positive':'neutral',label:strategy.label,detail:strategy.detail});
+  if(setConsistency.status==='drop')signals.push({key:'sets',kind:'warning',label:setConsistency.label,detail:setConsistency.detail});
+  else if(setConsistency.status==='stable'&&dropRows.length>=4)signals.push({key:'sets',kind:'neutral',label:setConsistency.label,detail:setConsistency.detail});
+  if(effort.status==='harder')signals.push({key:'effort',kind:'warning',label:effort.label,detail:effort.detail});
+  else if(effort.status==='easier')signals.push({key:'effort',kind:'positive',label:effort.label,detail:effort.detail});
+  if(position.status==='late-down')signals.push({key:'position',kind:'warning',label:position.label,detail:position.detail});
+
+  return {
+    sessionsUsed:rows.length,
+    strategy,setConsistency,effort,position,
+    signals:signals.slice(0,4),
+    hasStablePattern:signals.length>0
+  };
+}
+function intelPatternReason(patterns,action){
+  if(!patterns)return '';
+  if(action==='reps'&&patterns.strategy?.status==='reps-first')return patterns.strategy.detail;
+  if(action==='increase'&&patterns.strategy?.status==='load-tolerant')return patterns.strategy.detail;
+  if(['reps','hold'].includes(action)&&patterns.setConsistency?.status==='drop')return patterns.setConsistency.detail;
+  if(['hold','decrease'].includes(action)&&patterns.effort?.status==='harder')return patterns.effort.detail;
+  return '';
+}
+// </intelligence-2-patterns>
 function intelPlanSuggestions(last,target,action,nextWeightKg){
   const previous=last?.validSets||[];
   const count=Math.max(1,Number(target&&!target.ambiguous&&target.sets)||previous.length||1);
@@ -174,6 +272,7 @@ function getTrainingIntelligence(name,opts={}){
   const trend=intelTrend(profiles,target);
   const confidence=intelConfidence(profiles,target);
   const maturity=intelMaturity(profiles,target);
+  const patterns=intelPersonalPatterns(name,profiles);
   const reasons=[];
   let action='reference',title='Usa una sesión de referencia',summary='Todavía no hay suficiente información para prescribir una progresión con confianza.';
   let nextWeightKg=last?.primaryWeight||last?.bestWeight||0;
@@ -198,12 +297,15 @@ function getTrainingIntelligence(name,opts={}){
       summary='No aparece un nuevo máximo reciente. Repite una sesión comparable y busca una mejora pequeña antes de cambiar la carga.';
       reasons.push(`${trend.sessionsSinceBest} sesiones desde el último mejor e1RM.`);
     }else{
-      action=profiles.length<=2?'reps':'reference';
-      title=profiles.length<=2?'Repite la carga y busca una mejora pequeña':'Usa la última sesión como referencia';
+      const repsPattern=patterns.strategy?.status==='reps-first';
+      action=profiles.length<=2||repsPattern?'reps':'reference';
+      title=profiles.length<=2?'Repite la carga y busca una mejora pequeña':repsPattern?'Tu patrón favorece sumar reps':'Usa la última sesión como referencia';
       summary=profiles.length<=2
         ?`Con el historial actual, la opción más prudente es repetir aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} e intentar una repetición total adicional o una ejecución más cómoda.`
-        :`Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca igualar o superar ligeramente el rendimiento con técnica estable.`;
-      reasons.push(profiles.length<=2?`${profiles.length} sesión${profiles.length===1?'':'es'} disponible${profiles.length===1?'':'s'}: todavía no hay base suficiente para interpretar una tendencia.`:'Usamos la sesión más reciente como referencia comparable.');
+        :repsPattern
+          ?`En tus sesiones comparables, acumular repeticiones con la misma carga ha producido la señal más consistente. Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca una mejora pequeña antes de subir peso.`
+          :`Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca igualar o superar ligeramente el rendimiento con técnica estable.`;
+      reasons.push(profiles.length<=2?`${profiles.length} sesión${profiles.length===1?'':'es'} disponible${profiles.length===1?'':'s'}: todavía no hay base suficiente para interpretar una tendencia.`:repsPattern?patterns.strategy.detail:'Usamos la sesión más reciente como referencia comparable.');
       if(trend.periodDeltaPct!=null)reasons.push(`Tendencia del historial: ${trend.periodDeltaPct>=0?'+':''}${trend.periodDeltaPct.toFixed(1)}% de e1RM.`);
     }
   }else{
@@ -274,6 +376,8 @@ function getTrainingIntelligence(name,opts={}){
 
   if(trend.plateau&&action!=='increase'&&!reasons.some(x=>x.includes('sesiones sin'))) reasons.push(`${trend.sessionsSinceBest} sesiones desde el último mejor e1RM.`);
   if(trend.performanceDown&&!reasons.some(x=>x.includes('e1RM reciente'))&&trend.recentDeltaPct!=null) reasons.push(`Rendimiento reciente: ${trend.recentDeltaPct.toFixed(1)}% de e1RM frente al bloque anterior.`);
+  const personalReason=intelPatternReason(patterns,action);
+  if(personalReason)reasons.push(personalReason);
 
   const suggestions=intelPlanSuggestions(last,target,action,nextWeightKg);
   const exactTarget=target&&!target.ambiguous?target:null;
@@ -288,7 +392,7 @@ function getTrainingIntelligence(name,opts={}){
   };
   return {
     name,action,...intelActionMeta(action),title,summary,reasons:[...new Set(reasons)].slice(0,5),
-    confidence,maturity,trend,target,profiles,last,plan,
+    confidence,maturity,trend,patterns,target,profiles,last,plan,
     hasHistory:!!last,historyCount:profiles.length,lastDate:last?.date||'',
     warning:trend.fatigueLike?'possible-fatigue':trend.performanceDown?'performance-down':trend.plateau?'plateau':''
   };
