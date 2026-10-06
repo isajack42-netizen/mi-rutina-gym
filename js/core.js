@@ -690,6 +690,20 @@ function fingerprint(value){
   for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
   return (h>>>0).toString(16).padStart(8,'0');
 }
+const CLOUD_DOC_SOFT_LIMIT_BYTES=900*1024;
+function utf8ByteLength(value){
+  const text=JSON.stringify(value??null);let bytes=0;
+  for(const ch of text){
+    const code=ch.codePointAt(0);
+    bytes+=code<=0x7f?1:code<=0x7ff?2:code<=0xffff?3:4;
+  }
+  return bytes;
+}
+function assertCloudDocumentSize(label,value){
+  const bytes=utf8ByteLength(value);
+  if(bytes>CLOUD_DOC_SOFT_LIMIT_BYTES)throw new Error(`${label} supera el límite seguro de sincronización. Tus datos siguen guardados en este dispositivo; exporta una copia antes de reducir ese registro.`);
+  return bytes;
+}
 function allLocalDates(){
   const s=new Set([...Object.keys(data),...Object.keys(categories),...Object.keys(notes),...weights.map(x=>x.date),...measurements.map(x=>x.date)]);
   return [...s].filter(validDateKey).sort();
@@ -801,14 +815,16 @@ async function migrateLocalToCloudV2(){
     for(let i=0;i<dates.length;i+=400){
       const batch=fb.writeBatch(fb.db);
       for(const date of dates.slice(i,i+400)){
-        const content=buildDayContent(date); const revision=1;
-        batch.set(fb.doc(fb.db,'userData',DOC_ID,'days',date),{date,...content,revision,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp()});
+        const content=buildDayContent(date); const revision=1,updatedAt=Date.now();
+        assertCloudDocumentSize(`El día ${date}`,{date,...content,revision,updatedAt});
+        batch.set(fb.doc(fb.db,'userData',DOC_ID,'days',date),{date,...content,revision,updatedAt,serverUpdatedAt:fb.serverTimestamp()});
         nextDays[date]={revision,hash:fingerprint(content)};
       }
       await batch.commit();
     }
-    const settings=buildSettingsContent();
-    await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp(),...settings});
+    const settings=buildSettingsContent(),rootUpdatedAt=Date.now();
+    assertCloudDocumentSize('La configuración',{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:rootUpdatedAt,...settings});
+    await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:rootUpdatedAt,serverUpdatedAt:fb.serverTimestamp(),...settings});
     cloudMode='v2'; cloudMeta={days:nextDays,settings:{revision:1,hash:fingerprint(settings)},pull:{incrementalReady:false,cursor:null,lastFullAt:0}};
     cloudDirtyDays.clear(); cloudSettingsDirty=0; persistCloudDirtyMarkers(); saveCloudMeta();
     try{localStorage.removeItem(PENDING_KEY);}catch(e){} updateSyncStatus('Sincronizado','ok');
@@ -818,7 +834,9 @@ async function migrateLocalToCloudV2(){
 
 async function saveCloudLegacy(){
   const stamp=updatedAt, cloudData=compactDataForCloud(data);
-  await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,...buildSettingsSnapshot(),updatedAt:stamp });
+  const payload={data:cloudData,categories,weights,measurements,notes,...buildSettingsSnapshot(),updatedAt:stamp};
+  assertCloudDocumentSize('La copia heredada de nube',payload);
+  await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),payload);
 }
 async function applyLegacyCloud(cloud,stamp){
   const item=await prepareRecovery('Datos antes de usar nube heredada',{allDays:true,settings:true,training:true});
@@ -877,6 +895,7 @@ async function writeDayV2(date){
   for(let attempt=0;attempt<2;attempt++){
     try{
       let nextRev=expected+1;
+      assertCloudDocumentSize(`El día ${date}`,{date,...content,revision:nextRev,updatedAt:Date.now()});
       await fb.runTransaction(fb.db,async tx=>{
         const snap=await tx.get(ref), current=snap.exists()?(Number(snap.data().revision)||0):0;
         if(current!==expected) throw new Error('LIFTENGINE_DAY_CONFLICT');
@@ -902,6 +921,7 @@ async function writeSettingsV2(){
   for(let attempt=0;attempt<2;attempt++){
     try{
       let nextRev=expected+1;
+      assertCloudDocumentSize('La configuración',{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:nextRev,updatedAt:Date.now(),...content});
       await fb.runTransaction(fb.db,async tx=>{
         const snap=await tx.get(ref), current=snap.exists()?(Number(snap.data().revision)||0):0;
         if(current!==expected) throw new Error('LIFTENGINE_SETTINGS_CONFLICT');
