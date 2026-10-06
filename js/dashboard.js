@@ -300,47 +300,90 @@ window.offerLastPerformance = function(){
   }
 }
 
+
 window.renderCalendar = function(){
-  const grid=document.getElementById('calendarGrid'),name=document.getElementById('monthYear');grid.innerHTML='';name.textContent=new Date(currentYear,currentMonth,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
-  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(x=>grid.innerHTML+=`<div class="day-name">${x}</div>`);
-  const first=new Date(currentYear,currentMonth,1).getDay(),days=new Date(currentYear,currentMonth+1,0).getDate();for(let i=0;i<first;i++)grid.innerHTML+='<div class="cal-day empty"></div>';
+  const grid=document.getElementById('calendarGrid'),name=document.getElementById('monthYear');
+  grid.innerHTML='';
+  name.textContent=new Date(currentYear,currentMonth,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(x=>grid.innerHTML+='<div class="day-name">'+x+'</div>');
+  const first=new Date(currentYear,currentMonth,1).getDay(),days=new Date(currentYear,currentMonth+1,0).getDate();
+  for(let i=0;i<first;i++)grid.innerHTML+='<div class="cal-day empty"></div>';
   for(let i=1;i<=days;i++){
-    const d=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const has=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData));
+    const d=currentYear+'-'+String(currentMonth+1).padStart(2,'0')+'-'+String(i).padStart(2,'0');
+    const hasActual=!!(categories[d]||notes[d]||(data[d]||[]).some(entryHasData));
+    const plan=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(d):'';
+    const planInfo=typeof scheduleStatusForDate==='function'?scheduleStatusForDate(d):null;
+    const hasPlan=!!plan;
+    const has=hasActual||hasPlan;
     const routine=categories[d]||'';
     const workoutEntries=(data[d]||[]).filter(e=>!e.isCardio&&entryHasData(e));
     const setCount=workoutEntries.reduce((n,e)=>n+(e.sets||[]).filter(setCountsForWork).length,0);
-    const label=routine||((data[d]||[]).some(entryHasData)?'Entrenamiento':'Registro');
+    const displayRoutine=routine||(plan&&plan!=='Descanso'?plan:'');
+    const label=routine||(plan?(plan==='Descanso'?'Descanso planeado':plan+' planeado'):((data[d]||[]).some(entryHasData)?'Entrenamiento':'Registro'));
     const el=document.createElement('button');
     el.type='button';
-    el.className='cal-day '+(has?'has-workout ':'')+(d===selectedDate?'selected ':'')+(d===todayStr()?'today':'');
-    el.setAttribute('aria-label',`${i} · ${label||'Sin registro'}`);
-    el.title=routine||label||'';
-    const routineHtml=routine?`<span class="cal-routine">${escapeHtml(routine)}</span>`:'';
-    const statsHtml=workoutEntries.length?`<span class="cal-desktop-stats">${workoutEntries.length} ej · ${setCount} series</span>`:'';
-    el.innerHTML=`<div class="cal-num">${i}</div>${has?`<div class="cal-day-meta"><div class="cal-day-copy">${routineHtml}${statsHtml}</div><span class="cal-dot" aria-hidden="true"></span></div>`:''}`;
+    const statusClass=planInfo&&planInfo.status?' plan-'+planInfo.status:'';
+    el.className='cal-day '+(hasActual?'has-workout ':'')+(hasPlan?'has-plan ':'')+statusClass+(d===selectedDate?' selected ':'')+(d===todayStr()?' today':'');
+    el.setAttribute('aria-label',i+' · '+(label||'Sin registro'));
+    el.title=label||'';
+    const routineHtml=displayRoutine?'<span class="cal-routine'+(!routine&&hasPlan?' planned':'')+'">'+escapeHtml(displayRoutine)+'</span>':'';
+    let statusText='';
+    if(hasPlan){
+      if(plan==='Descanso')statusText='Descanso';
+      else if(planInfo?.status==='completed')statusText='Cumplido';
+      else if(planInfo?.status==='changed')statusText='Plan: '+plan;
+      else if(planInfo?.status==='missed')statusText='Pendiente';
+      else statusText='Planeado';
+    }
+    const statsHtml=workoutEntries.length
+      ? '<span class="cal-desktop-stats">'+workoutEntries.length+' ej · '+setCount+' series</span>'
+      : (statusText?'<span class="cal-desktop-stats cal-plan-text">'+escapeHtml(statusText)+'</span>':'');
+    el.innerHTML='<div class="cal-num">'+i+'</div>'+(has?'<div class="cal-day-meta"><div class="cal-day-copy">'+routineHtml+statsHtml+'</div><span class="cal-dot" aria-hidden="true"></span></div>':'');
     el.onclick=()=>{selectedDate=d;renderCalendar();showDaySummary(d)};
     grid.appendChild(el);
   }
-  if(selectedDate)showDaySummary(selectedDate)
+  if(selectedDate)showDaySummary(selectedDate);
 }
 
 function showDaySummary(d){
   const box=document.getElementById('calendarSummary'),arr=(data[d]||[]).filter(entryHasData);
+  const plan=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(d):'';
+  const planInfo=typeof scheduleStatusForDate==='function'?scheduleStatusForDate(d):null;
   const hasWorkout=arr.length||!!categories[d]||!!notes[d];
+  const planLabel=plan?(plan==='Descanso'?'Descanso':plan):'Sin plan';
+  const planStatus=planInfo?.status==='completed'?'Cumplido'
+    :planInfo?.status==='changed'?'Realizado distinto'
+    :planInfo?.status==='missed'?'Pendiente'
+    :planInfo?.status==='extra'?'Sesión extra'
+    :planInfo?.status==='today'?'Hoy'
+    :planInfo?.status==='planned'?'Planeado'
+    :planInfo?.status==='rest'?'Descanso':'';
+  const planPanel=plan
+    ? '<div class="calendar-plan-line"><div><span class="eyebrow">Plan semanal</span><b>'+escapeHtml(planLabel)+'</b><small>'+escapeHtml(planStatus)+'</small></div><button class="btn btn-secondary" onclick="openScheduleDateEditor(\''+d+'\')">Reprogramar</button></div>'
+    : '<div class="calendar-plan-line subtle"><div><span class="eyebrow">Plan semanal</span><b>Sin plan para este día</b></div><button class="btn btn-secondary" onclick="openScheduleDateEditor(\''+d+'\')">Planificar</button></div>';
+
   if(!hasWorkout){
-    box.innerHTML=`<div class="card calendar-summary-card"><div class="section-title"><div class="calendar-summary-heading"><span class="eyebrow">Día seleccionado</span><h2>${fmtDate(d)}</h2></div><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div><div class="empty"><b>Sin entrenamiento registrado</b><span>Puedes abrir Registro para añadir una sesión, una nota o asignar una rutina a este día.</span></div></div>`;
+    let emptyAction='<button class="btn btn-secondary" onclick="goToDate(\''+d+'\')">Abrir registro</button>';
+    if(d===todayStr()&&plan&&plan!=='Descanso'&&customRoutines[plan]){
+      emptyAction+='<button class="btn btn-primary" data-routine="'+escapeHtml(plan)+'" onclick="startPlannedRoutine(this.dataset.routine)">Entrenar '+escapeHtml(plan)+'</button>';
+    }
+    box.innerHTML='<div class="card calendar-summary-card">'
+      +'<div class="section-title"><div class="calendar-summary-heading"><span class="eyebrow">Día seleccionado</span><h2>'+fmtDate(d)+'</h2></div><div class="calendar-head-actions">'+emptyAction+'</div></div>'
+      +planPanel
+      +'<div class="empty"><b>Sin entrenamiento registrado</b><span>El plan semanal se conserva aunque todavía no haya una sesión guardada.</span></div></div>';
     return;
   }
-  const strength=arr.filter(e=>!e.isCardio), totalSets=strength.reduce((n,e)=>n+(e.sets||[]).filter(setCountsForWork).length,0);
+
+  const strength=arr.filter(e=>!e.isCardio),totalSets=strength.reduce((n,e)=>n+(e.sets||[]).filter(setCountsForWork).length,0);
   const totalVolume=strength.reduce((n,e)=>n+sessionVolume(e),0);
   const category=categories[d]||'Sesión sin etiqueta';
-  box.innerHTML=`<div class="card calendar-summary-card">
-    <div class="section-title"><div class="calendar-summary-heading"><span class="eyebrow">Día seleccionado</span><h2>${fmtDate(d)}</h2><div class="calendar-summary-sub"><span>${escapeHtml(category)}</span>${totalSets?`<span>${totalSets} series</span>`:''}${totalVolume?`<span>${Math.round(fromKg(totalVolume))} ${unitLabel()} de volumen</span>`:''}</div></div><button class="btn btn-secondary" onclick="goToDate('${d}')">Abrir registro</button></div>
-    ${notes[d]?`<div class="calendar-note"><b>Nota de sesión</b><span>${escapeHtml(notes[d])}</span></div>`:''}
-    <div class="calendar-exercise-list">${arr.map(e=>e.isCardio?`<div class="progress-item"><b>${ic('pulse')} ${escapeHtml(e.name)}</b><span>${escapeHtml(e.time)} min</span></div>`:`<div class="progress-item"><b>${ic('dumbbell')} ${escapeHtml(e.name)}</b><span>${Math.round(fromKg(sessionVolume(e)))} ${unitLabel()} · ${(e.sets||[]).filter(setCountsForWork).length} series</span></div>`).join('')}</div>
-    <div class="calendar-summary-actions"><button class="btn btn-danger full" onclick="deleteCalendarWorkout('${d}')">${ic('trash')} Eliminar entrenamiento completo</button></div>
-  </div>`;
+  box.innerHTML='<div class="card calendar-summary-card">'
+    +'<div class="section-title"><div class="calendar-summary-heading"><span class="eyebrow">Día seleccionado</span><h2>'+fmtDate(d)+'</h2><div class="calendar-summary-sub"><span>'+escapeHtml(category)+'</span>'+(totalSets?'<span>'+totalSets+' series</span>':'')+(totalVolume?'<span>'+Math.round(fromKg(totalVolume))+' '+unitLabel()+' de volumen</span>':'')+'</div></div><button class="btn btn-secondary" onclick="goToDate(\''+d+'\')">Abrir registro</button></div>'
+    +planPanel
+    +(notes[d]?'<div class="calendar-note"><b>Nota de sesión</b><span>'+escapeHtml(notes[d])+'</span></div>':'')
+    +'<div class="calendar-exercise-list">'+arr.map(e=>e.isCardio?'<div class="progress-item"><b>'+ic('pulse')+' '+escapeHtml(e.name)+'</b><span>'+escapeHtml(e.time)+' min</span></div>':'<div class="progress-item"><b>'+ic('dumbbell')+' '+escapeHtml(e.name)+'</b><span>'+Math.round(fromKg(sessionVolume(e)))+' '+unitLabel()+' · '+(e.sets||[]).filter(setCountsForWork).length+' series</span></div>').join('')+'</div>'
+    +'<div class="calendar-summary-actions"><button class="btn btn-danger full" onclick="deleteCalendarWorkout(\''+d+'\')">'+ic('trash')+' Eliminar entrenamiento completo</button></div>'
+    +'</div>';
 }
 
 window.deleteCalendarWorkout=async function(d){
