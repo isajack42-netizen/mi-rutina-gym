@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liftengine.local/exercise-library/schema.json",
+  "title": "LiftEngine Exercise",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "aliases",
+    "locale",
+    "taxonomy",
+    "summary",
+    "benefits",
+    "setup",
+    "executionSteps",
+    "breathing",
+    "keyCues",
+    "commonMistakes",
+    "safetyNotes",
+    "variants",
+    "substitutions",
+    "relatedExercises",
+    "media",
+    "contentStatus"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 90
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 90
+      },
+      "uniqueItems": true
+    },
+    "locale": {
+      "const": "es-MX"
+    },
+    "taxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primaryMuscles",
+        "secondaryMuscles",
+        "stabilizers",
+        "movementPattern",
+        "equipment",
+        "difficulty",
+        "goals"
+      ],
+      "properties": {
+        "primaryMuscles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "secondaryMuscles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stabilizers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movementPattern": {
+          "type": "string"
+        },
+        "equipment": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "difficulty": {
+          "type": "string"
+        },
+        "goals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 500
+    },
+    "benefits": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "setup": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "executionSteps": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "step",
+          "title",
+          "instruction",
+          "asset"
+        ],
+        "properties": {
+          "step": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 15,
+            "maxLength": 400
+          },
+          "asset": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "breathing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eccentric",
+        "concentric"
+      ],
+      "properties": {
+        "eccentric": {
+          "type": "string"
+        },
+        "concentric": {
+          "type": "string"
+        }
+      }
+    },
+    "keyCues": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 8
+      }
+    },
+    "commonMistakes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "description",
+          "correction",
+          "severity",
+          "asset"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "correction": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "asset": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "safetyNotes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 10
+      },
+      "maxItems": 6
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      }
+    },
+    "substitutions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      }
+    },
+    "relatedExercises": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "thumbnail",
+        "hero",
+        "muscleMap"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "planned",
+            "in-progress",
+            "ready"
+          ]
+        },
+        "thumbnail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hero": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "muscleMap": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "contentStatus": {
+      "enum": [
+        "draft",
+        "pilot",
+        "reviewed",
+        "ready"
+      ]
+    }
+  },
+  "$defs": {
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exerciseId",
+        "note"
+      ],
+      "properties": {
+        "exerciseId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 240
+        }
+      }
+    }
+  }
+}

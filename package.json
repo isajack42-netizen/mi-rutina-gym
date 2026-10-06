@@ -4,7 +4,7 @@
   "version": "1.0.0-rc.1",
   "description": "Development checks for LiftEngine. No runtime npm dependencies.",
   "scripts": {
-    "test": "node scripts/validate.mjs && node scripts/regression.mjs && node scripts/reliability.mjs && node scripts/friction.mjs && node scripts/final-audit.mjs"
+    "test": "node scripts/validate.mjs && node scripts/regression.mjs && node scripts/reliability.mjs && node scripts/friction.mjs && node scripts/final-audit.mjs && node scripts/exercise-library-audit.mjs"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.5"

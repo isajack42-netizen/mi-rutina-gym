@@ -46,3 +46,6 @@ jobs:
 
       - name: Personal Edition final audit
         run: node scripts/final-audit.mjs
+
+      - name: Exercise Library foundation audit
+        run: node scripts/exercise-library-audit.mjs
