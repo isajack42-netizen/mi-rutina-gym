@@ -1905,3 +1905,434 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 @media(min-width:1200px) and (max-width:1399px){
   .weekly-template-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+
+/* ===== v6.8 · DESKTOP DESIGN SYSTEM ===== */
+@media(min-width:1200px){
+  :root{
+    --desktop-line:color-mix(in srgb,var(--line) 64%,transparent);
+    --desktop-line-soft:color-mix(in srgb,var(--line) 42%,transparent);
+    --desktop-surface:color-mix(in srgb,var(--card) 96%,var(--bg));
+    --desktop-soft:color-mix(in srgb,var(--soft) 82%,transparent);
+    --desktop-radius:14px;
+    --desktop-radius-sm:10px;
+    --desktop-gap:16px;
+  }
+
+  body{
+    background:
+      linear-gradient(180deg,color-mix(in srgb,var(--card) 18%,var(--bg)) 0,var(--bg) 210px);
+  }
+  .app{
+    gap:20px;
+  }
+
+  /* Superficies: menos cajas, más jerarquía */
+  .app-main .card{
+    border-color:var(--desktop-line);
+    border-radius:var(--desktop-radius);
+    box-shadow:none;
+  }
+  .app-main>.tab>.card,
+  .app-main>.tab>.routine-workspace>.card{
+    background:var(--desktop-surface);
+  }
+  .section-title{
+    margin-bottom:14px;
+  }
+  .section-title h2{
+    font-size:1.08rem;
+    letter-spacing:-.015em;
+  }
+  .eyebrow{
+    color:var(--muted);
+    font-size:.64rem;
+    letter-spacing:.105em;
+  }
+  .badge{
+    border:1px solid var(--desktop-line-soft);
+    background:var(--desktop-soft);
+    color:var(--muted);
+  }
+  .btn-secondary,
+  .icon-btn,
+  .ghost-btn{
+    border-color:var(--desktop-line);
+  }
+  .btn-secondary:hover,
+  .icon-btn:hover,
+  .ghost-btn:hover{
+    border-color:color-mix(in srgb,var(--accent) 34%,var(--desktop-line));
+    background:var(--soft);
+  }
+
+  /* Sidebar: selección presente pero no dominante */
+  .app-sidebar{
+    padding:20px 14px 16px;
+    background:color-mix(in srgb,var(--card) 97%,var(--bg));
+    border-color:var(--desktop-line);
+    box-shadow:0 14px 42px rgba(0,0,0,.10);
+  }
+  .app-sidebar header{
+    padding:2px 2px 15px;
+    border-bottom-color:var(--desktop-line-soft);
+  }
+  .app-sidebar .header-actions .sync-status{
+    background:transparent;
+    border-color:var(--desktop-line-soft);
+  }
+  .app-sidebar .tabs{
+    gap:3px;
+    margin-top:16px;
+  }
+  .app-sidebar .tab-btn{
+    min-height:44px;
+    padding:9px 11px;
+    border:0;
+    border-radius:9px;
+    color:var(--muted);
+    font-weight:720;
+  }
+  .app-sidebar .tab-btn:hover{
+    border-color:transparent;
+    background:var(--desktop-soft);
+    color:var(--text);
+  }
+  .app-sidebar .tab-btn.active{
+    background:var(--desktop-soft);
+    color:var(--text);
+    border-color:transparent;
+    box-shadow:inset 2px 0 0 var(--accent);
+  }
+  .app-sidebar .tab-btn.active .ti{
+    color:var(--accent);
+  }
+  .desktop-train-slot{
+    border-top-color:var(--desktop-line-soft);
+  }
+  .desktop-train-btn{
+    background:transparent;
+    border-color:var(--desktop-line);
+    border-radius:10px;
+  }
+  .desktop-train-btn:hover{
+    border-color:color-mix(in srgb,var(--accent) 35%,var(--desktop-line));
+    background:var(--desktop-soft);
+  }
+  .desktop-train-btn.active{
+    background:var(--desktop-soft);
+    border-color:var(--desktop-line);
+    box-shadow:inset 2px 0 0 var(--accent);
+  }
+
+  /* Resumen: el plan de hoy es el hero, Intelligence queda como segunda capa */
+  #resumen .dashboard-v6-card{
+    padding:22px 22px 16px;
+  }
+  #resumen .dashboard-v6-card>.section-title{
+    margin-bottom:4px;
+  }
+  #resumen .dashboard-v6-card>.section-title h2{
+    font-size:1.14rem;
+  }
+  .dashboard-week-plan{
+    grid-template-columns:minmax(0,1fr) auto auto;
+    gap:16px;
+    padding:10px 0 17px;
+    margin:0 0 14px;
+    background:transparent;
+    border:0;
+    border-bottom:1px solid var(--desktop-line-soft);
+    border-radius:0;
+  }
+  .dashboard-week-plan h3{
+    margin:2px 0 4px!important;
+    font-size:1.08rem!important;
+    letter-spacing:-.015em;
+  }
+  .dashboard-week-plan p{
+    font-size:.72rem;
+  }
+  .dashboard-week-plan-meta{
+    min-width:175px;
+  }
+  .dashboard-week-plan-meta b{
+    font-size:.73rem;
+  }
+  .dashboard-week-plan .btn{
+    min-height:40px;
+    padding:8px 14px;
+    border-radius:10px;
+    font-size:.82rem;
+  }
+
+  .dashboard-decision{
+    margin:0 0 12px;
+    padding:11px 12px 11px 14px;
+    background:transparent;
+    border:1px solid transparent;
+    border-left:2px solid var(--accent);
+    border-radius:8px;
+  }
+  .dashboard-decision:hover{
+    background:var(--desktop-soft);
+    border-color:var(--desktop-line-soft);
+    border-left-color:var(--accent);
+  }
+  .dashboard-decision.positive{border-left-color:var(--green)}
+  .dashboard-decision.warning{border-left-color:var(--yellow)}
+  .dashboard-decision.muted{border-left-color:var(--muted)}
+  .dashboard-decision-head{
+    margin-bottom:4px;
+  }
+  .dashboard-decision-head>b{
+    font-size:.9rem;
+  }
+  .dashboard-decision>strong{
+    font-size:.8rem;
+  }
+
+  .dashboard-v6-kpis-strip{
+    gap:0;
+    background:transparent;
+    border:0;
+    border-top:1px solid var(--desktop-line-soft);
+    border-bottom:1px solid var(--desktop-line-soft);
+    border-radius:0;
+  }
+  .dashboard-v6-kpis-strip>div{
+    min-height:72px;
+    padding:11px 14px;
+  }
+  .dashboard-v6-kpis-strip>div+div{
+    border-left:1px solid var(--desktop-line-soft);
+  }
+  .dashboard-v6-kpis-strip span{
+    color:var(--muted);
+    font-weight:650;
+  }
+  .dashboard-v6-kpis-strip b{
+    font-size:1.02rem!important;
+  }
+  .dashboard-goal-line{
+    padding:11px 0 0;
+  }
+
+  /* El grid ya no estira una tarjeta solo porque la vecina sea más larga */
+  #resumen .summary-glance-grid{
+    gap:14px;
+    align-items:start;
+  }
+  #resumen .summary-glance-grid>.card{
+    margin-bottom:0;
+    padding:18px;
+  }
+  #weekBody .empty{
+    min-height:0;
+    padding:18px 8px 8px;
+    background:transparent;
+    border:0;
+  }
+  .week-days{
+    gap:7px;
+    margin-bottom:14px;
+  }
+  .wd{
+    height:34px;
+    border-color:var(--desktop-line);
+    background:transparent;
+    border-radius:9px;
+    font-weight:750;
+  }
+  .wd.on{
+    background:var(--desktop-soft);
+    color:var(--text);
+    border-color:color-mix(in srgb,var(--accent) 28%,var(--desktop-line));
+  }
+  .wd.today{
+    box-shadow:inset 0 0 0 1px var(--accent);
+  }
+  .mbar{
+    margin-top:9px;
+  }
+  .mbar i{
+    height:6px;
+    background:var(--desktop-soft);
+  }
+
+  #recentWorkouts{
+    gap:0;
+  }
+  #recentWorkouts .progress-item{
+    min-height:58px;
+    margin:0;
+    padding:12px 4px;
+    background:transparent;
+    border:0;
+    border-bottom:1px solid var(--desktop-line-soft);
+    border-radius:0;
+  }
+  #recentWorkouts .progress-item:first-child{
+    border-top:1px solid var(--desktop-line-soft);
+  }
+  #recentWorkouts .progress-item:hover{
+    padding-left:9px;
+    padding-right:9px;
+    background:var(--desktop-soft);
+    border-left:0;
+  }
+
+  #summaryMore{
+    margin-top:14px;
+    border-color:var(--desktop-line);
+  }
+  #summaryMore .summary-more-body{
+    gap:16px;
+    padding:17px;
+  }
+  #summaryMore .summary-detail-grid .summary-panel{
+    padding:14px 0 0;
+    background:transparent;
+    border:0;
+    border-top:1px solid var(--desktop-line-soft);
+    border-radius:0;
+  }
+  .performance-hero,
+  .performance-stat{
+    border-color:var(--desktop-line);
+  }
+
+  /* Progreso: misma navegación visual que la app principal */
+  #progreso .progress-nav{
+    padding:0;
+    gap:3px;
+    background:transparent;
+    border:0;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+  }
+  #progreso .progress-nav-btn{
+    min-height:42px;
+    padding:9px 11px;
+    color:var(--muted);
+    border-radius:9px;
+    font-weight:720;
+  }
+  #progreso .progress-nav-btn:hover{
+    background:var(--desktop-soft);
+    color:var(--text);
+  }
+  #progreso .progress-nav-btn.active{
+    background:var(--desktop-soft);
+    color:var(--text);
+    box-shadow:inset 2px 0 0 var(--accent);
+  }
+  #progreso .progress-view.active,
+  #progreso .desktop-exercise-browser{
+    border-color:var(--desktop-line);
+  }
+  .desktop-exercise-item{
+    border-radius:8px;
+  }
+  .desktop-exercise-item.active{
+    background:var(--desktop-soft);
+    border-color:var(--desktop-line);
+    box-shadow:inset 2px 0 0 var(--accent);
+  }
+
+  /* Calendario: estados más editoriales y menos "botón" */
+  #calendario>.card,
+  .calendar-summary-card{
+    border-color:var(--desktop-line);
+  }
+  .calendar-grid{
+    gap:6px;
+  }
+  .cal-day{
+    border-color:var(--desktop-line);
+    background:transparent;
+    border-radius:9px;
+  }
+  .cal-day:hover:not(.empty){
+    background:var(--desktop-soft);
+    border-color:color-mix(in srgb,var(--accent) 28%,var(--desktop-line));
+  }
+  .cal-day.has-plan:not(.has-workout){
+    background:color-mix(in srgb,var(--accent) 3%,transparent);
+    border-color:var(--desktop-line);
+  }
+  .cal-day.selected{
+    background:color-mix(in srgb,var(--accent) 11%,var(--card));
+    color:var(--text);
+    border-color:color-mix(in srgb,var(--accent) 52%,var(--desktop-line));
+    outline:0;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 28%,transparent);
+  }
+  .cal-day.selected .cal-routine{
+    color:var(--text);
+  }
+  .cal-day.selected .cal-dot{
+    background:var(--accent);
+  }
+  .calendar-plan-line{
+    background:transparent;
+    border-color:var(--desktop-line-soft);
+  }
+
+  /* Rutinas: menos contenedores dentro de contenedores */
+  .routine details{
+    background:transparent;
+    border-color:var(--desktop-line);
+    border-radius:10px;
+  }
+  .routine summary{
+    transition:background .18s ease;
+  }
+  .routine summary:hover{
+    background:var(--desktop-soft);
+  }
+  #rutinas .routine-planner-card{
+    border-color:var(--desktop-line);
+  }
+  .routine-plan-summary>div,
+  .routine-frequency-row,
+  .routine-muscle-row,
+  .routine-signal{
+    border-color:var(--desktop-line-soft);
+  }
+
+  /* Registro y formularios: contornos secundarios más suaves */
+  #registro>.card{
+    border-color:var(--desktop-line);
+  }
+  .set-row,
+  .exercise-card,
+  input,
+  select,
+  textarea{
+    border-color:var(--desktop-line);
+  }
+  input:focus,
+  select:focus,
+  textarea:focus{
+    border-color:color-mix(in srgb,var(--accent) 58%,var(--line));
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 9%,transparent);
+  }
+
+  /* Modales: el mismo lenguaje de superficie del workspace */
+  .modal,
+  .app-dialog{
+    border-color:var(--desktop-line);
+    border-radius:16px;
+    box-shadow:0 26px 70px rgba(0,0,0,.32);
+  }
+}
+
+@media(min-width:1500px){
+  #resumen .dashboard-v6-card{
+    padding:24px 24px 17px;
+  }
+  #resumen .summary-glance-grid{
+    gap:16px;
+  }
+}
