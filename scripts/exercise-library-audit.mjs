@@ -85,9 +85,27 @@ for (const file of files) {
   const media = ex.media || {};
   if (!['planned','in-progress','ready'].includes(media.status)) fail(file + ': invalid media status.');
   const base = 'assets/exercise-library/' + ex.id + '/';
+  const assetPaths=[];
   for (const key of ['thumbnail','hero','muscleMap']) {
     const p = media[key];
     if (p && (!p.startsWith(base) || p.includes('..'))) fail(file + ': invalid media path ' + key);
+    if(p) assetPaths.push(p);
+  }
+  for(const step of ex.executionSteps||[]) if(step.asset) assetPaths.push(step.asset);
+  for(const mistake of ex.commonMistakes||[]) if(mistake.asset) assetPaths.push(mistake.asset);
+  if(media.status==='ready'){
+    if(assetPaths.length < 3 + ex.executionSteps.length + ex.commonMistakes.length) fail(file + ': ready media pack is incomplete.');
+    for(const rel of assetPaths){
+      const abs=path.join(root,rel);
+      if(!fs.existsSync(abs)) fail(file + ': ready asset missing: ' + rel);
+      const bytes=fs.statSync(abs).size;
+      if(bytes<=0||bytes>300*1024) fail(file + ': asset outside pilot size budget: ' + rel);
+      if(rel.endsWith('.svg')){
+        const svg=fs.readFileSync(abs,'utf8');
+        if(!svg.includes('<svg')||!svg.includes('viewBox=')) fail(file + ': invalid SVG asset: ' + rel);
+        if(/<text\b/i.test(svg)) fail(file + ': SVG contains embedded text: ' + rel);
+      }
+    }
   }
 }
 
@@ -101,7 +119,7 @@ if(!app.includes("'exercise-library'")) fail('exercise-library.js is not in runt
 if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-library/exercises/bench-press-barbell.json')")) fail('pilot data is not precached.');
 if(!routines.includes('exerciseLibraryButtonHtml')) fail('routine integration is missing.');
 if(!training.includes('exerciseLibraryButtonHtml')) fail('training integration is missing.');
-for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey']){
+for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey','exercise-step-media','exercise-mistake-media']){
   if(!ui.includes(marker)) fail('pilot UI marker missing: '+marker);
 }
-console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · pilot UI wired');
+console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · pilot UI + ready assets wired');

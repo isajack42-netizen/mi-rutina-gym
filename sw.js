@@ -7,6 +7,7 @@ const SHELL=[
   './','index.html','app.js',q('styles.css'),'js/version.js',
   ...['version','config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','exercise-library','routines','notifications','training','recovery','bootstrap'].map(n=>q(`js/${n}.js`)),
   q('exercise-library/index.json'),q('exercise-library/taxonomy.json'),q('exercise-library/exercises/bench-press-barbell.json'),
+  ...["assets/exercise-library/bench-press-barbell/thumbnail.svg","assets/exercise-library/bench-press-barbell/hero.svg","assets/exercise-library/bench-press-barbell/muscle-map-front.svg","assets/exercise-library/bench-press-barbell/step-01-setup.svg","assets/exercise-library/bench-press-barbell/step-02-unrack.svg","assets/exercise-library/bench-press-barbell/step-03-descent.svg","assets/exercise-library/bench-press-barbell/step-04-bottom.svg","assets/exercise-library/bench-press-barbell/step-05-press.svg","assets/exercise-library/bench-press-barbell/step-06-finish.svg","assets/exercise-library/bench-press-barbell/mistake-excessive-elbow-flare.svg","assets/exercise-library/bench-press-barbell/mistake-touch-too-high.svg","assets/exercise-library/bench-press-barbell/mistake-lose-foot-pressure.svg","assets/exercise-library/bench-press-barbell/mistake-bounce-bar.svg"].map(q),
   'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
 ];
 self.addEventListener('install',e=>{

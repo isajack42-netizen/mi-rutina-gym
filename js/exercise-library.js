@@ -73,11 +73,15 @@ async function exerciseLibraryLoad(id){
 function exerciseLibraryRelationLabel(id){
   return exerciseLibraryIndexItem(id)?.name||id;
 }
+function exerciseLibraryAssetUrl(src){
+  const version=globalThis.LIFTENGINE_VERSION||'dev';
+  return src?`${src}?v=${encodeURIComponent(version)}`:'';
+}
 function exerciseLibraryMedia(ex,kind,label){
   const src=ex?.media?.[kind];
   const ready=ex?.media?.status==='ready'&&src;
   if(ready){
-    return `<figure class="exercise-media"><img src="${escapeHtml(src)}" alt="${escapeHtml(label)}" loading="lazy"><figcaption>${escapeHtml(label)}</figcaption></figure>`;
+    return `<figure class="exercise-media"><img src="${escapeHtml(exerciseLibraryAssetUrl(src))}" alt="${escapeHtml(label)}" loading="lazy"><figcaption>${escapeHtml(label)}</figcaption></figure>`;
   }
   return `<figure class="exercise-media exercise-media-placeholder" role="img" aria-label="${escapeHtml(label)}">
     <div class="exercise-placeholder-art" aria-hidden="true"><span class="exercise-placeholder-body"></span><span class="exercise-placeholder-bar"></span><span class="exercise-placeholder-bench"></span></div>
@@ -116,7 +120,7 @@ function exerciseLibraryTechnique(ex){
   return `<div class="exercise-tech-layout">
     <section class="exercise-copy-section"><span class="eyebrow">Preparación</span>${exerciseLibraryList(ex.setup)}</section>
     <section class="exercise-copy-section"><span class="eyebrow">Ejecución</span>
-      <div class="exercise-step-list">${(ex.executionSteps||[]).map(step=>`<article class="exercise-step"><div class="exercise-step-number">${step.step}</div><div><b>${escapeHtml(step.title)}</b><p>${escapeHtml(step.instruction)}</p></div></article>`).join('')}</div>
+      <div class="exercise-step-list">${(ex.executionSteps||[]).map(step=>`<article class="exercise-step">${step.asset?`<img class="exercise-step-media" src="${escapeHtml(exerciseLibraryAssetUrl(step.asset))}" alt="Paso ${step.step}: ${escapeHtml(step.title)}" loading="lazy">`:''}<div class="exercise-step-number">${step.step}</div><div class="exercise-step-copy"><b>${escapeHtml(step.title)}</b><p>${escapeHtml(step.instruction)}</p></div></article>`).join('')}</div>
     </section>
     <section class="exercise-breathing"><div><span class="eyebrow">Descenso</span><p>${escapeHtml(ex.breathing?.eccentric||'')}</p></div><div><span class="eyebrow">Empuje</span><p>${escapeHtml(ex.breathing?.concentric||'')}</p></div></section>
     <section class="exercise-copy-section"><span class="eyebrow">Cues rápidos</span>${exerciseLibraryList(ex.keyCues,'exercise-cue-list')}</section>
@@ -144,6 +148,7 @@ function exerciseLibraryVariants(ex){
 }
 function exerciseLibraryMistakes(ex){
   return `<div class="exercise-mistake-grid">${(ex.commonMistakes||[]).map(m=>`<article class="exercise-mistake-card">
+    ${m.asset?`<img class="exercise-mistake-media" src="${escapeHtml(exerciseLibraryAssetUrl(m.asset))}" alt="Error común: ${escapeHtml(m.title)}" loading="lazy">`:''}
     <div class="exercise-mistake-head"><span class="exercise-severity ${escapeHtml(m.severity)}">${m.severity==='high'?'Prioridad alta':m.severity==='medium'?'Prioridad media':'Ajuste'}</span><b>${escapeHtml(m.title)}</b></div>
     <p>${escapeHtml(m.description)}</p>
     <div class="exercise-correction"><span>Cómo corregirlo</span><p>${escapeHtml(m.correction)}</p></div>

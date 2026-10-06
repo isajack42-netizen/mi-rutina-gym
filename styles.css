@@ -2752,3 +2752,14 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .exercise-sheet-tabs button{min-height:44px;padding:0 11px}
   .exercise-info-btn span{display:none}
 }
+
+/* ===== v1.1 · PILOT ASSET PACK ===== */
+.exercise-step{grid-template-columns:148px 38px minmax(0,1fr);align-items:center}
+.exercise-step-media{display:block;width:148px;aspect-ratio:4/3;object-fit:cover;border-radius:9px;border:1px solid var(--line);background:#eef1f4}
+.exercise-step-copy{min-width:0}
+.exercise-mistake-media{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:9px;border:1px solid var(--line);margin-bottom:12px;background:#eef1f4}
+.exercise-media img{background:#eef1f4}
+@media(max-width:620px){
+  .exercise-step{grid-template-columns:36px minmax(0,1fr)}
+  .exercise-step-media{grid-column:1/-1;width:100%;aspect-ratio:16/10}
+}

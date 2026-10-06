@@ -16,7 +16,7 @@ La biblioteca todavía no forma parte del runtime de 1.0. El objetivo de la rama
 
 - Foundation: en implementación.
 - Ejercicio piloto: `bench-press-barbell`.
-- Assets del piloto: planificados, aún no conectados al runtime.
+- Assets del piloto: paquete vectorial propio listo e integrado para evaluación.
 
 ## Validación
 
