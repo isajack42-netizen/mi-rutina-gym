@@ -40,3 +40,6 @@ jobs:
 
       - name: Reliability and recovery scenarios
         run: node scripts/reliability.mjs
+
+      - name: Training friction audit
+        run: node scripts/friction.mjs
