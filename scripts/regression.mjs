@@ -27,6 +27,8 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
     bodyGoal:{mode:'neutral',targetWeightKg:null,targetWaistCm:null},
     isPlainObject:v=>!!v&&typeof v==='object'&&!Array.isArray(v),
     finiteNumber:(v,min=0)=>{const n=Number(v);return Number.isFinite(n)&&n>=min?n:null;},
+    boundedString:(v,max=160,f='')=>String(v??f).slice(0,max),
+    validDateKey:v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||'')),
     sanitizeExerciseNotes:x=>x||{},
     sanitizeRoutines:x=>x||{},
     sanitizeAliases:x=>x||{},
@@ -45,6 +47,7 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
     normalizeTheme:v=>['auto','light','default','ocean','forest','coffee'].includes(String(v||''))?String(v):'auto',
     applyTheme:()=>{},
     weeklySessionTarget:6,
+    weeklyPlan:{template:{},overrides:{}},
     toKg:v=>Number(v),
     renderSettingsModal:()=>{},
     toast:()=>{},
@@ -57,6 +60,10 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   const old=ctx.sanitizeSettingsSnapshot({weeklySessionTarget:5,currentUnit:'kg'});
   assert.equal(old.weeklySessionTarget,5);
   assert.deepEqual(JSON.parse(JSON.stringify(old.bodyGoal)),{mode:'neutral',targetWeightKg:null,targetWaistCm:null});
+  assert.deepEqual(JSON.parse(JSON.stringify(old.weeklyPlan)),{template:{},overrides:{}});
+
+  const plan=ctx.sanitizeSettingsSnapshot({weeklyPlan:{template:{'1':'Push','0':'Descanso','9':'X'},overrides:{'2026-10-07':'Pull','bad-date':'Push'}}});
+  assert.deepEqual(JSON.parse(JSON.stringify(plan.weeklyPlan)),{template:{'0':'Descanso','1':'Push'},overrides:{'2026-10-07':'Pull'}});
 
   ctx.bodyGoal={mode:'neutral',targetWeightKg:null,targetWaistCm:null};
   assert.equal(ctx.bodyMetricTrendClass('weight',-1,75),'trend-neutral');
@@ -169,6 +176,40 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   x=ctx.window.getTrainingIntelligence('Dominadas asistidas',{sessions:[session('2026-10-01',[12,12,12],2,40)],target});
   assert.equal(x.action,'difficulty');
   assert.equal(x.plan.weightKg,40);
+}
+
+// ===== Weekly Schedule & Planned vs Actual (v6.7.0) =====
+{
+  const src=read('js/schedule.js');
+  const a=src.indexOf('// <schedule-helpers>'), z=src.indexOf('// </schedule-helpers>');
+  assert.ok(a>=0&&z>a,'faltan los helpers puros del Weekly Schedule v6.7');
+  const ctx=context();
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__schedule={scheduleDayForDate,schedulePlanForDate,scheduleTemplateForDate,scheduleHasPlan,scheduleShiftDate,scheduleWeekDates,scheduleAllocateCounts,scheduleBuildTemplate,scheduleStatus};',ctx);
+  const h=ctx.__schedule, J=x=>JSON.parse(JSON.stringify(x));
+
+  assert.equal(h.scheduleDayForDate('2026-10-05'),1);
+  assert.deepEqual(J(h.scheduleWeekDates('2026-10-07')),['2026-10-05','2026-10-06','2026-10-07','2026-10-08','2026-10-09','2026-10-10','2026-10-11']);
+
+  const plan={template:{'1':'Push','2':'Pull','3':'Legs','4':'Push','5':'Pull','6':'Legs','0':'Descanso'},overrides:{'2026-10-08':'Descanso','2026-10-11':'Push'}};
+  assert.equal(h.schedulePlanForDate(plan,'2026-10-05'),'Push');
+  assert.equal(h.schedulePlanForDate(plan,'2026-10-08'),'Descanso');
+  assert.equal(h.schedulePlanForDate(plan,'2026-10-11'),'Push');
+  assert.equal(h.scheduleTemplateForDate(plan,'2026-10-11'),'Descanso');
+  assert.equal(h.scheduleHasPlan(plan),true);
+
+  const counts=J(h.scheduleAllocateCounts({Push:2,Pull:2,Legs:2},6));
+  assert.deepEqual(counts,{Push:2,Pull:2,Legs:2});
+  const tpl=J(h.scheduleBuildTemplate({Push:2,Pull:2,Legs:2}));
+  assert.deepEqual(tpl,{'0':'Descanso','1':'Push','2':'Pull','3':'Legs','4':'Push','5':'Pull','6':'Legs'});
+
+  const tpl5=J(h.scheduleBuildTemplate({Push:1.5,Pull:1.5,Legs:2}));
+  assert.equal(Object.values(tpl5).filter(x=>x!=='Descanso').length,5);
+
+  assert.equal(h.scheduleStatus('Push','Push',true,'2026-10-05','2026-10-05'),'completed');
+  assert.equal(h.scheduleStatus('Push','Pull',true,'2026-10-05','2026-10-05'),'changed');
+  assert.equal(h.scheduleStatus('Push','',false,'2026-10-04','2026-10-05'),'missed');
+  assert.equal(h.scheduleStatus('Push','',false,'2026-10-05','2026-10-05'),'today');
+  assert.equal(h.scheduleStatus('Descanso','Push',true,'2026-10-05','2026-10-05'),'extra');
 }
 
 // ===== Planning Workspace (v6.6.0) =====

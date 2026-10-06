@@ -182,6 +182,7 @@ window.renderRoutinePlanner=function(){
   const freq=document.getElementById('routinePlanFrequency');if(freq)freq.innerHTML=planningFrequencyMarkup(plan);
   const muscles=document.getElementById('routinePlanMuscles');if(muscles)muscles.innerHTML=planningMuscleMarkup(plan);
   const signals=document.getElementById('routinePlanSignals');if(signals)signals.innerHTML=planningSignalsMarkup(plan);
+  if(typeof renderWeeklySchedulePlanner==='function')renderWeeklySchedulePlanner();
 };
 
 function planningDraftRowsFromEditor(){

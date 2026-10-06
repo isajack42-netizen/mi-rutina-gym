@@ -68,15 +68,20 @@ function renderTrainCTA(){
   const primary=train
     ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
     : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
+  const planned=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(todayStr()):'';
+  const plannedReady=!train&&planned&&planned!=='Descanso'&&!!customRoutines[planned];
   document.querySelectorAll('.train-cta-slot').forEach(b=>{b.innerHTML=primary;});
   document.querySelectorAll('.desktop-train-slot').forEach(b=>{
     b.innerHTML=train
       ? `<button class="desktop-train-btn active" onclick="openTraining()">${ic('play')} <span><b>Continuar</b><small>${escapeHtml(train.routine||'Sesión libre')}</small></span></button>`
-      : `<button class="desktop-train-btn" onclick="openTrainStart()">${ic('dumbbell')} <span><b>Entrenar</b><small>Iniciar una sesión</small></span></button>`;
+      : plannedReady
+        ? `<button class="desktop-train-btn active" data-routine="${escapeHtml(planned)}" onclick="startPlannedRoutine(this.dataset.routine)">${ic('dumbbell')} <span><b>Entrenar ${escapeHtml(planned)}</b><small>Plan de hoy</small></span></button>`
+        : `<button class="desktop-train-btn" onclick="openTrainStart()">${ic('dumbbell')} <span><b>Entrenar</b><small>Iniciar una sesión</small></span></button>`;
   });
 }
 window.openTrainStart=function(){
-  const pre=categories[todayStr()];
+  const planned=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(todayStr()):'';
+  const pre=categories[todayStr()]||(planned&&planned!=='Descanso'?planned:'');
   document.getElementById('modal').innerHTML=`<h2>Modo entrenamiento</h2>
     <p class="muted">Elige la rutina de hoy. Verás tu rendimiento anterior en cada serie y el descanso arranca solo al marcar cada serie como hecha y se guarda como dato.</p>
     <div class="progress-list">${Object.keys(customRoutines).map(k=>`<button class="btn btn-secondary full" style="${k===pre?'border-color:var(--accent)':''}" data-n="${escapeHtml(k)}" onclick="startTraining(this.dataset.n)">${escapeHtml(k)}${k===pre?' · asignada hoy':''}</button>`).join('')}
