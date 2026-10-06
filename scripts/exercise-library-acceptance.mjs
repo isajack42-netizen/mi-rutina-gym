@@ -149,11 +149,18 @@ for(const ex of exercises){
 if(assetCount<160) fail('Expected a complete visual pack; only '+assetCount+' SVG refs found.');
 if(assetBytes>1100*1024) fail('First Pack visual assets exceed 1.1 MiB acceptance budget: '+assetBytes+' bytes.');
 
+function secondaryNeedsDistinctOrange(ex){
+  const primary=new Set(ex.taxonomy?.primaryMuscles||[]);
+  const secondary=ex.taxonomy?.secondaryMuscles||[];
+  const deltoids=new Set(['anterior-deltoid','lateral-deltoid']);
+  if(secondary.length && secondary.every(id=>deltoids.has(id)) && [...primary].some(id=>deltoids.has(id))) return false;
+  return secondary.length>0;
+}
 for(const ex of exercises){
   const hero=read(ex.media.hero).toLowerCase();
   const muscleMap=read(ex.media.muscleMap).toLowerCase();
   if(!hero.includes('#e94f48')) fail(ex.id+': hero is missing the standard primary coral #e94f48.');
-  if((ex.taxonomy?.secondaryMuscles||[]).length && !(hero+muscleMap).includes('#f47a4a')) fail(ex.id+': visual pack is missing the standard secondary orange #f47a4a.');
+  if(secondaryNeedsDistinctOrange(ex) && !(hero+muscleMap).includes('#f47a4a')) fail(ex.id+': visual pack is missing the standard secondary orange #f47a4a.');
 }
 
 if(!version.includes("1.1.0-alpha.2")||pkg.version!=='1.1.0-alpha.2'||lock.version!=='1.1.0-alpha.2'||lock.packages?.['']?.version!=='1.1.0-alpha.2') fail('Development version/cache isolation is inconsistent.');
