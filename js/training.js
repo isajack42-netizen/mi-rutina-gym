@@ -37,6 +37,15 @@ function trainRestResult(startAt,endAt,measured){
   const secs=Math.round((endAt-startAt)/1000);
   return secs>=5?{restUsed:secs,estimated:!measured}:null;
 }
+function trainNextIncompleteExercise(entries,currentIndex){
+  for(let i=Math.max(0,Number(currentIndex)||0)+1;i<(entries||[]).length;i++){
+    if((entries[i]?.sets||[]).some(s=>!isDone(s))) return i;
+  }
+  return -1;
+}
+function trainShouldOfferStart(resting,done,index,nextPendingIndex){
+  return !!resting&&!done&&index===nextPendingIndex;
+}
 // </train-helpers>
 function saveTrain(){
   try{
@@ -66,11 +75,13 @@ function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[])
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
 
 function renderTrainCTA(){
-  const primary=train
-    ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
-    : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
   const planned=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(todayStr()):'';
   const plannedReady=!train&&planned&&planned!=='Descanso'&&!!customRoutines[planned];
+  const primary=train
+    ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
+    : plannedReady
+      ? `<div class="train-cta-actions"><button class="btn btn-primary" data-routine="${escapeHtml(planned)}" onclick="startPlannedRoutine(this.dataset.routine)">${ic('dumbbell')} Entrenar ${escapeHtml(planned)} · plan de hoy</button><button class="btn btn-secondary train-cta-alt" onclick="openTrainStart()">Otra rutina</button></div>`
+      : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
   document.querySelectorAll('.train-cta-slot').forEach(b=>{b.innerHTML=primary;});
   document.querySelectorAll('.desktop-train-slot').forEach(b=>{
     b.innerHTML=train
@@ -83,9 +94,10 @@ function renderTrainCTA(){
 window.openTrainStart=function(){
   const planned=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(todayStr()):'';
   const pre=categories[todayStr()]||(planned&&planned!=='Descanso'?planned:'');
+  const routineNames=Object.keys(customRoutines).sort((a,b)=>a===pre?-1:b===pre?1:a.localeCompare(b,'es'));
   document.getElementById('modal').innerHTML=`<h2>Modo entrenamiento</h2>
-    <p class="muted">Elige la rutina de hoy. Verás tu rendimiento anterior en cada serie y el descanso arranca solo al marcar cada serie como hecha y se guarda como dato.</p>
-    <div class="progress-list">${Object.keys(customRoutines).map(k=>`<button class="btn btn-secondary full" style="${k===pre?'border-color:var(--accent)':''}" data-n="${escapeHtml(k)}" onclick="startTraining(this.dataset.n)">${escapeHtml(k)}${k===pre?' · asignada hoy':''}</button>`).join('')}
+    <p class="muted">Elige la rutina. La planeada para hoy aparece primero; dentro verás historial, sugerencias y descanso.</p>
+    <div class="progress-list">${routineNames.map(k=>`<button class="btn btn-secondary full" style="${k===pre?'border-color:var(--accent)':''}" data-n="${escapeHtml(k)}" onclick="startTraining(this.dataset.n)">${escapeHtml(k)}${k===pre?' · plan de hoy':''}</button>`).join('')}
     <button class="btn btn-secondary full" onclick="startTraining('')">Sesión libre</button></div>
     <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button></div>`;
   openEl();
@@ -114,7 +126,7 @@ function updateTrainClock(){
 window.openTraining=function(){
   if(!train) return;
   document.getElementById('trainOverlay').classList.add('open'); document.body.classList.add('train-open');
-  clearInterval(trainClock); trainClock=setInterval(updateTrainClock,1000); updateTrainClock(); trainWake(); renderTrain();
+  clearInterval(trainClock); trainClock=setInterval(updateTrainClock,1000); updateTrainClock(); trainWake(); renderTrain(); trainRevealCurrentTarget(false);
 }
 function closeTrainUI(){
   document.getElementById('trainOverlay').classList.remove('open'); document.body.classList.remove('train-open');
@@ -148,6 +160,7 @@ function renderTrain(){
   const es=trainEntries();
   if(!es.length){
     document.getElementById('trainTitle').textContent=train.routine||'Sesión libre';
+    const prevBtn=document.getElementById('trainPrev');if(prevBtn)prevBtn.disabled=true;
     document.getElementById('trainChips').innerHTML='';document.getElementById('trainNext').innerHTML='Finalizar '+ic('check');
     document.getElementById('trainBody').innerHTML=`<div class="empty" style="padding:28px 12px"><b>${train.routine?'No hay ejercicios disponibles':'Sesión libre'}</b><br><span class="muted">Añade el primer ejercicio para empezar.</span><div style="margin-top:16px"><button class="btn btn-primary" onclick="trainAddExercise()">+ Añadir ejercicio</button></div></div>`;
     return;
@@ -155,6 +168,7 @@ function renderTrain(){
   train.idx=Math.min(Math.max(train.idx,0),es.length-1);
   const e=es[train.idx], d=train.date, body=document.getElementById('trainBody'), keep=body.scrollTop;
   document.getElementById('trainTitle').textContent=train.routine||'Sesión libre';
+  const prevBtn=document.getElementById('trainPrev');if(prevBtn)prevBtn.disabled=train.idx===0;
   document.getElementById('trainChips').innerHTML=es.map((x,i)=>{const dn=x.sets.length&&x.sets.every(isDone),label=`${x.name} · ejercicio ${i+1}${dn?' · completado':''}`;return `<button class="train-chip ${i===train.idx?'active':''} ${dn?'done':''}" onclick="trainGo(${i})" aria-label="${escapeHtml(label)}" title="${escapeHtml(x.name)}"><span class="train-chip-index">${dn?ic('check'):i+1}</span><span class="train-chip-name">${escapeHtml(x.name)}</span></button>`}).join('');
   document.getElementById('trainNext').innerHTML=train.idx===es.length-1?'Finalizar '+ic('check'):'Siguiente '+ic('arrow-right');
   const tg=routineTargetFor(e.name,train.routine||null,d);
@@ -183,13 +197,13 @@ function renderTrain(){
     const setState=dn?'done':activeSetIndex===i?'active-set':activeSetIndex<0&&i===nextPendingIndex?'next-set':'';
     const sw=sg&&sg.w?rd(sg.w):'', sr=sg&&sg.r?sg.r:'';
     const ri=has&&s.rir!=='-'&&!isNaN(parseFloat(s.rir))?s.rir:'';
-    const tp=normalizeSetType(s.type), weightStep=1;
+    const tp=normalizeSetType(s.type), weightStep=1, startVisible=trainShouldOfferStart(!!restCtx,dn,i,nextPendingIndex);
     return `<div class="tr-row ${setState} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}" data-set-state="${setState||'idle'}"><div class="tr-n">${i+1}</div>
-      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" oninput="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
-      <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" oninput="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
-      <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" oninput="trainSave(${i})" aria-label="RIR serie ${i+1}">
-      <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?ic('check'):ic('circle')}</button>
-      <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${!dn&&restCtx?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">${train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i?'En curso':'Empezar'}</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${restLabel(s)}</span>`:'<span></span>')}</div></div>`;
+      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" inputmode="decimal" enterkeyhint="next" autocomplete="off" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onfocus="this.select()" oninput="trainSave(${i})" onkeydown="trainFieldNext(event,${i},'weight')" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
+      <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" inputmode="numeric" enterkeyhint="next" autocomplete="off" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onfocus="this.select()" oninput="trainSave(${i})" onkeydown="trainFieldNext(event,${i},'reps')" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
+      <input class="tr-rir" type="number" inputmode="decimal" enterkeyhint="done" autocomplete="off" step="0.5" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onfocus="this.select()" oninput="trainSave(${i})" onkeydown="trainFieldNext(event,${i},'rir')" aria-label="RIR serie ${i+1}">
+      <button class="tr-ok" onclick="trainToggle(${i})" aria-label="${dn?'Desmarcar':'Marcar'} serie ${i+1}">${dn?ic('check'):ic('circle')}</button>
+      <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${startVisible?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">Empezar</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${restLabel(s)}</span>`:'<span></span>')}</div></div>`;
   }).join('');
   const exNote=exerciseNotes[e.name]||'';
   body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
@@ -198,13 +212,25 @@ function renderTrain(){
     ${lastHtml}
     <button class="train-ex-note ${exNote?'has-note':''}" onclick="trainEditExerciseNote()">${ic('edit')} <span>${exNote?escapeHtml(exNote):'Nota del ejercicio'}</span></button>
     <div class="tr-head"><span>#</span><span>Peso (${unitLabel()})</span><span>Reps</span><span>RIR</span><span></span></div>${rows}
-    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><button class="btn btn-secondary" onclick="trainSubstitute()">Sustituir ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
+    <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><details class="train-more"><summary class="btn btn-secondary">Más opciones</summary><div class="train-more-menu"><button class="btn btn-secondary" onclick="trainSubstitute()">Sustituir ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">Quitar última serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Descanso automático: ${trainAutoRest?'Sí':'No'}</button></div></details></div>`;
   body.scrollTop=keep;
 }
 function trainCur(){return train?trainEntries()[train.idx]:null;}
 function trainRead(i,useSug){
   const row=document.querySelectorAll('#trainBody .tr-row')[i], g=c=>{const el=row.querySelector(c);return el.value!==''?el.value:(useSug?(el.dataset.sug||''):'')};
   return {w:g('.tr-w'),r:g('.tr-r'),ri:g('.tr-rir'),type:normalizeSetType(row.querySelector('.tr-type')?.value)};
+}
+window.trainFieldNext=function(event,i,field){
+  if(event?.key!=='Enter')return;
+  event.preventDefault();
+  const row=document.querySelectorAll('#trainBody .tr-row')[i];if(!row)return;
+  const next=field==='weight'?row.querySelector('.tr-r'):field==='reps'?row.querySelector('.tr-rir'):null;
+  if(next){next.focus();if(typeof next.select==='function')next.select();return;}
+  trainToggle(i);
+}
+function trainRevealCurrentTarget(includeRow=true){
+  const run=()=>{const chip=document.querySelector('#trainChips .train-chip.active');chip?.scrollIntoView({block:'nearest',inline:'center'});if(includeRow){const row=document.querySelector('#trainBody .tr-row.active-set, #trainBody .tr-row.next-set');row?.scrollIntoView({block:'nearest'});}};
+  if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
 }
 window.trainSave=function(i){
   const e=trainCur(); if(!e) return; const s=e.sets[i], v=trainRead(i,false);
@@ -224,10 +250,13 @@ window.trainToggle=function(i){
   if(!(parseFloat(v.r)>0)){ toast('Escribe las repeticiones'); return; }
   const measured=!!(train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i);
   if(restCtx&&!measured&&!train.estimateHint){ train.estimateHint=true; toast('Descanso guardado como estimado (≈). Pulsa “Empezar” al iniciar cada serie para medirlo con precisión.'); }
-  if(restCtx)trainRestEnded(measured); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true; saveToFirebase({days:[train.date]});
+  if(restCtx)trainRestEnded(measured); train.activeSet=null; s.reps=String(v.r); s.weight=v.w!==''?toKg(v.w):0; s.rir=v.ri!==''?v.ri:'-'; s.type=v.type; if(isFailureSet(s)&&v.ri==='') s.rir='0'; s.done=true;
+  const autoNext=e.sets.every(isDone)?trainNextIncompleteExercise(es,train.idx):-1;
+  saveToFirebase({days:[train.date]});
   if(trainAutoRest&&!es.every(x=>x.sets.every(isDone))){ window.timerEndAt=Date.now()+parseRestSeconds(s.rest)*1000; window.timerAlarmed=false; restCtx={date:train.date,id:e.id,i,startAt:Date.now()}; train.activeSet=null; saveTrain(); ensureTimerRunning(); }
+  if(autoNext>=0){train.idx=autoNext;saveTrain();}
   if(navigator.vibrate) navigator.vibrate(30);
-  renderTrain();
+  renderTrain();trainRevealCurrentTarget();
 }
 window.trainSetType=function(i){ trainSave(i); renderTrain(); }
 window.trainAdjustWeight=function(i,deltaDisplay){
@@ -283,7 +312,7 @@ window.trainSubstituteOk=function(){
     const ne={id:Date.now()+Math.random(),isCardio:false,name,substitutedFrom:oldName,trainingDraft:true,sets:Array.from({length:count},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest,type:'normal',done:false}))};
     data[d].push(ne); train.order.splice(train.idx+1,0,ne.id); train.idx++;
   }
-  saveTrainingDraftLocal(); closeModal(); populateExercises(); renderTrain(); toast(`Sustituido por ${name}`);
+  saveTrainingDraftLocal(); closeModal(); populateExercises(); renderTrain(); trainRevealCurrentTarget(); toast(`Sustituido por ${name}`);
 }
 window.trainAddExercise=function(){
   document.getElementById('modal').innerHTML=`<h2>Añadir ejercicio</h2><label>Nombre</label><input id="trNewEx" list="exerciseList" placeholder="Ej. Press banca con barra"><div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="trainAddExerciseOk()">Añadir</button></div>`;
@@ -295,16 +324,16 @@ window.trainAddExerciseOk=function(){
   const prev=getExerciseSessions(name).filter(x=>x.date<d).pop(), n=prev?prev.sets.length:3, rest=(routineTargetFor(name,train.routine||null,d)||{}).rest||'90 s';
   const e={id:Date.now()+Math.random(),isCardio:false,name,trainingDraft:true,sets:Array.from({length:n},(_,i)=>({setNumber:i+1,reps:'-',weight:0,rir:'-',rest,type:'normal',done:false}))};
   data[d].push(e); train.order.push(e.id); train.idx=train.order.length-1;
-  saveTrainingDraftLocal(); closeModal(); populateExercises(); renderTrain();
+  saveTrainingDraftLocal(); closeModal(); populateExercises(); renderTrain(); trainRevealCurrentTarget();
 }
 window.trainAddSet=function(){ const e=trainCur(); if(!e) return; const l=e.sets[e.sets.length-1]||{}; e.sets.push({setNumber:e.sets.length+1,reps:'-',weight:0,rir:'-',rest:l.rest||'90 s',type:normalizeSetType(l.type),done:false}); saveTrainingDraftLocal(); renderTrain(); }
 window.trainDelSet=async function(){ const e=trainCur(); if(!e||e.sets.length<2) return; if(isDone(e.sets[e.sets.length-1])){ toast('Desmarca la última serie para quitarla'); return; } if(await recoverableChange('Quitar serie',{days:[train.date],training:true},()=>e.sets.pop()))renderTrain(); }
 window.trainToggleAuto=function(){ trainAutoRest=!trainAutoRest; try{localStorage.setItem('gymAutoRest',trainAutoRest?'1':'0')}catch(e){} if(!trainAutoRest) stopTimer(); renderTrain(); }
-window.trainGo=function(i){ train.idx=i; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0; }
+window.trainGo=function(i){ train.idx=i; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0; trainRevealCurrentTarget(false); }
 window.trainNav=function(n){
   const len=trainEntries().length;
   if(train.idx+n>=len){ trainFinish(); return; }
-  if(train.idx+n<0) return; train.idx+=n; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0;
+  if(train.idx+n<0) return; train.idx+=n; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0; trainRevealCurrentTarget(false);
 }
 // Si el usuario escribió reps y pulsó «Finalizar» sin salir del campo, guardamos lo visible como borrador.
 function trainFlushInputs(){
