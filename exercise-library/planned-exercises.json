@@ -9,27 +9,27 @@
     {
       "id": "incline-dumbbell-press",
       "name": "Press inclinado con mancuernas",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "cable-fly",
       "name": "Aperturas en polea",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "overhead-press-barbell",
       "name": "Press militar con barra",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "lateral-raise-dumbbell",
       "name": "Elevaciones laterales con mancuernas",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "lat-pulldown",
       "name": "Jalón al pecho",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "seated-cable-row",

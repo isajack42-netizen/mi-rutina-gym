@@ -30,6 +30,136 @@
         "strength",
         "technique"
       ]
+    },
+    {
+      "id": "incline-dumbbell-press",
+      "name": "Press inclinado con mancuernas",
+      "aliases": [
+        "Press inclinado",
+        "Press inclinado mancuernas",
+        "Incline dumbbell press",
+        "Press superior con mancuernas"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "pectoralis-major"
+      ],
+      "movementPattern": "horizontal-push",
+      "equipment": [
+        "dumbbells",
+        "incline-bench"
+      ],
+      "thumbnail": "assets/exercise-library/incline-dumbbell-press/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "cable-fly",
+      "name": "Aperturas en polea",
+      "aliases": [
+        "Aperturas polea",
+        "Cruce de poleas",
+        "Cable fly",
+        "Cruces en polea"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "pectoralis-major"
+      ],
+      "movementPattern": "horizontal-push",
+      "equipment": [
+        "cable"
+      ],
+      "thumbnail": "assets/exercise-library/cable-fly/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ]
+    },
+    {
+      "id": "overhead-press-barbell",
+      "name": "Press militar con barra",
+      "aliases": [
+        "Press militar",
+        "Press de hombro con barra",
+        "Overhead press",
+        "Barbell overhead press"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "movementPattern": "vertical-push",
+      "equipment": [
+        "barbell",
+        "rack"
+      ],
+      "thumbnail": "assets/exercise-library/overhead-press-barbell/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "lateral-raise-dumbbell",
+      "name": "Elevaciones laterales con mancuernas",
+      "aliases": [
+        "Elevaciones laterales",
+        "Laterales con mancuernas",
+        "Lateral raise",
+        "Dumbbell lateral raise"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "lateral-deltoid"
+      ],
+      "movementPattern": "shoulder-abduction",
+      "equipment": [
+        "dumbbells"
+      ],
+      "thumbnail": "assets/exercise-library/lateral-raise-dumbbell/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ]
+    },
+    {
+      "id": "lat-pulldown",
+      "name": "Jalón al pecho",
+      "aliases": [
+        "Jalón dorsal",
+        "Jalón en polea alta",
+        "Lat pulldown",
+        "Jalón al pecho en máquina"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "latissimus-dorsi"
+      ],
+      "movementPattern": "vertical-pull",
+      "equipment": [
+        "lat-pulldown-machine"
+      ],
+      "thumbnail": "assets/exercise-library/lat-pulldown/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
     }
   ]
 }

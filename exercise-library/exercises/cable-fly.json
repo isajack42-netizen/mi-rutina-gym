@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "cable-fly",
+  "name": "Aperturas en polea",
+  "aliases": [
+    "Aperturas polea",
+    "Cruce de poleas",
+    "Cable fly",
+    "Cruces en polea"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "pectoralis-major"
+    ],
+    "secondaryMuscles": [
+      "anterior-deltoid"
+    ],
+    "stabilizers": [
+      "serratus-anterior"
+    ],
+    "movementPattern": "horizontal-push",
+    "equipment": [
+      "cable"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "technique"
+    ]
+  },
+  "summary": "Ejercicio de aislamiento para el pectoral que utiliza dos poleas para mantener tensión durante gran parte del recorrido. El objetivo es acercar los brazos frente al torso mediante aducción horizontal, con los codos ligeramente flexionados y el tronco estable.",
+  "benefits": [
+    "Mantiene tensión continua gracias al cable.",
+    "Permite ajustar con facilidad la altura y trayectoria de los brazos.",
+    "Complementa presses pesados con trabajo más aislado del pectoral.",
+    "Facilita concentrarse en control, recorrido y contracción."
+  ],
+  "setup": [
+    "Coloca ambas poleas a una altura que permita la trayectoria que deseas trabajar.",
+    "Toma un asa con cada mano y avanza lo suficiente para crear tensión en los cables.",
+    "Adopta una postura estable con ligera inclinación del torso.",
+    "Mantén una flexión suave y constante en los codos."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Toma posición",
+      "instruction": "Da un paso al frente y crea una base estable con tensión en ambos cables.",
+      "asset": "assets/exercise-library/cable-fly/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Abre bajo control",
+      "instruction": "Permite que los brazos se separen hasta notar estiramiento cómodo del pecho sin perder el hombro.",
+      "asset": "assets/exercise-library/cable-fly/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Conduce los brazos",
+      "instruction": "Acerca las manos frente al cuerpo manteniendo el mismo ángulo del codo.",
+      "asset": "assets/exercise-library/cable-fly/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Contrae al centro",
+      "instruction": "Termina el recorrido con control sin chocar las asas ni redondear los hombros.",
+      "asset": "assets/exercise-library/cable-fly/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Regresa lento",
+      "instruction": "Vuelve a abrir de forma controlada hasta la posición inicial.",
+      "asset": "assets/exercise-library/cable-fly/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala mientras abres los brazos y controlas el retorno.",
+    "concentric": "Exhala mientras acercas los brazos y contraes el pecho."
+  },
+  "keyCues": [
+    "Piensa en acercar los brazos, no en empujar con las manos.",
+    "Mantén una flexión suave del codo durante toda la repetición.",
+    "Evita perder la posición del torso.",
+    "No dejes que las placas golpeen entre repeticiones.",
+    "Usa un recorrido cómodo para el hombro."
+  ],
+  "commonMistakes": [
+    {
+      "id": "too-much-elbow-bend",
+      "title": "Flexionar demasiado los codos",
+      "description": "Convertir el gesto en un press reduce el carácter de aislamiento.",
+      "correction": "Mantén el ángulo del codo casi constante durante todo el recorrido.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/cable-fly/mistake-too-much-elbow-bend.svg"
+    },
+    {
+      "id": "shoulders-forward",
+      "title": "Hombros hacia delante",
+      "description": "Al final del recorrido los hombros se proyectan en exceso y se pierde control escapular.",
+      "correction": "Detén el cierre antes de perder la posición del hombro.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/cable-fly/mistake-shoulders-forward.svg"
+    },
+    {
+      "id": "using-momentum",
+      "title": "Usar impulso",
+      "description": "Balancear el torso permite mover más carga pero reduce la tensión objetivo.",
+      "correction": "Reduce el peso y mantén tronco y pelvis estables.",
+      "severity": "high",
+      "asset": "assets/exercise-library/cable-fly/mistake-using-momentum.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Ajusta el recorrido si sientes tensión incómoda en la parte anterior del hombro.",
+    "No es necesario llevar los brazos exageradamente atrás.",
+    "Evita cargas que obliguen a balancearte para completar repeticiones."
+  ],
+  "variants": [
+    {
+      "exerciseId": "incline-dumbbell-press",
+      "note": "Alternativa de press con mayor participación de tríceps y capacidad de carga."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "bench-press-barbell",
+      "note": "Opción compuesta cuando buscas progresar fuerza y carga total."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "incline-dumbbell-press",
+      "note": "Puede combinarse para trabajar pecho con dos perfiles de resistencia distintos."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/cable-fly/thumbnail.svg",
+    "hero": "assets/exercise-library/cable-fly/hero.svg",
+    "muscleMap": "assets/exercise-library/cable-fly/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

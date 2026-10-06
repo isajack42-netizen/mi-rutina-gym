@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "lateral-raise-dumbbell",
+  "name": "Elevaciones laterales con mancuernas",
+  "aliases": [
+    "Elevaciones laterales",
+    "Laterales con mancuernas",
+    "Lateral raise",
+    "Dumbbell lateral raise"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "lateral-deltoid"
+    ],
+    "secondaryMuscles": [
+      "anterior-deltoid"
+    ],
+    "stabilizers": [
+      "middle-trapezius"
+    ],
+    "movementPattern": "shoulder-abduction",
+    "equipment": [
+      "dumbbells"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "technique"
+    ]
+  },
+  "summary": "Ejercicio de aislamiento para el deltoides lateral. Consiste en elevar los brazos hacia los lados con ligera flexión de codo, usando una carga moderada y evitando que el impulso del torso sustituya el trabajo del hombro.",
+  "benefits": [
+    "Aumenta el estímulo directo sobre el deltoides lateral.",
+    "Requiere poco equipo y se adapta bien a rangos medios y altos de repeticiones.",
+    "Complementa presses verticales con trabajo más específico.",
+    "Permite progresar con pequeños aumentos de carga o repeticiones."
+  ],
+  "setup": [
+    "Sujeta una mancuerna en cada mano con los brazos relajados a los lados.",
+    "Adopta una postura estable con abdomen firme y rodillas desbloqueadas.",
+    "Mantén los codos suavemente flexionados.",
+    "Deja los hombros en una posición cómoda sin encogerlos."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Organiza la postura",
+      "instruction": "Mantén el torso estable y las mancuernas a los lados.",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Inicia desde el hombro",
+      "instruction": "Eleva los brazos hacia los lados sin tomar impulso con las piernas.",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Sube controlado",
+      "instruction": "Continúa hasta una altura cómoda cercana a la línea de hombros.",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Pausa breve",
+      "instruction": "Mantén un instante de control sin encoger los hombros.",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Desciende lento",
+      "instruction": "Baja las mancuernas con control hasta recuperar tensión al inicio.",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala durante el descenso controlado.",
+    "concentric": "Exhala mientras elevas los brazos sin perder la postura."
+  },
+  "keyCues": [
+    "Piensa en alejar los brazos del cuerpo.",
+    "Usa una carga que no te obligue a balancearte.",
+    "Mantén el cuello relajado.",
+    "Codos suavemente flexionados.",
+    "Controla especialmente el descenso."
+  ],
+  "commonMistakes": [
+    {
+      "id": "swinging",
+      "title": "Balancear el torso",
+      "description": "El impulso desplaza parte del trabajo fuera del deltoides.",
+      "correction": "Reduce la carga y mantén el cuerpo quieto.",
+      "severity": "high",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/mistake-swinging.svg"
+    },
+    {
+      "id": "shrugging",
+      "title": "Encoger los hombros",
+      "description": "Subir los hombros hacia las orejas aumenta la participación del trapecio superior.",
+      "correction": "Mantén el cuello largo y los hombros cómodamente bajos.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/mistake-shrugging.svg"
+    },
+    {
+      "id": "too-heavy",
+      "title": "Usar demasiado peso",
+      "description": "Una carga excesiva acorta el recorrido y rompe el control.",
+      "correction": "Prioriza repeticiones limpias y aumenta el peso gradualmente.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/lateral-raise-dumbbell/mistake-too-heavy.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No fuerces una altura de brazo que resulte dolorosa.",
+    "Evita convertir cada repetición en un balanceo de cuerpo completo.",
+    "Las cargas pequeñas pueden ser suficientes cuando el movimiento se controla bien."
+  ],
+  "variants": [
+    {
+      "exerciseId": "overhead-press-barbell",
+      "note": "Movimiento compuesto de hombro con mayor participación de tríceps."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "overhead-press-barbell",
+      "note": "Opción para trabajar el hombro con un patrón de empuje y mayor carga total."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "incline-dumbbell-press",
+      "note": "También involucra al deltoides anterior dentro de un press."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/lateral-raise-dumbbell/thumbnail.svg",
+    "hero": "assets/exercise-library/lateral-raise-dumbbell/hero.svg",
+    "muscleMap": "assets/exercise-library/lateral-raise-dumbbell/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

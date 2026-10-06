@@ -156,6 +156,10 @@
     {
       "id": "knee-flexion",
       "label": "Flexión de rodilla"
+    },
+    {
+      "id": "shoulder-abduction",
+      "label": "Abducción de hombro"
     }
   ],
   "equipment": [
