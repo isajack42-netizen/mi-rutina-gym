@@ -116,7 +116,12 @@ const training=fs.readFileSync(path.join(root,'js/training.js'),'utf8');
 const ui=fs.readFileSync(path.join(root,'js/exercise-library.js'),'utf8');
 
 if(!app.includes("'exercise-library'")) fail('exercise-library.js is not in runtime loader.');
-if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-library/exercises/bench-press-barbell.json')")) fail('pilot data is not precached.');
+if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-library/taxonomy.json')")||!sw.includes('exercise-library/planned-exercises.json')) fail('library metadata is not precached.');
+for(const ex of exercises){
+  if(ex.media?.status!=='ready') continue;
+  const required=['exercise-library/exercises/'+ex.id+'.json',ex.media.thumbnail,ex.media.hero,ex.media.muscleMap,...ex.executionSteps.map(x=>x.asset),...ex.commonMistakes.map(x=>x.asset)];
+  for(const p of required) if(!sw.includes(p)) fail(ex.id+': ready resource missing from offline shell: '+p);
+}
 if(!routines.includes('exerciseLibraryButtonHtml')) fail('routine integration is missing.');
 if(!training.includes('exerciseLibraryButtonHtml')) fail('training integration is missing.');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -125,4 +130,4 @@ if(!ui.includes('renderExerciseLibraryBrowser')||!ui.includes('exerciseLibraryIn
 for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey','exercise-step-media','exercise-mistake-media']){
   if(!ui.includes(marker)) fail('pilot UI marker missing: '+marker);
 }
-console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · pilot UI + ready assets + browser wired');
+console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · ' + exercises.filter(x=>x.media?.status==='ready').length + ' ready offline packs');

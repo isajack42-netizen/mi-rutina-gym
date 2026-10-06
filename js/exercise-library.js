@@ -4,6 +4,7 @@
 const EXERCISE_LIBRARY_BASE='exercise-library';
 let exerciseLibraryIndex=[];
 let exerciseLibraryTaxonomy=null;
+let exerciseLibraryPlanned=[];
 let exerciseLibraryLookup=new Map();
 let exerciseLibraryCache=new Map();
 
@@ -31,16 +32,19 @@ function exerciseLibraryBuildLookup(){
 }
 const exerciseLibraryReady=Promise.all([
   exerciseLibraryFetchJson('index.json'),
-  exerciseLibraryFetchJson('taxonomy.json')
-]).then(([index,taxonomy])=>{
+  exerciseLibraryFetchJson('taxonomy.json'),
+  exerciseLibraryFetchJson('planned-exercises.json')
+]).then(([index,taxonomy,planned])=>{
   exerciseLibraryIndex=Array.isArray(index?.exercises)?index.exercises:[];
   exerciseLibraryTaxonomy=taxonomy||null;
+  exerciseLibraryPlanned=Array.isArray(planned?.exercises)?planned.exercises:[];
   exerciseLibraryBuildLookup();
   return true;
 }).catch(error=>{
   console.warn('Exercise Library no pudo iniciar:',error);
   exerciseLibraryIndex=[];
   exerciseLibraryTaxonomy=null;
+  exerciseLibraryPlanned=[];
   exerciseLibraryLookup=new Map();
   return false;
 });
@@ -71,7 +75,7 @@ async function exerciseLibraryLoad(id){
   return data;
 }
 function exerciseLibraryRelationLabel(id){
-  return exerciseLibraryIndexItem(id)?.name||id;
+  return exerciseLibraryIndexItem(id)?.name||exerciseLibraryPlanned.find(item=>item.id===id)?.name||id;
 }
 function exerciseLibraryAssetUrl(src){
   const version=globalThis.LIFTENGINE_VERSION||'dev';
