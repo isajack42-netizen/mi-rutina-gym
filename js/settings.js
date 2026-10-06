@@ -15,6 +15,24 @@ function sanitizeBodyGoal(raw){
   };
 }
 
+function sanitizeWeeklyPlan(raw){
+  const x=isPlainObject(raw)?raw:{};
+  const template={};
+  const sourceTemplate=isPlainObject(x.template)?x.template:{};
+  for(const key of ['0','1','2','3','4','5','6']){
+    if(!Object.prototype.hasOwnProperty.call(sourceTemplate,key))continue;
+    const v=boundedString(sourceTemplate[key],160,'');
+    template[key]=v;
+  }
+  const overrides={};
+  const sourceOverrides=isPlainObject(x.overrides)?x.overrides:{};
+  Object.entries(sourceOverrides).slice(-400).forEach(([date,value])=>{
+    if(!validDateKey(date))return;
+    overrides[date]=boundedString(value,160,'');
+  });
+  return {template,overrides};
+}
+
 function bodyGoalLabel(mode=bodyGoal?.mode){
   return ({
     neutral:'Sin objetivo corporal',
@@ -36,7 +54,8 @@ function sanitizeSettingsSnapshot(raw){
     currentUnit:x.currentUnit==='lbs'?'lbs':'kg',
     currentTheme:normalizeTheme(x.currentTheme),
     weeklySessionTarget:Math.min(7,Math.max(1,parseInt(x.weeklySessionTarget,10)||6)),
-    bodyGoal:sanitizeBodyGoal(x.bodyGoal)
+    bodyGoal:sanitizeBodyGoal(x.bodyGoal),
+    weeklyPlan:sanitizeWeeklyPlan(x.weeklyPlan)
   };
 }
 
@@ -49,7 +68,8 @@ function buildSettingsSnapshot(){
     currentUnit,
     currentTheme,
     weeklySessionTarget,
-    bodyGoal
+    bodyGoal,
+    weeklyPlan
   });
 }
 
@@ -63,6 +83,7 @@ function applySettingsSnapshot(raw){
   currentTheme=clean.currentTheme;
   weeklySessionTarget=clean.weeklySessionTarget;
   bodyGoal=clean.bodyGoal;
+  weeklyPlan=clean.weeklyPlan;
   const unit=document.getElementById('unitBtn');
   if(unit) unit.innerText=currentUnit.toUpperCase();
   applyTheme();
@@ -72,7 +93,8 @@ function applySettingsSnapshot(raw){
 function settingsNeedSeed(raw){
   if(!isPlainObject(raw)) return true;
   return !Object.prototype.hasOwnProperty.call(raw,'weeklySessionTarget')
-    || !Object.prototype.hasOwnProperty.call(raw,'bodyGoal');
+    || !Object.prototype.hasOwnProperty.call(raw,'bodyGoal')
+    || !Object.prototype.hasOwnProperty.call(raw,'weeklyPlan');
 }
 
 function validateSettingsInput(raw){
@@ -80,6 +102,11 @@ function validateSettingsInput(raw){
   if(x.currentUnit!=null&&!['kg','lbs'].includes(x.currentUnit)) return 'La unidad del archivo no es válida.';
   if(x.currentTheme!=null&&!THEME_VALUES.includes(String(x.currentTheme))) return 'El tema visual del archivo no es válido.';
   if(x.weeklySessionTarget!=null&&(!Number.isInteger(Number(x.weeklySessionTarget))||Number(x.weeklySessionTarget)<1||Number(x.weeklySessionTarget)>7)) return 'La meta semanal del archivo no es válida.';
+  if(x.weeklyPlan!=null){
+    if(!isPlainObject(x.weeklyPlan)) return 'El plan semanal del archivo no es válido.';
+    if(x.weeklyPlan.template!=null&&!isPlainObject(x.weeklyPlan.template)) return 'La plantilla semanal no es válida.';
+    if(x.weeklyPlan.overrides!=null&&!isPlainObject(x.weeklyPlan.overrides)) return 'Las excepciones del plan semanal no son válidas.';
+  }
   if(x.bodyGoal!=null){
     if(!isPlainObject(x.bodyGoal)) return 'El objetivo corporal del archivo no es válido.';
     if(x.bodyGoal.mode!=null&&!BODY_GOAL_MODES.includes(String(x.bodyGoal.mode))) return 'El tipo de objetivo corporal no es válido.';
