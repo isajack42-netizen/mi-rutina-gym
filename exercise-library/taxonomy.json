@@ -79,6 +79,11 @@
       "group": "back"
     },
     {
+      "id": "upper-trapezius",
+      "label": "Trapecio superior",
+      "group": "back"
+    },
+    {
       "id": "biceps-brachii",
       "label": "Bíceps braquial",
       "group": "biceps"
@@ -160,6 +165,10 @@
     {
       "id": "shoulder-abduction",
       "label": "Abducción de hombro"
+    },
+    {
+      "id": "shoulder-horizontal-adduction",
+      "label": "Aducción horizontal de hombro"
     }
   ],
   "equipment": [

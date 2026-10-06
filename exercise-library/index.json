@@ -12,7 +12,7 @@
         "Bench press",
         "Barbell bench press"
       ],
-      "contentStatus": "pilot",
+      "contentStatus": "reviewed",
       "mediaStatus": "ready",
       "primaryMuscles": [
         "pectoralis-major"
@@ -72,7 +72,7 @@
       "primaryMuscles": [
         "pectoralis-major"
       ],
-      "movementPattern": "horizontal-push",
+      "movementPattern": "shoulder-horizontal-adduction",
       "equipment": [
         "cable"
       ],

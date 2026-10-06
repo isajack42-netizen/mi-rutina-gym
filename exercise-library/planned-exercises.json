@@ -4,7 +4,7 @@
     {
       "id": "bench-press-barbell",
       "name": "Press banca con barra",
-      "status": "pilot"
+      "status": "ready"
     },
     {
       "id": "incline-dumbbell-press",

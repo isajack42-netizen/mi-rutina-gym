@@ -17,7 +17,8 @@
       "anterior-deltoid"
     ],
     "stabilizers": [
-      "middle-trapezius"
+      "upper-trapezius",
+      "serratus-anterior"
     ],
     "movementPattern": "shoulder-abduction",
     "equipment": [
