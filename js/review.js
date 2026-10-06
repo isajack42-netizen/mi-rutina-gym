@@ -65,7 +65,7 @@ function reviewInsightModel(input){
     insights.push({kind:'warning',title:'Consistencia por recuperar',text:`${current.sessions} sesiones completadas frente a un objetivo equivalente de ${expected.toFixed(1)}.`});
   }
   if((Number(x.plan?.missed)||0)>0){
-    insights.push({kind:'warning',title:'Plan semanal incompleto',text:`${x.plan.missed} sesión${x.plan.missed===1?'':'es'} planeada${x.plan.missed===1?'':'s'} quedó${x.plan.missed===1?'':'aron'} pendiente${x.plan.missed===1?'':'s'} esta semana.`});
+    insights.push({kind:'warning',title:'Plan semanal incompleto',text:`${x.plan.missed} sesión${x.plan.missed===1?'':'es'} planeada${x.plan.missed===1?'':'s'} ${x.plan.missed===1?'quedó':'quedaron'} pendiente${x.plan.missed===1?'':'s'} esta semana.`});
   }else if(x.plan&&Number(x.plan.due)>0&&Number(x.plan.completed)===Number(x.plan.due)){
     insights.push({kind:'positive',title:'Plan cumplido hasta hoy',text:`${x.plan.completed}/${x.plan.due} sesiones previstas ya vencidas o realizadas coinciden con el plan.`});
   }
@@ -131,9 +131,11 @@ function reviewExerciseSignals(startKey,endKey){
   const attention=trends.filter(x=>x.down||x.stagnant).sort((a,b)=>{if(!!a.down!==!!b.down)return a.down?-1:1;return (a.deltaPct||0)-(b.deltaPct||0);});
   return {trends,improving,attention,topImproving:improving[0]||null,topAttention:attention[0]||null};
 }
-function reviewBodyDelta(days){
-  const weight=metricsBodyDelta(weights,'weight',days);
-  const waist=metricsBodyDelta(measurements,'waist',days);
+function reviewBodyDelta(days,startKey){
+  const latestWeight=[...weights].filter(x=>x?.date&&x.weight!=null).sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null;
+  const latestWaist=[...measurements].filter(x=>x?.date&&x.waist!=null).sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null;
+  const weight=latestWeight&&(!startKey||latestWeight.date>=startKey)?metricsBodyDelta(weights,'weight',days):null;
+  const waist=latestWaist&&(!startKey||latestWaist.date>=startKey)?metricsBodyDelta(measurements,'waist',days):null;
   return {weight,waist};
 }
 function reviewDeltaLabel(v){return Number.isFinite(v)?`${v>=0?'+':''}${v.toFixed(1)}%`:'—';}
@@ -152,7 +154,7 @@ window.renderReview=function(){
   const current=reviewAggregate(currentRows),previous=reviewAggregate(previousRows),deltas=reviewCompare(current,previous);
   const coverageDays=reviewCoverageDays(window),expected=reviewExpectedSessions(weeklySessionTarget,coverageDays);
   const signals=reviewExerciseSignals(window.start,window.end);
-  const body=reviewBodyDelta(days);
+  const body=reviewBodyDelta(days,window.start);
   const plan=typeof weeklyPlanConfigured==='function'&&weeklyPlanConfigured()&&typeof scheduleWeekCompliance==='function'?scheduleWeekCompliance(todayStr()):null;
   const model={current,previous,deltas,expected,plan,topImproving:signals.topImproving,topAttention:signals.topAttention};
   const insights=reviewInsightModel(model),focus=reviewNextFocus(model);
