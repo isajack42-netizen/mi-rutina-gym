@@ -138,6 +138,11 @@ if(!html.includes('id="routineWeeklySchedule"')||!read('js/planning.js').include
 if(!read('js/dashboard.js').includes('plannedRoutineForDate')||!read('js/dashboard.js').includes('openScheduleDateEditor')) fail.push('Calendario no muestra planeado vs. realizado en v6.7.');
 if(!read('js/training.js').includes("plannedRoutineForDate(todayStr())")||!read('js/training.js').includes('startPlannedRoutine')) fail.push('Modo Entrenamiento no utiliza la rutina planeada de hoy.');
 if(!css.includes('v6.7 · WEEKLY SCHEDULE')||!css.includes('.dashboard-week-plan')||!css.includes('.weekly-template-grid')||!css.includes('.calendar-plan-line')) fail.push('Faltan estilos del Weekly Schedule v6.7.');
+if(!css.includes('v6.8 · DESKTOP DESIGN SYSTEM')||!css.includes('--desktop-line:')||!css.includes('--desktop-surface:')) fail.push('Falta la capa visual desktop v6.8.');
+if(!css.includes('#resumen .summary-glance-grid')||!css.includes('align-items:start')||!css.includes('#recentWorkouts .progress-item')) fail.push('Resumen v6.8 debe evitar estiramiento artificial y usar historial visualmente plano.');
+if(!css.includes('#progreso .progress-nav-btn.active')||!css.includes('box-shadow:inset 2px 0 0 var(--accent)')) fail.push('La navegación desktop v6.8 debe usar un estado activo más sutil.');
+if(!css.includes('.cal-day.selected')||!css.includes('color-mix(in srgb,var(--accent) 11%,var(--card))')) fail.push('Calendario v6.8 debe usar selección de bajo contraste.');
+if(!css.includes('.routine details')||!css.includes('.routine summary:hover')||!css.includes('.modal,')||!css.includes('.app-dialog')) fail.push('Rutinas/modales deben compartir el lenguaje visual v6.8.');
 
 let depth=0;
 for(const ch of css){
