@@ -504,5 +504,9 @@ window.renderIntelligenceAnalytics=function(coverage){
     const bw=b.warning==='possible-fatigue'?0:b.warning==='performance-down'?1:b.warning==='plateau'?2:3;
     return aw-bw||(priority[a.action]??9)-(priority[b.action]??9)||String(b.lastDate).localeCompare(String(a.lastDate));
   }).slice(0,6);
-  box.innerHTML=rows.length?rows.map(x=>`<div class="intel-list-item"><div><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.maturity?.label||'Recomendación')} · ${escapeHtml(x.title)} · ${escapeHtml(intelligencePlanText(x))}</small></div><span class="intelligence-action ${escapeHtml(x.tone)}">${escapeHtml(x.label)}</span></div>`).join(''):'<div class="empty">No hay ejercicios evaluables en este periodo.</div>';
+  box.innerHTML=rows.length?rows.map(x=>{
+    const personal=x.patterns?.signals?.[0]?.label||'';
+    const suffix=personal?` · ${personal}`:'';
+    return `<div class="intel-list-item"><div><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.maturity?.label||'Recomendación')} · ${escapeHtml(x.title)} · ${escapeHtml(intelligencePlanText(x))}${escapeHtml(suffix)}</small></div><span class="intelligence-action ${escapeHtml(x.tone)}">${escapeHtml(x.label)}</span></div>`;
+  }).join(''):'<div class="empty">No hay ejercicios evaluables en este periodo.</div>';
 };
