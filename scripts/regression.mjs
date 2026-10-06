@@ -178,6 +178,78 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   assert.equal(x.plan.weightKg,40);
 }
 
+// ===== Weekly & Monthly Review (v6.9.0) =====
+{
+  const src=read('js/review.js');
+  const a=src.indexOf('// <review-helpers>'), z=src.indexOf('// </review-helpers>');
+  assert.ok(a>=0&&z>a,'faltan los helpers puros de Revisión v6.9');
+  const ctx=context();
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__review={reviewShiftDate,reviewWindow,reviewPct,reviewAggregate,reviewCompare,reviewExpectedSessions,reviewInsightModel,reviewNextFocus};',ctx);
+  const h=ctx.__review, J=x=>JSON.parse(JSON.stringify(x));
+
+  assert.equal(h.reviewShiftDate('2026-10-05',-6),'2026-09-29');
+  assert.deepEqual(J(h.reviewWindow('2026-10-05',7)),{
+    days:7,start:'2026-09-29',end:'2026-10-05',
+    previousStart:'2026-09-22',previousEnd:'2026-09-28'
+  });
+  assert.deepEqual(J(h.reviewWindow('2026-10-05',28)),{
+    days:28,start:'2026-09-08',end:'2026-10-05',
+    previousStart:'2026-08-11',previousEnd:'2026-09-07'
+  });
+
+  const current=J(h.reviewAggregate([
+    {sets:12,volume:3600,rirSum:18,rirCount:12,prs:2,exerciseNames:['Press','Remo']},
+    {sets:10,volume:3000,rirSum:15,rirCount:10,prs:1,exerciseNames:['Press','Curl']}
+  ]));
+  const previous=J(h.reviewAggregate([
+    {sets:10,volume:2800,rirSum:20,rirCount:10,prs:0,exerciseNames:['Press','Remo']}
+  ]));
+  assert.equal(current.sessions,2);
+  assert.equal(current.sets,22);
+  assert.equal(current.volume,6600);
+  assert.equal(current.prs,3);
+  assert.equal(current.exercises,3);
+  assert.ok(current.avgRir>1.49&&current.avgRir<1.51);
+  assert.equal(current.volumePerSession,3300);
+
+  const cmp=J(h.reviewCompare(current,previous));
+  assert.equal(cmp.sessions,100);
+  assert.ok(cmp.sets>119&&cmp.sets<121);
+  assert.ok(cmp.volumePerSession>17&&cmp.volumePerSession<18);
+  assert.equal(cmp.prs,null);
+  assert.equal(h.reviewExpectedSessions(6,7),6);
+  assert.equal(h.reviewExpectedSessions(6,28),24);
+
+  const good=J(h.reviewInsightModel({
+    current:{sessions:6,prs:2},
+    previous:{sessions:5,prs:0},
+    deltas:{volumePerSession:8},
+    expected:6,
+    plan:{due:5,completed:5,missed:0},
+    topImproving:{name:'Press',deltaPct:5},
+    topAttention:null
+  }));
+  assert.ok(good.some(x=>x.title==='Consistencia sólida'));
+  assert.ok(good.some(x=>x.title==='Plan cumplido hasta hoy'));
+  assert.ok(good.some(x=>x.title==='Hubo progreso medible'));
+  assert.equal(h.reviewNextFocus({current:{sessions:6,prs:2},expected:6,plan:{missed:0},topImproving:{name:'Press'}}).kind,'positive');
+
+  const warning=J(h.reviewInsightModel({
+    current:{sessions:2,prs:0},
+    previous:{sessions:5,prs:1},
+    deltas:{volumePerSession:-20},
+    expected:6,
+    plan:{due:4,completed:2,missed:2},
+    topImproving:null,
+    topAttention:{name:'Remo',down:true,deltaPct:-4}
+  }));
+  assert.ok(warning.some(x=>x.title==='Consistencia por recuperar'));
+  assert.ok(warning.some(x=>x.title==='Plan semanal incompleto'));
+  assert.ok(warning.some(x=>x.title==='Rendimiento a revisar'));
+  const focus=J(h.reviewNextFocus({current:{sessions:2,prs:0},expected:6,plan:{missed:2},topAttention:{name:'Remo',down:true}}));
+  assert.equal(focus.title,'Prioriza el plan antes de cambiar volumen');
+}
+
 // ===== Weekly Schedule & Planned vs Actual (v6.7.0) =====
 {
   const src=read('js/schedule.js');
