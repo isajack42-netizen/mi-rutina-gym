@@ -19,7 +19,4 @@
   <path d="M665 160v175M624 235h82M628 278h74" stroke="#8d979f" stroke-width="1.5" opacity=".8"/>
   <ellipse cx="590" cy="255" rx="13" ry="37" fill="#e94f48"/><ellipse cx="740" cy="255" rx="13" ry="37" fill="#e94f48"/>
  </g>
- <g fill="#aeb8c1" font-family="system-ui,sans-serif" font-size="18" font-weight="700">
-   <text x="235" y="595" text-anchor="middle">ANTERIOR</text><text x="665" y="595" text-anchor="middle">POSTERIOR</text>
- </g>
-</svg>
+ </svg>

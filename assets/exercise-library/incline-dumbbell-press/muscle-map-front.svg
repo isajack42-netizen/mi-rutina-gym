@@ -19,7 +19,4 @@
   <path d="M665 160v175M624 235h82M628 278h74" stroke="#8d979f" stroke-width="1.5" opacity=".8"/>
   <path d="M235 188C210 168 178 174 166 205C175 236 207 246 235 226Z" fill="#e94f48"/><path d="M235 188C260 168 292 174 304 205C295 236 263 246 235 226Z" fill="#e94f48"/><ellipse cx="160" cy="196" rx="18" ry="24" fill="#f47a4a"/><ellipse cx="310" cy="196" rx="18" ry="24" fill="#f47a4a"/><path d="M178 238q20 12 29 40l-17 20q-18-24-24-48z" fill="#e8c958"/><path d="M292 238q-20 12-29 40l17 20q18-24 24-48z" fill="#e8c958"/><ellipse cx="590" cy="255" rx="13" ry="37" fill="#f47a4a"/><ellipse cx="740" cy="255" rx="13" ry="37" fill="#f47a4a"/><ellipse cx="586" cy="193" rx="18" ry="24" fill="#f47a4a"/><ellipse cx="744" cy="193" rx="18" ry="24" fill="#f47a4a"/>
  </g>
- <g fill="#aeb8c1" font-family="system-ui,sans-serif" font-size="18" font-weight="700">
-   <text x="235" y="595" text-anchor="middle">ANTERIOR</text><text x="665" y="595" text-anchor="middle">POSTERIOR</text>
- </g>
-</svg>
+ </svg>
