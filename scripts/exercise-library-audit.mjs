@@ -83,13 +83,24 @@ for (const file of files) {
   const mistakeIds = ex.commonMistakes.map(x => x.id);
   if (new Set(mistakeIds).size !== mistakeIds.length) fail(file + ': duplicate mistake id.');
 
+  const relationOwner=new Map();
   for (const group of ['variants','substitutions','relatedExercises']) {
     if (!Array.isArray(ex[group])) fail(file + ': ' + group + ' must be an array.');
     for (const rel of ex[group]) {
       if (!plannedIds.has(rel.exerciseId)) fail(file + ': relation points to unplanned id ' + rel.exerciseId);
       if (rel.exerciseId === ex.id) fail(file + ': self relation in ' + group);
+      if(String(rel.note||'').trim().length<8) fail(file + ': relation note is too short in ' + group);
+      const previous=relationOwner.get(rel.exerciseId);
+      if(previous) fail(file + ': relation ' + rel.exerciseId + ' is duplicated across ' + previous + ' and ' + group);
+      relationOwner.set(rel.exerciseId,group);
     }
   }
+
+  if(String(ex.summary||'').trim().length<80) fail(file + ': summary is too short for First Pack quality.');
+  if((ex.benefits||[]).length<3) fail(file + ': expected at least 3 benefits.');
+  if((ex.setup||[]).length<3) fail(file + ': expected at least 3 setup points.');
+  if((ex.keyCues||[]).length<3) fail(file + ': expected at least 3 key cues.');
+  if((ex.safetyNotes||[]).length<2) fail(file + ': expected at least 2 safety notes.');
 
   const media = ex.media || {};
   if (!['planned','in-progress','ready'].includes(media.status)) fail(file + ': invalid media status.');
@@ -155,6 +166,15 @@ for(const id of FIRST_PACK_IDS){
   if(!['reviewed','ready'].includes(ex.contentStatus)) fail('First Pack content not reviewed: '+id);
   const plannedItem=planned.exercises.find(x=>x.id===id);
   if(plannedItem?.status!=='ready') fail('First Pack plan status not ready: '+id);
+}
+const versionSource=fs.readFileSync(path.join(root,'js/version.js'),'utf8');
+const pkg=readJson(path.join(root,'package.json'));
+const lock=readJson(path.join(root,'package-lock.json'));
+if(!versionSource.includes("1.1.0-alpha.1")||pkg.version!=='1.1.0-alpha.1'||lock.version!=='1.1.0-alpha.1'||lock.packages?.['']?.version!=='1.1.0-alpha.1') fail('v1.1 development version is not isolated consistently.');
+for(const id of FIRST_PACK_IDS){
+  const ex=exercises.find(x=>x.id===id);
+  const idx=index.exercises.find(x=>x.id===id);
+  if(idx?.thumbnail!==ex?.media?.thumbnail) fail(id+': browser thumbnail and media thumbnail differ.');
 }
 const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
 if(!css.includes('grid-template-columns:repeat(6,minmax(0,1fr))')) fail('desktop primary navigation is not sized for six tabs.');

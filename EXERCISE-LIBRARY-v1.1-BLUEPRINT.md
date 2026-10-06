@@ -243,3 +243,28 @@ First Pack completado con 15/15 fichas canónicas y paquetes visuales propios. T
 ## Development version
 
 La rama de Exercise Library usa `1.1.0-alpha.1` para aislar Service Worker, cachés y assets de la versión estable `1.0.0-rc.1` que permanece en `main`. Este identificador no implica promoción a release.
+
+
+## First Pack Audit — automated pass
+
+La primera auditoría integral del pack de 15 ejercicios detectó y corrigió:
+
+- navegación de escritorio todavía dimensionada para 5 pestañas;
+- estado `pilot` residual en Press banca;
+- clasificación de Aperturas en polea como empuje en lugar de aducción horizontal;
+- taxonomía incompleta del trapecio superior para estabilización escapular;
+- aislamiento insuficiente del entrenamiento detrás del modal técnico;
+- gate de CI que habría impedido crecer por encima de 15 ejercicios;
+- 185 recursos educativos tratados como parte crítica de la instalación del Service Worker;
+- versión/caché de v1.1 compartida con 1.0.0-rc.1;
+- relaciones repetidas entre Variantes, Sustituciones y Relacionados.
+
+El pack conserva 15/15 fichas base y puede crecer sin modificar el guardrail. La descarga offline de la biblioteca es no crítica y se ejecuta como warmup en segundo plano.
+
+### Pendiente antes de considerar el lenguaje visual definitivo
+
+- inspección física en Safari/iPhone y Chrome/Brave;
+- evaluación de densidad y legibilidad de ilustraciones en pantalla real;
+- revisión visual comparativa de los 15 ejercicios;
+- verificar que aliases coincidan con nombres usados realmente en las rutinas personales;
+- revisión biomecánica editorial adicional si el catálogo se expande mucho más allá del uso personal.
