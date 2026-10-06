@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "id": "one-arm-dumbbell-row",
+  "name": "Remo unilateral con mancuerna",
+  "aliases": [
+    "Remo unilateral",
+    "Remo con mancuerna a una mano",
+    "One arm dumbbell row",
+    "Dumbbell row"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "latissimus-dorsi"
+    ],
+    "secondaryMuscles": [
+      "rhomboids",
+      "middle-trapezius",
+      "biceps-brachii"
+    ],
+    "stabilizers": [
+      "erector-spinae"
+    ],
+    "movementPattern": "horizontal-pull",
+    "equipment": [
+      "dumbbells",
+      "flat-bench"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Remo unilateral con mancuerna que permite trabajar un lado de la espalda a la vez. El apoyo en banco facilita estabilizar el torso, mientras el brazo activo lleva el codo hacia atrás siguiendo una trayectoria controlada.",
+  "benefits": [
+    "Permite comparar y entrenar cada lado de forma independiente.",
+    "Ofrece libertad para adaptar la trayectoria al cuerpo.",
+    "Trabaja dorsal y espalda media con una base estable.",
+    "Se integra fácilmente en rutinas de espalda o pull."
+  ],
+  "setup": [
+    "Apoya una mano y, si lo prefieres, una rodilla sobre el banco.",
+    "Coloca el pie de apoyo firme y mantén el tronco estable.",
+    "Sujeta la mancuerna con el brazo extendido sin perder la posición del hombro.",
+    "Mantén una columna cómoda y evita girar el torso hacia arriba."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Crea el apoyo",
+      "instruction": "Asegura mano, pierna y pie antes de iniciar.",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Estira bajo control",
+      "instruction": "Permite que el brazo baje sin colapsar el hombro.",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Tira con el codo",
+      "instruction": "Lleva el codo hacia la cadera manteniendo la mancuerna cerca del torso.",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Controla arriba",
+      "instruction": "Pausa sin girar el pecho hacia el techo.",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Baja lento",
+      "instruction": "Regresa la mancuerna al inicio manteniendo el torso estable.",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala mientras bajas la mancuerna.",
+    "concentric": "Exhala durante el tirón hacia la cadera."
+  },
+  "keyCues": [
+    "Torso quieto.",
+    "Codo hacia la cadera.",
+    "No gires para ganar recorrido.",
+    "Hombro controlado abajo.",
+    "Baja la mancuerna con intención."
+  ],
+  "commonMistakes": [
+    {
+      "id": "torso-rotation",
+      "title": "Girar el torso",
+      "description": "Rotar el pecho hacia arriba usa impulso y cambia el patrón de tirón.",
+      "correction": "Mantén hombros y pelvis orientados de forma estable.",
+      "severity": "high",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/mistake-torso-rotation.svg"
+    },
+    {
+      "id": "shrugging",
+      "title": "Encoger el hombro",
+      "description": "Subir el hombro hacia la oreja desplaza el movimiento y reduce control.",
+      "correction": "Mantén el cuello relajado y guía el codo hacia atrás.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/mistake-shrugging.svg"
+    },
+    {
+      "id": "curling-weight",
+      "title": "Convertirlo en curl",
+      "description": "Flexionar el codo sin mover suficientemente el brazo reduce el trabajo de espalda.",
+      "correction": "Piensa en desplazar el codo, no solo la mancuerna.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/one-arm-dumbbell-row/mistake-curling-weight.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No uses una postura que provoque molestia lumbar.",
+    "Controla la mancuerna al colocarla y retirarla del suelo.",
+    "Evita rotaciones rápidas del torso con cargas altas."
+  ],
+  "variants": [
+    {
+      "exerciseId": "seated-cable-row",
+      "note": "Versión bilateral con resistencia continua de polea."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "seated-cable-row",
+      "note": "Opción estable cuando prefieres trabajar ambos lados simultáneamente."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "lat-pulldown",
+      "note": "Aporta un vector vertical para completar el trabajo de espalda."
+    },
+    {
+      "exerciseId": "seated-cable-row",
+      "note": "Comparte patrón de tirón horizontal."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/one-arm-dumbbell-row/thumbnail.svg",
+    "hero": "assets/exercise-library/one-arm-dumbbell-row/hero.svg",
+    "muscleMap": "assets/exercise-library/one-arm-dumbbell-row/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

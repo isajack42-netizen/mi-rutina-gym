@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "id": "seated-cable-row",
+  "name": "Remo sentado en polea",
+  "aliases": [
+    "Remo sentado",
+    "Remo en polea baja",
+    "Seated cable row",
+    "Cable row"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "latissimus-dorsi",
+      "rhomboids"
+    ],
+    "secondaryMuscles": [
+      "middle-trapezius",
+      "biceps-brachii",
+      "brachialis"
+    ],
+    "stabilizers": [
+      "erector-spinae"
+    ],
+    "movementPattern": "horizontal-pull",
+    "equipment": [
+      "seated-row-machine"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Tirón horizontal realizado sentado frente a una polea baja. Trabaja dorsal ancho, romboides y trapecio medio, con ayuda de bíceps. La clave es mover los codos hacia atrás manteniendo el torso estable y evitando convertir cada repetición en un balanceo.",
+  "benefits": [
+    "Desarrolla espalda media y dorsal dentro de un patrón horizontal.",
+    "Permite ajustar la carga con facilidad y mantener tensión continua.",
+    "Ayuda a practicar retracción escapular bajo control.",
+    "Complementa jalones y dominadas con un vector de tirón diferente."
+  ],
+  "setup": [
+    "Ajusta la posición para poder extender los brazos sin redondear en exceso la espalda.",
+    "Apoya los pies y toma el agarre de forma simétrica.",
+    "Mantén el pecho alto y una posición lumbar cómoda.",
+    "Comienza con brazos extendidos y hombros controlados."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Fija la base",
+      "instruction": "Apoya pies y pelvis, manteniendo el torso estable frente a la polea.",
+      "asset": "assets/exercise-library/seated-cable-row/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Inicia el tirón",
+      "instruction": "Lleva los hombros a una posición estable y comienza a mover los codos hacia atrás.",
+      "asset": "assets/exercise-library/seated-cable-row/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Acerca el agarre",
+      "instruction": "Tira hacia el abdomen sin encoger los hombros ni abrir excesivamente los codos.",
+      "asset": "assets/exercise-library/seated-cable-row/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Pausa atrás",
+      "instruction": "Controla la posición final sin hiperextender el torso.",
+      "asset": "assets/exercise-library/seated-cable-row/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Regresa lento",
+      "instruction": "Extiende los brazos de manera controlada hasta recuperar el inicio.",
+      "asset": "assets/exercise-library/seated-cable-row/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala durante el regreso del agarre.",
+    "concentric": "Exhala mientras tiras hacia el torso."
+  },
+  "keyCues": [
+    "Pecho alto y torso estable.",
+    "Codos hacia atrás, no hacia arriba.",
+    "Evita tirar con impulso lumbar.",
+    "Controla la extensión de brazos.",
+    "No encogas los hombros."
+  ],
+  "commonMistakes": [
+    {
+      "id": "rocking-torso",
+      "title": "Balancear el torso",
+      "description": "Inclinarte hacia delante y atrás usa impulso en lugar de mantener tensión en la espalda.",
+      "correction": "Reduce la carga y conserva un ángulo de torso estable.",
+      "severity": "high",
+      "asset": "assets/exercise-library/seated-cable-row/mistake-rocking-torso.svg"
+    },
+    {
+      "id": "shrug-row",
+      "title": "Encoger los hombros",
+      "description": "Subir los hombros durante el tirón reduce el control escapular.",
+      "correction": "Mantén el cuello largo y dirige los codos hacia atrás.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/seated-cable-row/mistake-shrug-row.svg"
+    },
+    {
+      "id": "overpull",
+      "title": "Llevar el agarre demasiado atrás",
+      "description": "Forzar el final del recorrido puede llevarte a hiperextender el hombro o el torso.",
+      "correction": "Detén el tirón cuando los codos hayan pasado ligeramente el torso.",
+      "severity": "low",
+      "asset": "assets/exercise-library/seated-cable-row/mistake-overpull.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No redondees la espalda de forma brusca para buscar más recorrido.",
+    "Usa una carga que te permita controlar el retorno.",
+    "Ajusta el agarre si aparece molestia en muñeca, codo u hombro."
+  ],
+  "variants": [
+    {
+      "exerciseId": "one-arm-dumbbell-row",
+      "note": "Versión unilateral con mayor libertad de trayectoria."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "lat-pulldown",
+      "note": "Tirón vertical si buscas enfatizar dorsal con un vector diferente."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "lat-pulldown",
+      "note": "Complementa el remo con un tirón vertical."
+    },
+    {
+      "exerciseId": "one-arm-dumbbell-row",
+      "note": "Permite trabajar cada lado por separado."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/seated-cable-row/thumbnail.svg",
+    "hero": "assets/exercise-library/seated-cable-row/hero.svg",
+    "muscleMap": "assets/exercise-library/seated-cable-row/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

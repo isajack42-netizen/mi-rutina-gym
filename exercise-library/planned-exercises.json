@@ -34,22 +34,22 @@
     {
       "id": "seated-cable-row",
       "name": "Remo sentado en polea",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "one-arm-dumbbell-row",
       "name": "Remo unilateral con mancuerna",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "barbell-curl",
       "name": "Curl de bíceps con barra",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "incline-dumbbell-curl",
       "name": "Curl inclinado con mancuernas",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "triceps-cable-pushdown",

@@ -160,6 +160,112 @@
         "strength",
         "technique"
       ]
+    },
+    {
+      "id": "seated-cable-row",
+      "name": "Remo sentado en polea",
+      "aliases": [
+        "Remo sentado",
+        "Remo en polea baja",
+        "Seated cable row",
+        "Cable row"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "latissimus-dorsi",
+        "rhomboids"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "seated-row-machine"
+      ],
+      "thumbnail": "assets/exercise-library/seated-cable-row/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "one-arm-dumbbell-row",
+      "name": "Remo unilateral con mancuerna",
+      "aliases": [
+        "Remo unilateral",
+        "Remo con mancuerna a una mano",
+        "One arm dumbbell row",
+        "Dumbbell row"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "latissimus-dorsi"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "dumbbells",
+        "flat-bench"
+      ],
+      "thumbnail": "assets/exercise-library/one-arm-dumbbell-row/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "barbell-curl",
+      "name": "Curl de bíceps con barra",
+      "aliases": [
+        "Curl con barra",
+        "Curl bíceps barra",
+        "Barbell curl",
+        "Curl de barra"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "biceps-brachii"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "barbell"
+      ],
+      "thumbnail": "assets/exercise-library/barbell-curl/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "incline-dumbbell-curl",
+      "name": "Curl inclinado con mancuernas",
+      "aliases": [
+        "Curl inclinado",
+        "Curl inclinado mancuernas",
+        "Incline dumbbell curl",
+        "Curl bíceps inclinado"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "biceps-brachii"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "dumbbells",
+        "incline-bench"
+      ],
+      "thumbnail": "assets/exercise-library/incline-dumbbell-curl/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ]
     }
   ]
 }
