@@ -38,17 +38,18 @@ function scheduleAllocateCounts(frequencies,total){
   const out=Object.fromEntries(entries.map(([name])=>[name,0]));
   if(!entries.length||!target)return out;
   const sum=entries.reduce((a,[,v])=>a+Number(v),0);
-  const quotas=entries.map(([name,v])=>{
+  const quotas=entries.map(([name,v],index)=>{
     const q=Number(v)/sum*target,base=Math.floor(q);
     out[name]=base;
-    return {name,fraction:q-base,weight:Number(v)};
+    return {name,fraction:q-base,weight:Number(v),index};
   });
   let used=Object.values(out).reduce((a,b)=>a+b,0);
-  quotas.sort((a,b)=>b.fraction-a.fraction||b.weight-a.weight||a.name.localeCompare(b.name));
+  quotas.sort((a,b)=>b.fraction-a.fraction||b.weight-a.weight||a.index-b.index);
   for(let i=0;used<target;i++,used++)out[quotas[i%quotas.length].name]++;
   return out;
 }
 function scheduleBuildTemplate(frequencies){
+  const orderNames=Object.keys(frequencies||{});
   const sum=Object.values(frequencies||{}).reduce((a,v)=>a+Math.max(0,Number(v)||0),0);
   const target=Math.max(0,Math.min(7,Math.round(sum)));
   const counts=scheduleAllocateCounts(frequencies,target);
@@ -56,10 +57,11 @@ function scheduleBuildTemplate(frequencies){
   let last='';
   while(sequence.length<target){
     const choices=Object.entries(remaining).filter(([,n])=>n>0)
-      .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+      .map(([name,n])=>({name,n,index:orderNames.indexOf(name)}))
+      .sort((a,b)=>b.n-a.n||a.index-b.index);
     if(!choices.length)break;
-    const pick=choices.find(([name])=>name!==last)||choices[0];
-    sequence.push(pick[0]);remaining[pick[0]]--;last=pick[0];
+    const pick=choices.find(x=>x.name!==last)||choices[0];
+    sequence.push(pick.name);remaining[pick.name]--;last=pick.name;
   }
   const order=['1','2','3','4','5','6','0'];
   const template=Object.fromEntries(order.map(k=>[k,'Descanso']));
