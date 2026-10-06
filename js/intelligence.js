@@ -36,8 +36,16 @@ function intelSessionProfile(session){
   const primaryWeight=intelPrimaryWeight(loaded);
   const primarySets=primaryWeight?loaded.filter(s=>Math.abs((Number(s.weight)||0)-primaryWeight)<0.001):performed;
   const e1=loaded.reduce((m,s)=>Math.max(m,e1rm(s.weight,s.reps)),0);
+  const firstPrimary=primarySets[0]||null,lastPrimary=primarySets[primarySets.length-1]||null;
+  const firstReps=Number(firstPrimary?.reps)||0,lastReps=Number(lastPrimary?.reps)||0;
+  const repDropPct=primarySets.length>=2&&firstReps>0?((firstReps-lastReps)/firstReps)*100:null;
+  const exerciseIndex=Number.isFinite(Number(session?.exerciseIndex))?Number(session.exerciseIndex):null;
+  const exerciseCount=Number.isFinite(Number(session?.exerciseCount))?Number(session.exerciseCount):null;
+  const positionRatio=exerciseIndex!=null&&exerciseCount>1?exerciseIndex/(exerciseCount-1):null;
   return {
     date:session?.date||'',
+    routine:session?.routine||'',
+    exerciseIndex,exerciseCount,positionRatio,
     validSets:performed,
     loadedSets:loaded,
     setCount:performed.length,
@@ -48,6 +56,9 @@ function intelSessionProfile(session){
     avgPrimaryReps:primarySets.length?intelMean(primarySets.map(s=>Number(s.reps)||0)):null,
     minReps:performed.length?Math.min(...performed.map(s=>Number(s.reps)||0)):0,
     maxReps:performed.length?Math.max(...performed.map(s=>Number(s.reps)||0)):0,
+    firstPrimaryReps:firstReps||null,
+    lastPrimaryReps:lastReps||null,
+    repDropPct,
     avgRir:rir.length?intelMean(rir):null,
     rirCoverage:performed.length?rir.length/performed.length:0,
     e1rm:e1,
@@ -109,6 +120,103 @@ function intelMaturity(profiles,target){
   if(n===3)return {level:'standard',label:'Recomendación',detail:'Tres sesiones comparables permiten una recomendación más estable, pero aún no una lectura fuerte de meseta o fatiga.'};
   return {level:'trend',label:'Recomendación + tendencia',detail:'Hay suficiente historial para combinar la próxima decisión con señales de tendencia reciente.'};
 }
+
+// <intelligence-2-patterns>
+function intelPersonalPatterns(name,profiles){
+  const rows=(profiles||[]).slice(-8);
+  let repOpportunities=0,repWins=0,loadIncreases=0,loadSustained=0;
+  const assistance=intelAssistanceLike(name);
+  for(let i=1;i<rows.length;i++){
+    const prev=rows[i-1],cur=rows[i];
+    if(prev.primaryWeight<=0||cur.primaryWeight<=0||assistance)continue;
+    const deltaWeight=cur.primaryWeight-prev.primaryWeight;
+    if(Math.abs(deltaWeight)<=.25&&Number.isFinite(prev.avgPrimaryReps)&&Number.isFinite(cur.avgPrimaryReps)){
+      repOpportunities++;
+      if(cur.avgPrimaryReps>=prev.avgPrimaryReps+.5)repWins++;
+    }else if(deltaWeight>.25){
+      loadIncreases++;
+      if(prev.e1rm>0&&cur.e1rm>=prev.e1rm*.98)loadSustained++;
+    }
+  }
+  const repRate=repOpportunities?repWins/repOpportunities:null;
+  const loadRate=loadIncreases?loadSustained/loadIncreases:null;
+  let strategy={status:'forming',label:'Patrón en formación',detail:'Aún faltan transiciones comparables de carga y repeticiones.',repOpportunities,repWins,loadIncreases,loadSustained,repRate,loadRate};
+  if(!assistance&&(repOpportunities+loadIncreases)>=3){
+    if(repOpportunities>=2&&repWins>=2&&(loadIncreases<2||loadRate==null||repRate>=loadRate+.15)){
+      strategy={...strategy,status:'reps-first',label:'Progresión por reps',detail:`${repWins}/${repOpportunities} comparaciones con la misma carga mejoraron las reps antes de subir peso.`};
+    }else if(loadIncreases>=2&&loadRate>=.67){
+      strategy={...strategy,status:'load-tolerant',label:'Carga bien tolerada',detail:`${loadSustained}/${loadIncreases} aumentos recientes de carga sostuvieron el e1RM.`};
+    }else{
+      strategy={...strategy,status:'mixed',label:'Progresión mixta',detail:'Tu historial no muestra una ventaja clara entre acumular reps y subir carga.'};
+    }
+  }
+
+  const dropRows=rows.filter(x=>Number.isFinite(x.repDropPct));
+  const avgDrop=dropRows.length?intelMean(dropRows.slice(-4).map(x=>x.repDropPct)):null;
+  const setConsistency=dropRows.length>=3
+    ? (avgDrop>=15
+      ? {status:'drop',label:'Caída entre series',detail:`Las reps caen en promedio ${avgDrop.toFixed(1)}% entre la primera y la última serie reciente.`,avgDrop}
+      : {status:'stable',label:'Series consistentes',detail:`La caída media entre primera y última serie es ${Math.max(0,avgDrop).toFixed(1)}%.`,avgDrop})
+    : {status:'forming',label:'Consistencia por aprender',detail:'Faltan sesiones comparables para medir la caída entre series.',avgDrop};
+
+  const rirRows=rows.filter(x=>Number.isFinite(x.avgRir));
+  let effort={status:'forming',label:'Esfuerzo sin patrón',detail:'Falta RIR suficiente para comparar bloques recientes.',delta:null};
+  if(rirRows.length>=4){
+    const prior=intelMean(rirRows.slice(-4,-2).map(x=>x.avgRir));
+    const recent=intelMean(rirRows.slice(-2).map(x=>x.avgRir));
+    const delta=recent-prior;
+    effort=delta<=-.75
+      ? {status:'harder',label:'Esfuerzo en aumento',detail:`El RIR medio reciente bajó ${Math.abs(delta).toFixed(1)} puntos frente a las dos sesiones anteriores.`,delta}
+      : delta>=.75
+        ? {status:'easier',label:'Más margen reciente',detail:`El RIR medio reciente subió ${delta.toFixed(1)} puntos frente a las dos sesiones anteriores.`,delta}
+        : {status:'stable',label:'Esfuerzo estable',detail:`El RIR medio cambió solo ${Math.abs(delta).toFixed(1)} puntos entre bloques recientes.`,delta};
+  }
+
+  const positioned=rows.filter(x=>x.e1rm>0&&Number.isFinite(x.positionRatio));
+  const bucket=x=>x.positionRatio<=.4?'early':x.positionRatio>=.6?'late':'middle';
+  const early=positioned.filter(x=>bucket(x)==='early'),late=positioned.filter(x=>bucket(x)==='late');
+  let positionSwitches=0,previousBucket='';
+  positioned.forEach(x=>{
+    const b=bucket(x);
+    if(b==='middle')return;
+    if(previousBucket&&previousBucket!==b)positionSwitches++;
+    previousBucket=b;
+  });
+  let position={status:'forming',label:'Posición sin señal',detail:'El ejercicio no ha variado suficiente de posición para comparar su rendimiento.',deltaPct:null,earlyCount:early.length,lateCount:late.length,switches:positionSwitches};
+  // Exigimos cambios de posición repetidos para reducir el riesgo de confundir
+  // una progresión temporal con un efecto real del orden de la sesión.
+  if(early.length>=2&&late.length>=2&&positionSwitches>=2){
+    const earlyMean=intelMean(early.map(x=>x.e1rm)),lateMean=intelMean(late.map(x=>x.e1rm));
+    const deltaPct=intelPctChange(earlyMean,lateMean);
+    position=deltaPct!=null&&deltaPct<=-5
+      ? {status:'late-down',label:'Rinde menos al final',detail:`Tras varios cambios de posición, el e1RM medio es ${Math.abs(deltaPct).toFixed(1)}% menor cuando aparece tarde en la sesión.`,deltaPct,earlyCount:early.length,lateCount:late.length,switches:positionSwitches}
+      : {status:'stable',label:'Posición estable',detail:`Tras varios cambios de posición no aparece una diferencia grande (${deltaPct==null?'—':`${deltaPct>=0?'+':''}${deltaPct.toFixed(1)}%`}).`,deltaPct,earlyCount:early.length,lateCount:late.length,switches:positionSwitches};
+  }
+
+  const signals=[];
+  if(strategy.status!=='forming')signals.push({key:'strategy',kind:strategy.status==='load-tolerant'||strategy.status==='reps-first'?'positive':'neutral',label:strategy.label,detail:strategy.detail});
+  if(setConsistency.status==='drop')signals.push({key:'sets',kind:'warning',label:setConsistency.label,detail:setConsistency.detail});
+  else if(setConsistency.status==='stable'&&dropRows.length>=4)signals.push({key:'sets',kind:'neutral',label:setConsistency.label,detail:setConsistency.detail});
+  if(effort.status==='harder')signals.push({key:'effort',kind:'warning',label:effort.label,detail:effort.detail});
+  else if(effort.status==='easier')signals.push({key:'effort',kind:'positive',label:effort.label,detail:effort.detail});
+  if(position.status==='late-down')signals.push({key:'position',kind:'warning',label:position.label,detail:position.detail});
+
+  return {
+    sessionsUsed:rows.length,
+    strategy,setConsistency,effort,position,
+    signals:signals.slice(0,4),
+    hasStablePattern:signals.length>0
+  };
+}
+function intelPatternReason(patterns,action){
+  if(!patterns)return '';
+  if(action==='reps'&&patterns.strategy?.status==='reps-first')return patterns.strategy.detail;
+  if(action==='increase'&&patterns.strategy?.status==='load-tolerant')return patterns.strategy.detail;
+  if(['reps','hold'].includes(action)&&patterns.setConsistency?.status==='drop')return patterns.setConsistency.detail;
+  if(['hold','decrease'].includes(action)&&patterns.effort?.status==='harder')return patterns.effort.detail;
+  return '';
+}
+// </intelligence-2-patterns>
 function intelPlanSuggestions(last,target,action,nextWeightKg){
   const previous=last?.validSets||[];
   const count=Math.max(1,Number(target&&!target.ambiguous&&target.sets)||previous.length||1);
@@ -174,6 +282,7 @@ function getTrainingIntelligence(name,opts={}){
   const trend=intelTrend(profiles,target);
   const confidence=intelConfidence(profiles,target);
   const maturity=intelMaturity(profiles,target);
+  const patterns=intelPersonalPatterns(name,profiles);
   const reasons=[];
   let action='reference',title='Usa una sesión de referencia',summary='Todavía no hay suficiente información para prescribir una progresión con confianza.';
   let nextWeightKg=last?.primaryWeight||last?.bestWeight||0;
@@ -198,12 +307,15 @@ function getTrainingIntelligence(name,opts={}){
       summary='No aparece un nuevo máximo reciente. Repite una sesión comparable y busca una mejora pequeña antes de cambiar la carga.';
       reasons.push(`${trend.sessionsSinceBest} sesiones desde el último mejor e1RM.`);
     }else{
-      action=profiles.length<=2?'reps':'reference';
-      title=profiles.length<=2?'Repite la carga y busca una mejora pequeña':'Usa la última sesión como referencia';
+      const repsPattern=patterns.strategy?.status==='reps-first';
+      action=profiles.length<=2||repsPattern?'reps':'reference';
+      title=profiles.length<=2?'Repite la carga y busca una mejora pequeña':repsPattern?'Tu patrón favorece sumar reps':'Usa la última sesión como referencia';
       summary=profiles.length<=2
         ?`Con el historial actual, la opción más prudente es repetir aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} e intentar una repetición total adicional o una ejecución más cómoda.`
-        :`Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca igualar o superar ligeramente el rendimiento con técnica estable.`;
-      reasons.push(profiles.length<=2?`${profiles.length} sesión${profiles.length===1?'':'es'} disponible${profiles.length===1?'':'s'}: todavía no hay base suficiente para interpretar una tendencia.`:'Usamos la sesión más reciente como referencia comparable.');
+        :repsPattern
+          ?`En tus sesiones comparables, acumular repeticiones con la misma carga ha producido la señal más consistente. Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca una mejora pequeña antes de subir peso.`
+          :`Repite aproximadamente ${formatKgValue(last.primaryWeight||last.bestWeight)} y busca igualar o superar ligeramente el rendimiento con técnica estable.`;
+      reasons.push(profiles.length<=2?`${profiles.length} sesión${profiles.length===1?'':'es'} disponible${profiles.length===1?'':'s'}: todavía no hay base suficiente para interpretar una tendencia.`:repsPattern?patterns.strategy.detail:'Usamos la sesión más reciente como referencia comparable.');
       if(trend.periodDeltaPct!=null)reasons.push(`Tendencia del historial: ${trend.periodDeltaPct>=0?'+':''}${trend.periodDeltaPct.toFixed(1)}% de e1RM.`);
     }
   }else{
@@ -274,6 +386,8 @@ function getTrainingIntelligence(name,opts={}){
 
   if(trend.plateau&&action!=='increase'&&!reasons.some(x=>x.includes('sesiones sin'))) reasons.push(`${trend.sessionsSinceBest} sesiones desde el último mejor e1RM.`);
   if(trend.performanceDown&&!reasons.some(x=>x.includes('e1RM reciente'))&&trend.recentDeltaPct!=null) reasons.push(`Rendimiento reciente: ${trend.recentDeltaPct.toFixed(1)}% de e1RM frente al bloque anterior.`);
+  const personalReason=intelPatternReason(patterns,action);
+  if(personalReason)reasons.push(personalReason);
 
   const suggestions=intelPlanSuggestions(last,target,action,nextWeightKg);
   const exactTarget=target&&!target.ambiguous?target:null;
@@ -288,7 +402,7 @@ function getTrainingIntelligence(name,opts={}){
   };
   return {
     name,action,...intelActionMeta(action),title,summary,reasons:[...new Set(reasons)].slice(0,5),
-    confidence,maturity,trend,target,profiles,last,plan,
+    confidence,maturity,trend,patterns,target,profiles,last,plan,
     hasHistory:!!last,historyCount:profiles.length,lastDate:last?.date||'',
     warning:trend.fatigueLike?'possible-fatigue':trend.performanceDown?'performance-down':trend.plateau?'plateau':''
   };
@@ -315,6 +429,8 @@ function intelligenceSignalChips(intel){
   if(intel.trend?.performanceDown)chips.push('<span class="intel-chip down">Rendimiento ↓</span>');
   else if(intel.trend?.status==='improving')chips.push('<span class="intel-chip up">Tendencia ↑</span>');
   if(intel.trend?.fatigueLike)chips.push('<span class="intel-chip watch">Revisar recuperación</span>');
+  const personal=intel.patterns?.signals?.[0];
+  if(personal)chips.push(`<span class="intel-chip ${personal.kind==='warning'?'watch':personal.kind==='positive'?'up':''}">${escapeHtml(personal.label)}</span>`);
   if(intel.maturity?.label)chips.push(`<span class="intel-chip">${escapeHtml(intel.maturity.label)}</span>`);
   chips.push(`<span class="intel-chip">Confianza ${escapeHtml(intel.confidence.label.toLowerCase())}</span>`);
   return chips.join('');
@@ -322,11 +438,21 @@ function intelligenceSignalChips(intel){
 window.renderIntelligenceCard=function(intel,{compact=false,whyAction='openCurrentIntelligenceWhy()'}={}){
   if(!intel)return '<div class="empty">No hay suficiente información.</div>';
   const eyebrow=intel.maturity?.label||'Próxima decisión';
+  const patternSignals=(intel.patterns?.signals||[]).slice(0,3);
+  const patternHtml=!compact
+    ? `<div class="intel-personal-memory">
+        <div class="intel-personal-memory-head"><span class="eyebrow">Tu patrón reciente</span><small>${intel.patterns?.sessionsUsed||0} sesiones analizadas</small></div>
+        ${patternSignals.length
+          ? `<div class="intel-pattern-list">${patternSignals.map(x=>`<div class="intel-pattern-item ${escapeHtml(x.kind)}"><b>${escapeHtml(x.label)}</b><span>${escapeHtml(x.detail)}</span></div>`).join('')}</div>`
+          : '<div class="intel-pattern-empty">Todavía no hay un patrón personal suficientemente repetido para usarlo como contexto.</div>'}
+      </div>`
+    :'';
   return `<div class="intelligence-card ${escapeHtml(intel.tone)} ${compact?'compact':''}">
     <div class="intelligence-head"><div><span class="eyebrow">${escapeHtml(eyebrow)}</span><strong>${escapeHtml(intel.title)}</strong></div><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span></div>
     <div class="intelligence-plan">${escapeHtml(intelligencePlanText(intel))}</div>
     <p>${escapeHtml(intel.summary)}</p>
     <div class="intelligence-chips">${intelligenceSignalChips(intel)}</div>
+    ${patternHtml}
     ${compact?'<small class="intel-placeholder-note">Los valores grises de las series son la propuesta; puedes ajustarlos antes de ✓.</small>':''}
     <button class="intel-why" type="button" onclick="${whyAction}">¿Por qué?</button>
   </div>`;
@@ -334,6 +460,10 @@ window.renderIntelligenceCard=function(intel,{compact=false,whyAction='openCurre
 
 function intelligenceWhyHtml(intel){
   const target=intel.target;
+  const personalSignals=intel.patterns?.signals||[];
+  const personalHtml=personalSignals.length
+    ? `<div class="intel-pattern-dialog"><h3>Patrones personales recientes</h3>${personalSignals.map(x=>`<div class="intel-pattern-item ${escapeHtml(x.kind)}"><b>${escapeHtml(x.label)}</b><span>${escapeHtml(x.detail)}</span></div>`).join('')}</div>`
+    : '<div class="intel-pattern-dialog"><h3>Patrones personales recientes</h3><div class="intel-pattern-empty">Aún no existe una señal repetida suficiente. LiftEngine seguirá usando la sesión reciente y el objetivo de rutina sin inventar un patrón.</div></div>';
   const targetText=target?.ambiguous
     ? `Objetivo variable entre: ${target.routines.join(', ')}`
     : target?.repRange?`${target.sets} × ${target.repRange.min}–${target.repRange.max} · RIR ${target.rir} · descanso ${normalizeRestLabel(target.rest)}`:'Sin objetivo único de rutina';
@@ -341,6 +471,7 @@ function intelligenceWhyHtml(intel){
   return `<h2>¿Por qué esta recomendación?</h2>
     <div class="intel-dialog-summary"><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span><b>${escapeHtml(intel.title)}</b><span>${escapeHtml(intelligencePlanText(intel))}</span></div>
     <div class="intel-reason-list">${intel.reasons.length?intel.reasons.map(x=>`<div>${ic('check')}<span>${escapeHtml(x)}</span></div>`).join(''):'<div><span>Aún falta historial para explicar una progresión con detalle.</span></div>'}</div>
+    ${personalHtml}
     <div class="intel-detail-grid">
       <div><small>Última referencia</small><b>${escapeHtml(history)}</b></div>
       <div><small>Objetivo de rutina</small><b>${escapeHtml(targetText)}</b></div>
@@ -348,7 +479,7 @@ function intelligenceWhyHtml(intel){
       <div><small>Confianza</small><b>${escapeHtml(intel.confidence.label)}</b><span>${escapeHtml(intel.confidence.text)}</span></div>
       <div><small>Lectura de tendencia</small><b>${escapeHtml(intel.trend.status==='down'?'Descendente':intel.trend.status==='plateau'?'Meseta reciente':intel.trend.status==='improving'?'En mejora':'Estable / insuficiente')}</b><span>Una señal no equivale a un diagnóstico de fatiga.</span></div>
     </div>
-    <p class="muted intel-disclaimer">LiftEngine usa reglas transparentes basadas en tus series, repeticiones, carga, RIR, objetivo de rutina y tendencia de e1RM. No evalúa técnica, sueño, dolor, nutrición ni recuperación fuera de lo que registras.</p>
+    <p class="muted intel-disclaimer">LiftEngine usa reglas transparentes basadas en tus series, repeticiones, carga, RIR, objetivo de rutina, tendencia de e1RM y patrones repetidos de hasta 8 sesiones. Los patrones describen tu historial; no prueban causalidad ni evalúan técnica, sueño, dolor, nutrición o recuperación fuera de lo que registras.</p>
     <div class="actions"><button class="btn btn-primary" onclick="closeModal()">Entendido</button></div>`;
 }
 window.openCurrentIntelligenceWhy=function(){
@@ -373,5 +504,9 @@ window.renderIntelligenceAnalytics=function(coverage){
     const bw=b.warning==='possible-fatigue'?0:b.warning==='performance-down'?1:b.warning==='plateau'?2:3;
     return aw-bw||(priority[a.action]??9)-(priority[b.action]??9)||String(b.lastDate).localeCompare(String(a.lastDate));
   }).slice(0,6);
-  box.innerHTML=rows.length?rows.map(x=>`<div class="intel-list-item"><div><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.maturity?.label||'Recomendación')} · ${escapeHtml(x.title)} · ${escapeHtml(intelligencePlanText(x))}</small></div><span class="intelligence-action ${escapeHtml(x.tone)}">${escapeHtml(x.label)}</span></div>`).join(''):'<div class="empty">No hay ejercicios evaluables en este periodo.</div>';
+  box.innerHTML=rows.length?rows.map(x=>{
+    const personal=x.patterns?.signals?.[0]?.label||'';
+    const suffix=personal?` · ${personal}`:'';
+    return `<div class="intel-list-item"><div><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.maturity?.label||'Recomendación')} · ${escapeHtml(x.title)} · ${escapeHtml(intelligencePlanText(x))}${escapeHtml(suffix)}</small></div><span class="intelligence-action ${escapeHtml(x.tone)}">${escapeHtml(x.label)}</span></div>`;
+  }).join(''):'<div class="empty">No hay ejercicios evaluables en este periodo.</div>';
 };

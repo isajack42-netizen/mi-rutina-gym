@@ -2543,3 +2543,86 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .review-kpi-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
   .review-kpi{min-height:92px}
 }
+
+
+/* ===== v6.10 · TRAINING INTELLIGENCE 2.0 ===== */
+.intel-personal-memory{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent);
+}
+.intel-personal-memory-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:7px;
+}
+.intel-personal-memory-head .eyebrow{margin:0}
+.intel-personal-memory-head small{
+  color:var(--muted);
+  font-size:.62rem;
+}
+.intel-pattern-list{
+  display:grid;
+  gap:6px;
+}
+.intel-pattern-item{
+  display:grid;
+  gap:2px;
+  padding:8px 9px;
+  background:var(--soft);
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.intel-pattern-item b{font-size:.7rem}
+.intel-pattern-item span{
+  color:var(--muted);
+  font-size:.64rem;
+  line-height:1.4;
+}
+.intel-pattern-item.positive b{color:var(--green)}
+.intel-pattern-item.warning b{color:var(--yellow)}
+.intel-pattern-empty{
+  padding:8px 9px;
+  color:var(--muted);
+  font-size:.65rem;
+  line-height:1.45;
+  border:1px dashed var(--line);
+  border-radius:8px;
+}
+.intel-pattern-dialog{
+  display:grid;
+  gap:7px;
+  margin:12px 0;
+}
+.intel-pattern-dialog h3{
+  margin:0!important;
+  font-size:.83rem!important;
+}
+.intel-pattern-dialog .intel-pattern-item{
+  background:var(--card2);
+}
+
+@media(min-width:1200px){
+  .intel-personal-memory{
+    margin-top:14px;
+    padding-top:13px;
+    border-top-color:var(--desktop-line-soft);
+  }
+  .intel-pattern-list{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .intel-pattern-item{
+    border-color:var(--desktop-line-soft);
+    background:transparent;
+  }
+  .intel-pattern-dialog .intel-pattern-item{
+    background:var(--desktop-soft);
+    border-color:var(--desktop-line-soft);
+  }
+}
+
+@media(max-width:720px){
+  .intel-personal-memory{display:none}
+}

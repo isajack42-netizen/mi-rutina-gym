@@ -148,6 +148,11 @@ if(!read('js/review.js').includes('function reviewInsightModel')||!read('js/revi
 if(!app.includes("'schedule','review','intelligence'")||!sw.includes("'schedule','review','intelligence'")) fail.push('review.js debe cargarse y precachearse entre Schedule e Intelligence.');
 if(!read('js/bootstrap.js').includes("'performance','intelligence','analytics','review','history','body'")||!read('js/bootstrap.js').includes("activeProgressView==='review'")) fail.push('Revisión no está integrada correctamente en Progreso.');
 if(!css.includes('v6.9 · PERIODIC REVIEW')||!css.includes('.review-hero')||!css.includes('.review-insight-grid')||!css.includes('.desktop-review-view.active')) fail.push('Faltan estilos o responsive de Revisión v6.9.');
+if(!read('js/intelligence.js').includes('function intelPersonalPatterns')||!read('js/intelligence.js').includes('function intelPatternReason')||!read('js/intelligence.js').includes('patterns=intelPersonalPatterns')) fail.push('Falta el motor de patrones personales de Intelligence 2.0.');
+if(!read('js/intelligence.js').includes('Tu patrón reciente')||!read('js/intelligence.js').includes('Patrones personales recientes')) fail.push('Intelligence 2.0 debe explicar los patrones personales en UI y detalle.');
+if(!read('js/logbook.js').includes('exerciseIndex:first?first.index:0')||!read('js/logbook.js').includes('exerciseCount:strength.length')) fail.push('El historial por ejercicio debe conservar contexto de posición para Intelligence 2.0.');
+if(!css.includes('v6.10 · TRAINING INTELLIGENCE 2.0')||!css.includes('.intel-personal-memory')||!css.includes('.intel-pattern-item')) fail.push('Faltan estilos de Intelligence 2.0.');
+if(!html.includes('patrones personales recientes')) fail.push('El subtítulo de Intelligence debe comunicar el nuevo contexto personal.');
 
 let depth=0;
 for(const ch of css){

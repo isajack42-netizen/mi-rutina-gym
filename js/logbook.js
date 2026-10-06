@@ -411,13 +411,24 @@ function routineTargetFor(name,routineName=null,date=null){
 function getExerciseSessions(name){
   const out=[];
   Object.keys(data).sort().forEach(date=>{
-    const sets=(data[date]||[]).filter(e=>!e.isCardio&&e.name===name).flatMap(e=>(e.sets||[]).filter(setCountsForHistory).map(s=>({
+    const strength=(data[date]||[]).filter(e=>!e.isCardio&&entryHasData(e));
+    const matches=strength.map((e,index)=>({e,index})).filter(x=>x.e.name===name);
+    const sets=matches.flatMap(({e})=>(e.sets||[]).filter(setCountsForHistory).map(s=>({
       reps:parseFloat(s.reps)||0,
       weight:parseFloat(s.weight)||0,
       rir:s.rir==='-'||s.rir===''?null:parseFloat(s.rir),
       rest:s.rest
     }))).filter(s=>s.reps>0);
-    if(sets.length) out.push({date,sets});
+    if(sets.length){
+      const first=matches[0];
+      out.push({
+        date,
+        sets,
+        routine:categories[date]||'',
+        exerciseIndex:first?first.index:0,
+        exerciseCount:strength.length
+      });
+    }
   });
   return out;
 }
