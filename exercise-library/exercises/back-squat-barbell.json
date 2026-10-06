@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "back-squat-barbell",
+  "name": "Sentadilla con barra",
+  "aliases": [
+    "Sentadilla",
+    "Back squat",
+    "Barbell back squat",
+    "Sentadilla trasera"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "quadriceps",
+      "gluteus-maximus"
+    ],
+    "secondaryMuscles": [
+      "hamstrings"
+    ],
+    "stabilizers": [
+      "erector-spinae"
+    ],
+    "movementPattern": "squat",
+    "equipment": [
+      "barbell",
+      "rack"
+    ],
+    "difficulty": "intermediate",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Patrón de sentadilla con barra apoyada sobre la parte superior de la espalda. Desarrolla principalmente cuádriceps y glúteos mientras el tronco trabaja para mantener una posición estable durante el descenso y el ascenso.",
+  "benefits": [
+    "Permite progresar fuerza y masa muscular en piernas con una carga estable.",
+    "Entrena cuádriceps, glúteos y control del tronco.",
+    "Es fácil de medir y progresar a largo plazo.",
+    "Transfiere bien a otros patrones de pierna y actividades deportivas."
+  ],
+  "setup": [
+    "Ajusta el rack para sacar la barra con una extensión corta de piernas.",
+    "Coloca la barra sobre una zona cómoda de la espalda alta, no sobre el cuello.",
+    "Toma aire, fija el torso y separa los pies a una postura estable.",
+    "Da los mínimos pasos necesarios para salir del rack."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Saca la barra",
+      "instruction": "Extiende las piernas y aléjate del rack con pasos cortos y controlados.",
+      "asset": "assets/exercise-library/back-squat-barbell/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Inicia el descenso",
+      "instruction": "Flexiona cadera y rodillas manteniendo el pie completo apoyado.",
+      "asset": "assets/exercise-library/back-squat-barbell/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Desciende estable",
+      "instruction": "Lleva las rodillas en una dirección compatible con los pies y conserva el torso firme.",
+      "asset": "assets/exercise-library/back-squat-barbell/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Cambia de dirección",
+      "instruction": "Alcanza una profundidad controlable sin perder postura ni apoyo.",
+      "asset": "assets/exercise-library/back-squat-barbell/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Asciende",
+      "instruction": "Empuja el suelo y extiende rodillas y cadera hasta volver arriba.",
+      "asset": "assets/exercise-library/back-squat-barbell/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Toma aire antes del descenso y mantén presión abdominal durante la repetición.",
+    "concentric": "Exhala de forma controlada al superar la parte más difícil del ascenso."
+  },
+  "keyCues": [
+    "Pie completo en el suelo.",
+    "Rodillas siguen la dirección de los pies.",
+    "Torso firme.",
+    "Barra estable sobre tu base.",
+    "Profundidad que puedas controlar."
+  ],
+  "commonMistakes": [
+    {
+      "id": "heels-lift",
+      "title": "Levantar talones",
+      "description": "Perder apoyo del talón reduce estabilidad y desplaza el centro de presión.",
+      "correction": "Ajusta postura, movilidad o calzado para mantener el pie completo apoyado.",
+      "severity": "high",
+      "asset": "assets/exercise-library/back-squat-barbell/mistake-heels-lift.svg"
+    },
+    {
+      "id": "knees-collapse",
+      "title": "Rodillas colapsan hacia dentro",
+      "description": "Una pérdida marcada de alineación puede acompañar falta de control o una carga excesiva.",
+      "correction": "Reduce la carga y controla la dirección de las rodillas.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/back-squat-barbell/mistake-knees-collapse.svg"
+    },
+    {
+      "id": "goodmorning-rise",
+      "title": "Cadera sube primero",
+      "description": "Si la cadera se dispara antes que el torso, la sentadilla se transforma en un patrón más inclinado.",
+      "correction": "Mantén pecho y cadera ascendiendo de forma coordinada.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/back-squat-barbell/mistake-goodmorning-rise.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Usa seguros del rack colocados a una altura adecuada.",
+    "No entrenes cerca del fallo sin una estrategia segura para abandonar la barra.",
+    "Ajusta profundidad y postura a tu movilidad y comodidad individual."
+  ],
+  "variants": [
+    {
+      "exerciseId": "leg-press",
+      "note": "Alternativa guiada con menor demanda de estabilización del torso."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "leg-press",
+      "note": "Opción cuando buscas cargar piernas sin sostener una barra sobre la espalda."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "lying-leg-curl",
+      "note": "Complementa la sentadilla con trabajo específico de isquiotibiales."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/back-squat-barbell/thumbnail.svg",
+    "hero": "assets/exercise-library/back-squat-barbell/hero.svg",
+    "muscleMap": "assets/exercise-library/back-squat-barbell/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

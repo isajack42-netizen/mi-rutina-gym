@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "id": "lying-leg-curl",
+  "name": "Curl femoral tumbado",
+  "aliases": [
+    "Curl femoral",
+    "Leg curl tumbado",
+    "Lying leg curl",
+    "Curl de isquiotibiales"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "hamstrings"
+    ],
+    "secondaryMuscles": [
+      "gastrocnemius"
+    ],
+    "stabilizers": [],
+    "movementPattern": "knee-flexion",
+    "equipment": [
+      "lying-leg-curl-machine"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "technique"
+    ]
+  },
+  "summary": "Flexión de rodilla en máquina tumbada enfocada en los isquiotibiales. El objetivo es acercar el rodillo hacia los glúteos sin levantar la pelvis ni acelerar el regreso de la carga.",
+  "benefits": [
+    "Aísla los isquiotibiales mediante flexión de rodilla.",
+    "La máquina facilita controlar carga y recorrido.",
+    "Complementa sentadillas y prensas, donde los isquiotibiales tienen un rol diferente.",
+    "Funciona bien en rangos moderados y altos de repeticiones."
+  ],
+  "setup": [
+    "Ajusta la máquina para alinear aproximadamente la rodilla con el eje de giro.",
+    "Coloca el rodillo sobre la parte baja de las piernas sin presionar el tendón de Aquiles.",
+    "Apoya la pelvis y el torso contra la máquina.",
+    "Sujeta las asas si están disponibles."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Ajusta la posición",
+      "instruction": "Comprueba eje, rodillo y apoyo antes de iniciar.",
+      "asset": "assets/exercise-library/lying-leg-curl/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Flexiona las rodillas",
+      "instruction": "Lleva los talones hacia los glúteos sin despegar la pelvis.",
+      "asset": "assets/exercise-library/lying-leg-curl/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Contrae arriba",
+      "instruction": "Pausa en una posición fuerte y cómoda.",
+      "asset": "assets/exercise-library/lying-leg-curl/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Desciende lento",
+      "instruction": "Extiende las rodillas de manera controlada.",
+      "asset": "assets/exercise-library/lying-leg-curl/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Mantén tensión",
+      "instruction": "Evita que las placas choquen antes de iniciar la siguiente repetición.",
+      "asset": "assets/exercise-library/lying-leg-curl/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala mientras extiendes las rodillas.",
+    "concentric": "Exhala durante la flexión."
+  },
+  "keyCues": [
+    "Pelvis apoyada.",
+    "Movimiento desde la rodilla.",
+    "Sin impulso.",
+    "Controla el descenso.",
+    "Ajusta bien el rodillo."
+  ],
+  "commonMistakes": [
+    {
+      "id": "hips-rise",
+      "title": "Levantar la pelvis",
+      "description": "Elevar la cadera reduce estabilidad y suele acompañar una carga demasiado alta.",
+      "correction": "Reduce el peso y mantén la pelvis contra el apoyo.",
+      "severity": "high",
+      "asset": "assets/exercise-library/lying-leg-curl/mistake-hips-rise.svg"
+    },
+    {
+      "id": "fast-return",
+      "title": "Dejar caer el peso",
+      "description": "Un regreso rápido elimina control del tramo excéntrico.",
+      "correction": "Baja la carga de forma deliberada.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/lying-leg-curl/mistake-fast-return.svg"
+    },
+    {
+      "id": "bad-pad-position",
+      "title": "Rodillo mal colocado",
+      "description": "Un rodillo demasiado alto o bajo puede resultar incómodo y alterar el movimiento.",
+      "correction": "Ajusta la máquina para apoyar el rodillo de forma estable sobre la pierna.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/lying-leg-curl/mistake-bad-pad-position.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Ajusta la máquina antes de cargar pesado.",
+    "No fuerces una flexión dolorosa de rodilla.",
+    "Reduce la carga si necesitas levantar la cadera para completar repeticiones."
+  ],
+  "variants": [
+    {
+      "exerciseId": "leg-press",
+      "note": "Movimiento de pierna compuesto que puede combinarse con el curl femoral."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "back-squat-barbell",
+      "note": "Alternativa compuesta de pierna, aunque no reemplaza el aislamiento de flexión de rodilla."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "leg-press",
+      "note": "Complementa el trabajo de cuádriceps y glúteos con isquiotibiales."
+    },
+    {
+      "exerciseId": "back-squat-barbell",
+      "note": "Puede formar parte de la misma sesión de pierna."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/lying-leg-curl/thumbnail.svg",
+    "hero": "assets/exercise-library/lying-leg-curl/hero.svg",
+    "muscleMap": "assets/exercise-library/lying-leg-curl/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

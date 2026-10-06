@@ -54,27 +54,27 @@
     {
       "id": "triceps-cable-pushdown",
       "name": "Extensión de tríceps en polea",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "parallel-bar-dip",
       "name": "Fondos en paralelas",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "back-squat-barbell",
       "name": "Sentadilla con barra",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "leg-press",
       "name": "Prensa de pierna",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "id": "lying-leg-curl",
       "name": "Curl femoral tumbado",
-      "status": "planned"
+      "status": "ready"
     }
   ]
 }

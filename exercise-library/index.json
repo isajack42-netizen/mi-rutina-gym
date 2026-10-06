@@ -266,6 +266,138 @@
         "hypertrophy",
         "technique"
       ]
+    },
+    {
+      "id": "triceps-cable-pushdown",
+      "name": "Extensión de tríceps en polea",
+      "aliases": [
+        "Pushdown de tríceps",
+        "Jalón de tríceps",
+        "Triceps pushdown",
+        "Extensión de tríceps polea"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "triceps-brachii"
+      ],
+      "movementPattern": "elbow-extension",
+      "equipment": [
+        "cable"
+      ],
+      "thumbnail": "assets/exercise-library/triceps-cable-pushdown/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ]
+    },
+    {
+      "id": "parallel-bar-dip",
+      "name": "Fondos en paralelas",
+      "aliases": [
+        "Fondos",
+        "Dips",
+        "Parallel bar dips",
+        "Fondos pecho tríceps"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "triceps-brachii",
+        "pectoralis-major"
+      ],
+      "movementPattern": "vertical-push",
+      "equipment": [
+        "dip-bars",
+        "bodyweight"
+      ],
+      "thumbnail": "assets/exercise-library/parallel-bar-dip/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "back-squat-barbell",
+      "name": "Sentadilla con barra",
+      "aliases": [
+        "Sentadilla",
+        "Back squat",
+        "Barbell back squat",
+        "Sentadilla trasera"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "quadriceps",
+        "gluteus-maximus"
+      ],
+      "movementPattern": "squat",
+      "equipment": [
+        "barbell",
+        "rack"
+      ],
+      "thumbnail": "assets/exercise-library/back-squat-barbell/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "leg-press",
+      "name": "Prensa de pierna",
+      "aliases": [
+        "Prensa",
+        "Leg press",
+        "Prensa inclinada",
+        "Prensa de piernas"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "quadriceps"
+      ],
+      "movementPattern": "squat",
+      "equipment": [
+        "leg-press-machine"
+      ],
+      "thumbnail": "assets/exercise-library/leg-press/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "id": "lying-leg-curl",
+      "name": "Curl femoral tumbado",
+      "aliases": [
+        "Curl femoral",
+        "Leg curl tumbado",
+        "Lying leg curl",
+        "Curl de isquiotibiales"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "hamstrings"
+      ],
+      "movementPattern": "knee-flexion",
+      "equipment": [
+        "lying-leg-curl-machine"
+      ],
+      "thumbnail": "assets/exercise-library/lying-leg-curl/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ]
     }
   ]
 }

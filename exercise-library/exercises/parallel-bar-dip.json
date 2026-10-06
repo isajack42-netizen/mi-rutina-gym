@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "id": "parallel-bar-dip",
+  "name": "Fondos en paralelas",
+  "aliases": [
+    "Fondos",
+    "Dips",
+    "Parallel bar dips",
+    "Fondos pecho tríceps"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "triceps-brachii",
+      "pectoralis-major"
+    ],
+    "secondaryMuscles": [
+      "anterior-deltoid"
+    ],
+    "stabilizers": [
+      "serratus-anterior"
+    ],
+    "movementPattern": "vertical-push",
+    "equipment": [
+      "dip-bars",
+      "bodyweight"
+    ],
+    "difficulty": "intermediate",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Empuje de peso corporal en paralelas que trabaja tríceps y pectoral, con participación del deltoides anterior. La inclinación del torso y la posición de los codos modifican el énfasis, pero la prioridad es descender con control dentro de un rango cómodo.",
+  "benefits": [
+    "Permite progresar fuerza relativa con peso corporal.",
+    "Trabaja pecho y tríceps en un solo movimiento.",
+    "Puede progresarse con repeticiones o carga externa.",
+    "Complementa presses horizontales y verticales."
+  ],
+  "setup": [
+    "Sujeta las barras y estabiliza los hombros antes de despegar los pies.",
+    "Mantén el torso en una inclinación cómoda.",
+    "Cruza o flexiona las piernas si ayuda a mantener estabilidad.",
+    "Comienza con los codos extendidos y controlados."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Estabiliza arriba",
+      "instruction": "Crea una posición firme con hombros controlados y brazos extendidos.",
+      "asset": "assets/exercise-library/parallel-bar-dip/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Desciende lento",
+      "instruction": "Flexiona los codos bajando el cuerpo sin dejarte caer.",
+      "asset": "assets/exercise-library/parallel-bar-dip/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Encuentra profundidad",
+      "instruction": "Detén el descenso en un rango cómodo para hombros y pecho.",
+      "asset": "assets/exercise-library/parallel-bar-dip/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Empuja las barras",
+      "instruction": "Extiende los codos manteniendo el torso estable.",
+      "asset": "assets/exercise-library/parallel-bar-dip/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Termina controlado",
+      "instruction": "Vuelve a la posición superior sin encoger los hombros.",
+      "asset": "assets/exercise-library/parallel-bar-dip/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala durante el descenso.",
+    "concentric": "Exhala durante el empuje hacia arriba."
+  },
+  "keyCues": [
+    "Hombros controlados.",
+    "Descenso suave.",
+    "No rebotes abajo.",
+    "Mantén una trayectoria repetible.",
+    "Profundidad cómoda, no forzada."
+  ],
+  "commonMistakes": [
+    {
+      "id": "too-deep",
+      "title": "Bajar demasiado",
+      "description": "Buscar profundidad excesiva puede llevar el hombro a una posición incómoda.",
+      "correction": "Detén el recorrido donde aún mantengas control y comodidad.",
+      "severity": "high",
+      "asset": "assets/exercise-library/parallel-bar-dip/mistake-too-deep.svg"
+    },
+    {
+      "id": "shrug-top",
+      "title": "Encoger los hombros arriba",
+      "description": "Perder estabilidad escapular reduce control en la posición superior.",
+      "correction": "Mantén los hombros organizados y evita hundirte entre las barras.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/parallel-bar-dip/mistake-shrug-top.svg"
+    },
+    {
+      "id": "bounce-bottom",
+      "title": "Rebotar abajo",
+      "description": "Usar rebote elimina control en la parte más exigente.",
+      "correction": "Pausa ligeramente y empuja desde una posición estable.",
+      "severity": "high",
+      "asset": "assets/exercise-library/parallel-bar-dip/mistake-bounce-bottom.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No fuerces profundidad si aparece dolor en hombro o esternón.",
+    "Usa asistencia si aún no puedes controlar el peso corporal.",
+    "Añade lastre solo después de dominar el movimiento sin carga externa."
+  ],
+  "variants": [
+    {
+      "exerciseId": "triceps-cable-pushdown",
+      "note": "Versión de aislamiento con menor demanda de estabilidad."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "bench-press-barbell",
+      "note": "Empuje horizontal estable si las paralelas no son cómodas."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "triceps-cable-pushdown",
+      "note": "Complementa los fondos con trabajo aislado de tríceps."
+    },
+    {
+      "exerciseId": "bench-press-barbell",
+      "note": "Comparte trabajo de pecho y tríceps."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/parallel-bar-dip/thumbnail.svg",
+    "hero": "assets/exercise-library/parallel-bar-dip/hero.svg",
+    "muscleMap": "assets/exercise-library/parallel-bar-dip/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}
