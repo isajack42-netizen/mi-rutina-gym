@@ -251,6 +251,14 @@ function exerciseLibraryUniqueTax(group,ids){
   const wanted=new Set(ids);
   return (exerciseLibraryTaxonomy?.[group]||[]).filter(row=>wanted.has(row.id));
 }
+function exerciseLibraryMusclesForIndex(item){
+  return [...new Set([...(item.primaryMuscles||[]),...(item.secondaryMuscles||[]),...(item.stabilizers||[])])];
+}
+function exerciseLibraryMuscleGroupLabel(muscleId){
+  const muscle=(exerciseLibraryTaxonomy?.muscles||[]).find(row=>row.id===muscleId);
+  if(!muscle?.group)return '';
+  return (exerciseLibraryTaxonomy?.muscleGroups||[]).find(row=>row.id===muscle.group)?.label||'';
+}
 function exerciseLibraryFillSelect(id,rows){
   const select=document.getElementById(id); if(!select||select.dataset.libraryReady==='1')return;
   const current=select.value;
@@ -261,7 +269,7 @@ function exerciseLibraryFillSelect(id,rows){
 function exerciseLibraryInitFilters(){
   const muscles=new Set(),equipment=new Set(),patterns=new Set();
   exerciseLibraryIndex.forEach(item=>{
-    (item.primaryMuscles||[]).forEach(id=>muscles.add(id));
+    exerciseLibraryMusclesForIndex(item).forEach(id=>muscles.add(id));
     (item.equipment||[]).forEach(id=>equipment.add(id));
     if(item.movementPattern)patterns.add(item.movementPattern);
   });
@@ -270,8 +278,10 @@ function exerciseLibraryInitFilters(){
   exerciseLibraryFillSelect('exerciseLibraryPatternFilter',exerciseLibraryUniqueTax('movementPatterns',patterns));
 }
 function exerciseLibrarySearchText(item){
+  const muscleIds=exerciseLibraryMusclesForIndex(item);
   const labels=[
-    ...(item.primaryMuscles||[]).map(id=>exerciseLibraryTaxLabel('muscles',id)),
+    ...muscleIds.map(id=>exerciseLibraryTaxLabel('muscles',id)),
+    ...muscleIds.map(id=>exerciseLibraryMuscleGroupLabel(id)),
     ...(item.equipment||[]).map(id=>exerciseLibraryTaxLabel('equipment',id)),
     exerciseLibraryTaxLabel('movementPatterns',item.movementPattern),
     exerciseLibraryTaxLabel('difficulties',item.difficulty),
@@ -288,7 +298,7 @@ window.renderExerciseLibraryBrowser=function(){
   const pattern=document.getElementById('exerciseLibraryPatternFilter')?.value||'';
   const rows=exerciseLibraryIndex.filter(item=>
     (!q||exerciseLibrarySearchText(item).includes(q))&&
-    (!muscle||(item.primaryMuscles||[]).includes(muscle))&&
+    (!muscle||exerciseLibraryMusclesForIndex(item).includes(muscle))&&
     (!equipment||(item.equipment||[]).includes(equipment))&&
     (!pattern||item.movementPattern===pattern)
   );

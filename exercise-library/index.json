@@ -29,6 +29,13 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "triceps-brachii",
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
       ]
     },
     {
@@ -56,6 +63,13 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid",
+        "triceps-brachii"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
       ]
     },
     {
@@ -81,6 +95,12 @@
       "goals": [
         "hypertrophy",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
       ]
     },
     {
@@ -108,6 +128,15 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "triceps-brachii",
+        "lateral-deltoid"
+      ],
+      "stabilizers": [
+        "erector-spinae",
+        "serratus-anterior",
+        "upper-trapezius"
       ]
     },
     {
@@ -133,6 +162,13 @@
       "goals": [
         "hypertrophy",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "upper-trapezius",
+        "serratus-anterior"
       ]
     },
     {
@@ -159,6 +195,14 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "biceps-brachii",
+        "brachialis"
+      ],
+      "stabilizers": [
+        "rhomboids",
+        "middle-trapezius"
       ]
     },
     {
@@ -186,6 +230,14 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "middle-trapezius",
+        "biceps-brachii",
+        "brachialis"
+      ],
+      "stabilizers": [
+        "erector-spinae"
       ]
     },
     {
@@ -213,6 +265,14 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "rhomboids",
+        "middle-trapezius",
+        "biceps-brachii"
+      ],
+      "stabilizers": [
+        "erector-spinae"
       ]
     },
     {
@@ -239,7 +299,11 @@
         "hypertrophy",
         "strength",
         "technique"
-      ]
+      ],
+      "secondaryMuscles": [
+        "brachialis"
+      ],
+      "stabilizers": []
     },
     {
       "id": "incline-dumbbell-curl",
@@ -265,7 +329,11 @@
       "goals": [
         "hypertrophy",
         "technique"
-      ]
+      ],
+      "secondaryMuscles": [
+        "brachialis"
+      ],
+      "stabilizers": []
     },
     {
       "id": "triceps-cable-pushdown",
@@ -290,7 +358,9 @@
       "goals": [
         "hypertrophy",
         "technique"
-      ]
+      ],
+      "secondaryMuscles": [],
+      "stabilizers": []
     },
     {
       "id": "parallel-bar-dip",
@@ -318,6 +388,12 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
       ]
     },
     {
@@ -346,6 +422,12 @@
         "hypertrophy",
         "strength",
         "technique"
+      ],
+      "secondaryMuscles": [
+        "hamstrings"
+      ],
+      "stabilizers": [
+        "erector-spinae"
       ]
     },
     {
@@ -372,7 +454,12 @@
         "hypertrophy",
         "strength",
         "technique"
-      ]
+      ],
+      "secondaryMuscles": [
+        "gluteus-maximus",
+        "hamstrings"
+      ],
+      "stabilizers": []
     },
     {
       "id": "lying-leg-curl",
@@ -397,7 +484,11 @@
       "goals": [
         "hypertrophy",
         "technique"
-      ]
+      ],
+      "secondaryMuscles": [
+        "gastrocnemius"
+      ],
+      "stabilizers": []
     }
   ]
 }

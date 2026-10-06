@@ -49,6 +49,8 @@ for (const file of files) {
   if(indexItem.contentStatus!==ex.contentStatus) fail(file + ': index contentStatus does not match.');
   if(indexItem.mediaStatus!==ex.media?.status) fail(file + ': index mediaStatus does not match.');
   if(JSON.stringify(indexItem.primaryMuscles||[])!==JSON.stringify(ex.taxonomy?.primaryMuscles||[])) fail(file + ': index primary muscles do not match.');
+  if(JSON.stringify(indexItem.secondaryMuscles||[])!==JSON.stringify(ex.taxonomy?.secondaryMuscles||[])) fail(file + ': index secondary muscles do not match.');
+  if(JSON.stringify(indexItem.stabilizers||[])!==JSON.stringify(ex.taxonomy?.stabilizers||[])) fail(file + ': index stabilizers do not match.');
   if(indexItem.movementPattern!==ex.taxonomy?.movementPattern) fail(file + ': index movement pattern does not match.');
   if(JSON.stringify(indexItem.equipment||[])!==JSON.stringify(ex.taxonomy?.equipment||[])) fail(file + ': index equipment does not match.');
   if(indexItem.difficulty!==ex.taxonomy?.difficulty) fail(file + ': index difficulty does not match.');
