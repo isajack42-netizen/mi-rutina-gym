@@ -1,0 +1,494 @@
+{
+  "version": 1,
+  "locale": "es-MX",
+  "exercises": [
+    {
+      "id": "bench-press-barbell",
+      "name": "Press banca con barra",
+      "aliases": [
+        "Press banca",
+        "Press plano",
+        "Press de banca",
+        "Bench press",
+        "Barbell bench press"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "pectoralis-major"
+      ],
+      "movementPattern": "horizontal-push",
+      "equipment": [
+        "barbell",
+        "flat-bench",
+        "rack"
+      ],
+      "thumbnail": "assets/exercise-library/bench-press-barbell/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "triceps-brachii",
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
+      ]
+    },
+    {
+      "id": "incline-dumbbell-press",
+      "name": "Press inclinado con mancuernas",
+      "aliases": [
+        "Press inclinado",
+        "Press inclinado mancuernas",
+        "Incline dumbbell press",
+        "Press superior con mancuernas"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "pectoralis-major"
+      ],
+      "movementPattern": "horizontal-push",
+      "equipment": [
+        "dumbbells",
+        "incline-bench"
+      ],
+      "thumbnail": "assets/exercise-library/incline-dumbbell-press/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid",
+        "triceps-brachii"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
+      ]
+    },
+    {
+      "id": "cable-fly",
+      "name": "Aperturas en polea",
+      "aliases": [
+        "Aperturas polea",
+        "Cruce de poleas",
+        "Cable fly",
+        "Cruces en polea"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "pectoralis-major"
+      ],
+      "movementPattern": "shoulder-horizontal-adduction",
+      "equipment": [
+        "cable"
+      ],
+      "thumbnail": "assets/exercise-library/cable-fly/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
+      ]
+    },
+    {
+      "id": "overhead-press-barbell",
+      "name": "Press militar con barra",
+      "aliases": [
+        "Press militar",
+        "Press de hombro con barra",
+        "Overhead press",
+        "Barbell overhead press"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "movementPattern": "vertical-push",
+      "equipment": [
+        "barbell",
+        "rack"
+      ],
+      "thumbnail": "assets/exercise-library/overhead-press-barbell/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "triceps-brachii",
+        "lateral-deltoid"
+      ],
+      "stabilizers": [
+        "erector-spinae",
+        "serratus-anterior",
+        "upper-trapezius"
+      ]
+    },
+    {
+      "id": "lateral-raise-dumbbell",
+      "name": "Elevaciones laterales con mancuernas",
+      "aliases": [
+        "Elevaciones laterales",
+        "Laterales con mancuernas",
+        "Lateral raise",
+        "Dumbbell lateral raise"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "lateral-deltoid"
+      ],
+      "movementPattern": "shoulder-abduction",
+      "equipment": [
+        "dumbbells"
+      ],
+      "thumbnail": "assets/exercise-library/lateral-raise-dumbbell/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "upper-trapezius",
+        "serratus-anterior"
+      ]
+    },
+    {
+      "id": "lat-pulldown",
+      "name": "Jalón al pecho",
+      "aliases": [
+        "Jalón dorsal",
+        "Jalón en polea alta",
+        "Lat pulldown",
+        "Jalón al pecho en máquina"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "latissimus-dorsi"
+      ],
+      "movementPattern": "vertical-pull",
+      "equipment": [
+        "lat-pulldown-machine"
+      ],
+      "thumbnail": "assets/exercise-library/lat-pulldown/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "biceps-brachii",
+        "brachialis"
+      ],
+      "stabilizers": [
+        "rhomboids",
+        "middle-trapezius"
+      ]
+    },
+    {
+      "id": "seated-cable-row",
+      "name": "Remo sentado en polea",
+      "aliases": [
+        "Remo sentado",
+        "Remo en polea baja",
+        "Seated cable row",
+        "Cable row"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "latissimus-dorsi",
+        "rhomboids"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "seated-row-machine"
+      ],
+      "thumbnail": "assets/exercise-library/seated-cable-row/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "middle-trapezius",
+        "biceps-brachii",
+        "brachialis"
+      ],
+      "stabilizers": [
+        "erector-spinae"
+      ]
+    },
+    {
+      "id": "one-arm-dumbbell-row",
+      "name": "Remo unilateral con mancuerna",
+      "aliases": [
+        "Remo unilateral",
+        "Remo con mancuerna a una mano",
+        "One arm dumbbell row",
+        "Dumbbell row"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "latissimus-dorsi"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "dumbbells",
+        "flat-bench"
+      ],
+      "thumbnail": "assets/exercise-library/one-arm-dumbbell-row/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "rhomboids",
+        "middle-trapezius",
+        "biceps-brachii"
+      ],
+      "stabilizers": [
+        "erector-spinae"
+      ]
+    },
+    {
+      "id": "barbell-curl",
+      "name": "Curl de bíceps con barra",
+      "aliases": [
+        "Curl con barra",
+        "Curl bíceps barra",
+        "Barbell curl",
+        "Curl de barra"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "biceps-brachii"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "barbell"
+      ],
+      "thumbnail": "assets/exercise-library/barbell-curl/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "brachialis"
+      ],
+      "stabilizers": []
+    },
+    {
+      "id": "incline-dumbbell-curl",
+      "name": "Curl inclinado con mancuernas",
+      "aliases": [
+        "Curl inclinado",
+        "Curl inclinado mancuernas",
+        "Incline dumbbell curl",
+        "Curl bíceps inclinado"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "biceps-brachii"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "dumbbells",
+        "incline-bench"
+      ],
+      "thumbnail": "assets/exercise-library/incline-dumbbell-curl/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "brachialis"
+      ],
+      "stabilizers": []
+    },
+    {
+      "id": "triceps-cable-pushdown",
+      "name": "Extensión de tríceps en polea",
+      "aliases": [
+        "Pushdown de tríceps",
+        "Jalón de tríceps",
+        "Triceps pushdown",
+        "Extensión de tríceps polea"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "triceps-brachii"
+      ],
+      "movementPattern": "elbow-extension",
+      "equipment": [
+        "cable"
+      ],
+      "thumbnail": "assets/exercise-library/triceps-cable-pushdown/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ],
+      "secondaryMuscles": [],
+      "stabilizers": []
+    },
+    {
+      "id": "parallel-bar-dip",
+      "name": "Fondos en paralelas",
+      "aliases": [
+        "Fondos",
+        "Dips",
+        "Parallel bar dips",
+        "Fondos pecho tríceps"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "triceps-brachii",
+        "pectoralis-major"
+      ],
+      "movementPattern": "vertical-push",
+      "equipment": [
+        "dip-bars",
+        "bodyweight"
+      ],
+      "thumbnail": "assets/exercise-library/parallel-bar-dip/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "anterior-deltoid"
+      ],
+      "stabilizers": [
+        "serratus-anterior"
+      ]
+    },
+    {
+      "id": "back-squat-barbell",
+      "name": "Sentadilla con barra",
+      "aliases": [
+        "Sentadilla",
+        "Back squat",
+        "Barbell back squat",
+        "Sentadilla trasera"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "quadriceps",
+        "gluteus-maximus"
+      ],
+      "movementPattern": "squat",
+      "equipment": [
+        "barbell",
+        "rack"
+      ],
+      "thumbnail": "assets/exercise-library/back-squat-barbell/thumbnail.svg",
+      "difficulty": "intermediate",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "hamstrings"
+      ],
+      "stabilizers": [
+        "erector-spinae"
+      ]
+    },
+    {
+      "id": "leg-press",
+      "name": "Prensa de pierna",
+      "aliases": [
+        "Prensa",
+        "Leg press",
+        "Prensa inclinada",
+        "Prensa de piernas"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "quadriceps"
+      ],
+      "movementPattern": "squat",
+      "equipment": [
+        "leg-press-machine"
+      ],
+      "thumbnail": "assets/exercise-library/leg-press/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "strength",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "gluteus-maximus",
+        "hamstrings"
+      ],
+      "stabilizers": []
+    },
+    {
+      "id": "lying-leg-curl",
+      "name": "Curl femoral tumbado",
+      "aliases": [
+        "Curl femoral",
+        "Leg curl tumbado",
+        "Lying leg curl",
+        "Curl de isquiotibiales"
+      ],
+      "contentStatus": "reviewed",
+      "mediaStatus": "ready",
+      "primaryMuscles": [
+        "hamstrings"
+      ],
+      "movementPattern": "knee-flexion",
+      "equipment": [
+        "lying-leg-curl-machine"
+      ],
+      "thumbnail": "assets/exercise-library/lying-leg-curl/thumbnail.svg",
+      "difficulty": "beginner",
+      "goals": [
+        "hypertrophy",
+        "technique"
+      ],
+      "secondaryMuscles": [
+        "gastrocnemius"
+      ],
+      "stabilizers": []
+    }
+  ]
+}

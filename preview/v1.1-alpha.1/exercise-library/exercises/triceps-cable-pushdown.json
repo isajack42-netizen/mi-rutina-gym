@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "id": "triceps-cable-pushdown",
+  "name": "Extensión de tríceps en polea",
+  "aliases": [
+    "Pushdown de tríceps",
+    "Jalón de tríceps",
+    "Triceps pushdown",
+    "Extensión de tríceps polea"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "triceps-brachii"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [],
+    "movementPattern": "elbow-extension",
+    "equipment": [
+      "cable"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "technique"
+    ]
+  },
+  "summary": "Extensión de codo en polea alta enfocada en el tríceps. Se ejecuta manteniendo los brazos cerca del torso mientras los antebrazos se desplazan hacia abajo hasta extender los codos con control.",
+  "benefits": [
+    "Aísla el tríceps con una trayectoria simple de aprender.",
+    "La polea mantiene tensión durante gran parte del recorrido.",
+    "Permite ajustar la carga con incrementos pequeños.",
+    "Se combina bien con presses y fondos dentro de sesiones push."
+  ],
+  "setup": [
+    "Colócate frente a la polea alta con una base estable.",
+    "Sujeta el accesorio con muñecas cómodas.",
+    "Mantén los codos cerca del torso.",
+    "Inclina ligeramente el torso si lo necesitas, sin balancearte."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Fija los codos",
+      "instruction": "Coloca los brazos cerca del torso y crea tensión antes de iniciar.",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Extiende abajo",
+      "instruction": "Lleva el agarre hacia abajo moviendo principalmente el antebrazo.",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Termina controlado",
+      "instruction": "Extiende los codos sin empujar los hombros hacia delante.",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Pausa breve",
+      "instruction": "Mantén tensión abajo sin bloquear con violencia.",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Regresa lento",
+      "instruction": "Flexiona los codos hasta recuperar el inicio sin dejar subir el peso de golpe.",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala durante el regreso del agarre.",
+    "concentric": "Exhala mientras extiendes los codos."
+  },
+  "keyCues": [
+    "Codos quietos.",
+    "Hombros relajados.",
+    "Sin balanceo.",
+    "Muñecas estables.",
+    "Controla el regreso."
+  ],
+  "commonMistakes": [
+    {
+      "id": "elbows-drift",
+      "title": "Mover los codos",
+      "description": "Llevar los codos hacia delante y atrás transforma el gesto y reduce el aislamiento.",
+      "correction": "Mantén los brazos cerca del torso durante toda la serie.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/mistake-elbows-drift.svg"
+    },
+    {
+      "id": "torso-swing",
+      "title": "Balancear el torso",
+      "description": "Usar el cuerpo para bajar el peso permite cargas excesivas.",
+      "correction": "Reduce la carga y mantén la base estable.",
+      "severity": "high",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/mistake-torso-swing.svg"
+    },
+    {
+      "id": "wrist-collapse",
+      "title": "Doblar las muñecas",
+      "description": "Una posición inestable de muñeca reduce control y comodidad.",
+      "correction": "Sujeta el accesorio con muñecas más neutras.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/triceps-cable-pushdown/mistake-wrist-collapse.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No uses una carga que obligue a balancear el torso.",
+    "Ajusta el accesorio si aparece molestia en muñeca o codo.",
+    "Evita bloquear de forma agresiva los codos al final."
+  ],
+  "variants": [],
+  "substitutions": [
+    {
+      "exerciseId": "parallel-bar-dip",
+      "note": "Opción de peso corporal cuando no hay polea disponible."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "bench-press-barbell",
+      "note": "El tríceps participa de forma secundaria en el press banca."
+    },
+    {
+      "exerciseId": "overhead-press-barbell",
+      "note": "Comparte una demanda importante de extensión de codo."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/triceps-cable-pushdown/thumbnail.svg",
+    "hero": "assets/exercise-library/triceps-cable-pushdown/hero.svg",
+    "muscleMap": "assets/exercise-library/triceps-cable-pushdown/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

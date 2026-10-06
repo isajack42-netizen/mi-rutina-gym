@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "id": "bench-press-barbell",
+  "name": "Press banca con barra",
+  "aliases": [
+    "Press banca",
+    "Press plano",
+    "Press de banca",
+    "Bench press",
+    "Barbell bench press"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "pectoralis-major"
+    ],
+    "secondaryMuscles": [
+      "triceps-brachii",
+      "anterior-deltoid"
+    ],
+    "stabilizers": [
+      "serratus-anterior"
+    ],
+    "movementPattern": "horizontal-push",
+    "equipment": [
+      "barbell",
+      "flat-bench",
+      "rack"
+    ],
+    "difficulty": "intermediate",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Movimiento compuesto de empuje horizontal usado para desarrollar principalmente el pectoral mayor, con participación importante del tríceps y del deltoides anterior. Es una base útil tanto para hipertrofia como para fuerza cuando se ejecuta con control y una colocación estable.",
+  "benefits": [
+    "Permite aplicar una carga progresiva alta al patrón de empuje horizontal.",
+    "Desarrolla pectoral, tríceps y deltoides anterior dentro de un solo movimiento.",
+    "Es fácil de medir y progresar mediante repeticiones, carga y RIR.",
+    "Sirve como referencia de fuerza y como ejercicio principal en sesiones de torso o push."
+  ],
+  "setup": [
+    "Coloca los ojos aproximadamente debajo de la barra y apoya cabeza, espalda alta y glúteos sobre el banco.",
+    "Planta ambos pies con firmeza y busca una base estable antes de sacar la barra.",
+    "Retrae y deprime ligeramente las escápulas para crear una plataforma estable con la espalda alta.",
+    "Usa un agarre que permita mantener las muñecas sobre los antebrazos y los codos en una trayectoria cómoda."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Crea una base estable",
+      "instruction": "Apoya los pies con firmeza, fija la espalda alta contra el banco y mantén los glúteos en contacto con la superficie.",
+      "asset": "assets/exercise-library/bench-press-barbell/step-01-setup.svg"
+    },
+    {
+      "step": 2,
+      "title": "Toma y saca la barra",
+      "instruction": "Sujeta la barra de forma simétrica, extiende los brazos para sacarla del rack y llévala sobre la línea de los hombros sin perder la posición escapular.",
+      "asset": "assets/exercise-library/bench-press-barbell/step-02-unrack.svg"
+    },
+    {
+      "step": 3,
+      "title": "Desciende con control",
+      "instruction": "Baja la barra hacia la zona media-baja del pecho manteniendo los antebrazos aproximadamente verticales y una trayectoria controlada.",
+      "asset": "assets/exercise-library/bench-press-barbell/step-03-descent.svg"
+    },
+    {
+      "step": 4,
+      "title": "Mantén tensión abajo",
+      "instruction": "Evita rebotar la barra. Conserva pies, espalda alta y agarre estables mientras alcanzas una profundidad cómoda y controlable.",
+      "asset": "assets/exercise-library/bench-press-barbell/step-04-bottom.svg"
+    },
+    {
+      "step": 5,
+      "title": "Empuja hacia arriba",
+      "instruction": "Conduce la barra hacia arriba y ligeramente hacia atrás hasta regresar sobre los hombros, extendiendo los codos sin perder el control.",
+      "asset": "assets/exercise-library/bench-press-barbell/step-05-press.svg"
+    },
+    {
+      "step": 6,
+      "title": "Repite sin desmontar la postura",
+      "instruction": "Mantén la misma base, respiración y trayectoria durante la serie; evita recolocarte entre repeticiones salvo que sea necesario por seguridad.",
+      "asset": "assets/exercise-library/bench-press-barbell/step-06-finish.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Toma aire antes o durante el inicio del descenso y crea tensión abdominal suficiente para mantener el torso estable.",
+    "concentric": "Expulsa el aire de forma controlada durante o después de superar la parte más difícil del empuje, sin perder estabilidad."
+  },
+  "keyCues": [
+    "Pies firmes y espalda alta estable.",
+    "Muñecas alineadas con los antebrazos.",
+    "Desciende la barra con control, no la dejes caer.",
+    "Mantén una trayectoria repetible hacia la zona media-baja del pecho.",
+    "Empuja el banco con la espalda alta y conserva los glúteos apoyados.",
+    "Termina cada repetición bajo control."
+  ],
+  "commonMistakes": [
+    {
+      "id": "excessive-elbow-flare",
+      "title": "Abrir demasiado los codos",
+      "description": "Los codos se separan excesivamente del torso y la barra pierde una trayectoria cómoda y estable.",
+      "correction": "Ajusta el agarre y busca una posición en la que antebrazo y muñeca queden alineados, con los codos ligeramente por debajo de la línea de hombros.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-excessive-elbow-flare.svg"
+    },
+    {
+      "id": "touch-too-high",
+      "title": "Bajar la barra demasiado arriba",
+      "description": "La barra toca cerca del cuello o muy arriba del pecho, obligando a una posición menos eficiente del hombro.",
+      "correction": "Dirige el descenso hacia la zona media-baja del pecho y conserva una trayectoria consistente.",
+      "severity": "high",
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-touch-too-high.svg"
+    },
+    {
+      "id": "lose-foot-pressure",
+      "title": "Perder el apoyo de los pies",
+      "description": "Los pies se mueven o dejan de producir una base estable durante la repetición.",
+      "correction": "Coloca los pies antes de sacar la barra y mantén presión continua contra el suelo durante toda la serie.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-lose-foot-pressure.svg"
+    },
+    {
+      "id": "bounce-bar",
+      "title": "Rebotar la barra",
+      "description": "El descenso termina con un rebote sobre el torso para acelerar el inicio del empuje.",
+      "correction": "Reduce la carga si es necesario y controla la parte final del descenso manteniendo tensión antes de empujar.",
+      "severity": "high",
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-bounce-bar.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Usa seguros o spotter cuando entrenes cerca del fallo con cargas que no puedas controlar por ti mismo.",
+    "Detén la serie si aparece dolor agudo o una pérdida de control que comprometa la posición.",
+    "La amplitud y el agarre deben adaptarse a una ejecución cómoda y controlable; no fuerces una posición dolorosa."
+  ],
+  "variants": [
+    {
+      "exerciseId": "incline-dumbbell-press",
+      "note": "Aumenta el énfasis relativo en la porción clavicular y permite movimiento independiente de cada brazo."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "parallel-bar-dip",
+      "note": "Otra opción de empuje para pecho y tríceps cuando la técnica y tolerancia del usuario lo permiten."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "cable-fly",
+      "note": "Movimiento de aislamiento útil para complementar el trabajo de pectoral."
+    },
+    {
+      "exerciseId": "overhead-press-barbell",
+      "note": "Empuje vertical relacionado que desplaza el énfasis hacia hombros y tríceps."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/bench-press-barbell/thumbnail.svg",
+    "hero": "assets/exercise-library/bench-press-barbell/hero.svg",
+    "muscleMap": "assets/exercise-library/bench-press-barbell/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

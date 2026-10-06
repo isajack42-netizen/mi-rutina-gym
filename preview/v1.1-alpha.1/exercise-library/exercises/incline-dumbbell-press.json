@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "incline-dumbbell-press",
+  "name": "Press inclinado con mancuernas",
+  "aliases": [
+    "Press inclinado",
+    "Press inclinado mancuernas",
+    "Incline dumbbell press",
+    "Press superior con mancuernas"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "pectoralis-major"
+    ],
+    "secondaryMuscles": [
+      "anterior-deltoid",
+      "triceps-brachii"
+    ],
+    "stabilizers": [
+      "serratus-anterior"
+    ],
+    "movementPattern": "horizontal-push",
+    "equipment": [
+      "dumbbells",
+      "incline-bench"
+    ],
+    "difficulty": "intermediate",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Press realizado sobre un banco inclinado con una mancuerna en cada mano. Mantiene el patrón de empuje del press de pecho y aumenta el protagonismo de la porción superior del pectoral y del deltoides anterior, con libertad independiente para cada brazo.",
+  "benefits": [
+    "Permite trabajar cada brazo de forma independiente y detectar asimetrías.",
+    "Aumenta el énfasis relativo en la zona superior del pecho.",
+    "Ofrece un recorrido adaptable gracias a la libertad de las mancuernas.",
+    "Combina bien con un press plano dentro de una rutina de pecho o push."
+  ],
+  "setup": [
+    "Ajusta el banco a una inclinación moderada y estable.",
+    "Apoya pies, glúteos y espalda alta antes de llevar las mancuernas a la posición inicial.",
+    "Coloca las mancuernas a los lados del pecho superior con muñecas estables.",
+    "Mantén las escápulas controladas y evita encoger los hombros."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Crea la base",
+      "instruction": "Fija pies, glúteos y espalda alta contra el banco inclinado antes de iniciar.",
+      "asset": "assets/exercise-library/incline-dumbbell-press/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Coloca las mancuernas",
+      "instruction": "Sitúa ambas mancuernas a los lados del pecho superior con antebrazos casi verticales.",
+      "asset": "assets/exercise-library/incline-dumbbell-press/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Desciende con control",
+      "instruction": "Baja ambas mancuernas de forma simétrica hasta una profundidad cómoda sin perder la posición del hombro.",
+      "asset": "assets/exercise-library/incline-dumbbell-press/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Empuja arriba",
+      "instruction": "Extiende los codos llevando las mancuernas hacia arriba y ligeramente hacia dentro sin golpearlas entre sí.",
+      "asset": "assets/exercise-library/incline-dumbbell-press/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Repite estable",
+      "instruction": "Mantén la misma trayectoria y evita que un brazo se adelante respecto al otro.",
+      "asset": "assets/exercise-library/incline-dumbbell-press/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Toma aire durante el descenso y conserva tensión en el torso.",
+    "concentric": "Expulsa el aire de forma controlada al superar la parte más difícil del empuje."
+  },
+  "keyCues": [
+    "Inclinación moderada, no conviertas el ejercicio en un press casi vertical.",
+    "Muñecas firmes sobre los antebrazos.",
+    "Controla el descenso de ambas mancuernas.",
+    "No choques las mancuernas arriba.",
+    "Mantén los hombros lejos de las orejas."
+  ],
+  "commonMistakes": [
+    {
+      "id": "bench-too-steep",
+      "title": "Banco demasiado vertical",
+      "description": "Una inclinación excesiva desplaza gran parte del trabajo hacia el hombro.",
+      "correction": "Reduce el ángulo hasta que el movimiento siga sintiéndose como un press de pecho.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/incline-dumbbell-press/mistake-bench-too-steep.svg"
+    },
+    {
+      "id": "uneven-press",
+      "title": "Empuje desigual",
+      "description": "Un brazo sube antes o toma una trayectoria distinta al otro.",
+      "correction": "Reduce la carga y sincroniza ambos brazos manteniendo el mismo ritmo.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/incline-dumbbell-press/mistake-uneven-press.svg"
+    },
+    {
+      "id": "dumbbells-collide",
+      "title": "Golpear las mancuernas",
+      "description": "Juntar las mancuernas con fuerza arriba elimina control y puede alterar la posición del hombro.",
+      "correction": "Termina con las mancuernas próximas, sin necesidad de golpearlas.",
+      "severity": "low",
+      "asset": "assets/exercise-library/incline-dumbbell-press/mistake-dumbbells-collide.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Usa una carga que puedas llevar de forma segura a la posición inicial y final.",
+    "No fuerces profundidad si aparece molestia en el hombro.",
+    "Si entrenas muy cerca del fallo, prioriza una forma segura de soltar o recibir las mancuernas."
+  ],
+  "variants": [
+    {
+      "exerciseId": "bench-press-barbell",
+      "note": "La versión plana con barra permite mayor estabilidad y carga total."
+    }
+  ],
+  "substitutions": [
+    {
+      "exerciseId": "cable-fly",
+      "note": "Alternativa más aislada cuando buscas estímulo de pecho con menos demanda de tríceps."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "overhead-press-barbell",
+      "note": "Comparte participación del deltoides anterior y tríceps."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/incline-dumbbell-press/thumbnail.svg",
+    "hero": "assets/exercise-library/incline-dumbbell-press/hero.svg",
+    "muscleMap": "assets/exercise-library/incline-dumbbell-press/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

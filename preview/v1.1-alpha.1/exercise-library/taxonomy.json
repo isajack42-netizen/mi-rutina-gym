@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "muscleGroups": [
+    {
+      "id": "chest",
+      "label": "Pecho"
+    },
+    {
+      "id": "back",
+      "label": "Espalda"
+    },
+    {
+      "id": "shoulders",
+      "label": "Hombros"
+    },
+    {
+      "id": "biceps",
+      "label": "Bíceps"
+    },
+    {
+      "id": "triceps",
+      "label": "Tríceps"
+    },
+    {
+      "id": "quadriceps",
+      "label": "Cuádriceps"
+    },
+    {
+      "id": "hamstrings",
+      "label": "Isquiotibiales"
+    },
+    {
+      "id": "glutes",
+      "label": "Glúteos"
+    },
+    {
+      "id": "calves",
+      "label": "Pantorrillas"
+    },
+    {
+      "id": "core",
+      "label": "Core"
+    }
+  ],
+  "muscles": [
+    {
+      "id": "pectoralis-major",
+      "label": "Pectoral mayor",
+      "group": "chest"
+    },
+    {
+      "id": "triceps-brachii",
+      "label": "Tríceps braquial",
+      "group": "triceps"
+    },
+    {
+      "id": "anterior-deltoid",
+      "label": "Deltoides anterior",
+      "group": "shoulders"
+    },
+    {
+      "id": "lateral-deltoid",
+      "label": "Deltoides lateral",
+      "group": "shoulders"
+    },
+    {
+      "id": "latissimus-dorsi",
+      "label": "Dorsal ancho",
+      "group": "back"
+    },
+    {
+      "id": "rhomboids",
+      "label": "Romboides",
+      "group": "back"
+    },
+    {
+      "id": "middle-trapezius",
+      "label": "Trapecio medio",
+      "group": "back"
+    },
+    {
+      "id": "upper-trapezius",
+      "label": "Trapecio superior",
+      "group": "back"
+    },
+    {
+      "id": "biceps-brachii",
+      "label": "Bíceps braquial",
+      "group": "biceps"
+    },
+    {
+      "id": "brachialis",
+      "label": "Braquial",
+      "group": "biceps"
+    },
+    {
+      "id": "quadriceps",
+      "label": "Cuádriceps",
+      "group": "quadriceps"
+    },
+    {
+      "id": "hamstrings",
+      "label": "Isquiotibiales",
+      "group": "hamstrings"
+    },
+    {
+      "id": "gluteus-maximus",
+      "label": "Glúteo mayor",
+      "group": "glutes"
+    },
+    {
+      "id": "gastrocnemius",
+      "label": "Gastrocnemio",
+      "group": "calves"
+    },
+    {
+      "id": "soleus",
+      "label": "Sóleo",
+      "group": "calves"
+    },
+    {
+      "id": "serratus-anterior",
+      "label": "Serrato anterior",
+      "group": "chest"
+    },
+    {
+      "id": "erector-spinae",
+      "label": "Erectores espinales",
+      "group": "core"
+    }
+  ],
+  "movementPatterns": [
+    {
+      "id": "horizontal-push",
+      "label": "Empuje horizontal"
+    },
+    {
+      "id": "vertical-push",
+      "label": "Empuje vertical"
+    },
+    {
+      "id": "horizontal-pull",
+      "label": "Tirón horizontal"
+    },
+    {
+      "id": "vertical-pull",
+      "label": "Tirón vertical"
+    },
+    {
+      "id": "elbow-flexion",
+      "label": "Flexión de codo"
+    },
+    {
+      "id": "elbow-extension",
+      "label": "Extensión de codo"
+    },
+    {
+      "id": "squat",
+      "label": "Patrón de sentadilla"
+    },
+    {
+      "id": "knee-flexion",
+      "label": "Flexión de rodilla"
+    },
+    {
+      "id": "shoulder-abduction",
+      "label": "Abducción de hombro"
+    },
+    {
+      "id": "shoulder-horizontal-adduction",
+      "label": "Aducción horizontal de hombro"
+    }
+  ],
+  "equipment": [
+    {
+      "id": "barbell",
+      "label": "Barra"
+    },
+    {
+      "id": "dumbbells",
+      "label": "Mancuernas"
+    },
+    {
+      "id": "cable",
+      "label": "Polea"
+    },
+    {
+      "id": "flat-bench",
+      "label": "Banco plano"
+    },
+    {
+      "id": "incline-bench",
+      "label": "Banco inclinado"
+    },
+    {
+      "id": "rack",
+      "label": "Rack"
+    },
+    {
+      "id": "lat-pulldown-machine",
+      "label": "Máquina de jalón"
+    },
+    {
+      "id": "seated-row-machine",
+      "label": "Remo sentado"
+    },
+    {
+      "id": "dip-bars",
+      "label": "Paralelas"
+    },
+    {
+      "id": "bodyweight",
+      "label": "Peso corporal"
+    },
+    {
+      "id": "leg-press-machine",
+      "label": "Prensa de pierna"
+    },
+    {
+      "id": "lying-leg-curl-machine",
+      "label": "Curl femoral tumbado"
+    }
+  ],
+  "difficulties": [
+    {
+      "id": "beginner",
+      "label": "Principiante"
+    },
+    {
+      "id": "intermediate",
+      "label": "Intermedio"
+    },
+    {
+      "id": "advanced",
+      "label": "Avanzado"
+    }
+  ],
+  "goals": [
+    {
+      "id": "hypertrophy",
+      "label": "Hipertrofia"
+    },
+    {
+      "id": "strength",
+      "label": "Fuerza"
+    },
+    {
+      "id": "technique",
+      "label": "Técnica"
+    }
+  ]
+}
