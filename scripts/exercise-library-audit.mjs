@@ -129,8 +129,12 @@ if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-l
 for(const ex of exercises){
   if(ex.media?.status!=='ready') continue;
   const required=['exercise-library/exercises/'+ex.id+'.json',ex.media.thumbnail,ex.media.hero,ex.media.muscleMap,...ex.executionSteps.map(x=>x.asset),...ex.commonMistakes.map(x=>x.asset)];
-  for(const p of required) if(!sw.includes(p)) fail(ex.id+': ready resource missing from offline shell: '+p);
+  for(const p of required) if(!sw.includes(p)) fail(ex.id+': ready resource missing from offline library manifest: '+p);
 }
+const swShellStart=sw.indexOf('const SHELL=['), swShellEnd=sw.indexOf('];',swShellStart);
+const swShellBlock=sw.slice(swShellStart,swShellEnd);
+if(swShellBlock.includes('assets/exercise-library/')||swShellBlock.includes('exercise-library/exercises/')) fail('bulk Exercise Library resources must not block core app-shell installation.');
+if(!sw.includes('const LIBRARY_OFFLINE=')||!sw.includes("d.type==='library-warmup'")||!ui.includes('exerciseLibraryWarmOffline')) fail('non-critical Exercise Library offline warmup is not wired.');
 if(!routines.includes('exerciseLibraryButtonHtml')) fail('routine integration is missing.');
 if(!training.includes('exerciseLibraryButtonHtml')) fail('training integration is missing.');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');

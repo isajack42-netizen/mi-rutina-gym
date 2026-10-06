@@ -310,4 +310,10 @@ window.renderExerciseLibraryBrowser=function(){
     </button>`;
   }).join('');
 };
-exerciseLibraryReady.then(ok=>{if(ok)window.renderExerciseLibraryBrowser();});
+function exerciseLibraryWarmOffline(){
+  if(!('serviceWorker' in navigator))return;
+  const send=()=>navigator.serviceWorker.ready.then(reg=>reg.active?.postMessage({type:'library-warmup'})).catch(()=>{});
+  if('requestIdleCallback' in window)requestIdleCallback(send,{timeout:3500});
+  else setTimeout(send,1200);
+}
+exerciseLibraryReady.then(ok=>{if(ok){window.renderExerciseLibraryBrowser();exerciseLibraryWarmOffline();}});
