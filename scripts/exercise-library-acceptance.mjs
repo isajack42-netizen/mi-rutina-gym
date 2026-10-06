@@ -147,12 +147,11 @@ for(const ex of exercises){
 if(assetCount<160) fail('Expected a complete visual pack; only '+assetCount+' SVG refs found.');
 if(assetBytes>400*1024) fail('First Pack visual assets exceed 400 KiB baseline budget: '+assetBytes+' bytes.');
 
-const requiredPalette=['#e94f48','#f47a4a'];
 for(const ex of exercises){
   const hero=read(ex.media.hero).toLowerCase();
-  for(const color of requiredPalette){
-    if(!hero.includes(color)) fail(ex.id+': hero is missing standard palette color '+color+'.');
-  }
+  const muscleMap=read(ex.media.muscleMap).toLowerCase();
+  if(!hero.includes('#e94f48')) fail(ex.id+': hero is missing the standard primary coral #e94f48.');
+  if((ex.taxonomy?.secondaryMuscles||[]).length && !(hero+muscleMap).includes('#f47a4a')) fail(ex.id+': visual pack is missing the standard secondary orange #f47a4a.');
 }
 
 if(!version.includes("1.1.0-alpha.1")||pkg.version!=='1.1.0-alpha.1'||lock.version!=='1.1.0-alpha.1'||lock.packages?.['']?.version!=='1.1.0-alpha.1') fail('Development version/cache isolation is inconsistent.');
