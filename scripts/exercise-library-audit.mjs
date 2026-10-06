@@ -172,7 +172,7 @@ for(const id of FIRST_PACK_IDS){
 const versionSource=fs.readFileSync(path.join(root,'js/version.js'),'utf8');
 const pkg=readJson(path.join(root,'package.json'));
 const lock=readJson(path.join(root,'package-lock.json'));
-if(!versionSource.includes("1.1.0-alpha.1")||pkg.version!=='1.1.0-alpha.1'||lock.version!=='1.1.0-alpha.1'||lock.packages?.['']?.version!=='1.1.0-alpha.1') fail('v1.1 development version is not isolated consistently.');
+if(!versionSource.includes("1.1.0-alpha.2")||pkg.version!=='1.1.0-alpha.2'||lock.version!=='1.1.0-alpha.2'||lock.packages?.['']?.version!=='1.1.0-alpha.2') fail('v1.1 development version is not isolated consistently.');
 for(const id of FIRST_PACK_IDS){
   const ex=exercises.find(x=>x.id===id);
   const idx=index.exercises.find(x=>x.id===id);

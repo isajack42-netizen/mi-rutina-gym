@@ -242,7 +242,7 @@ First Pack completado con 15/15 fichas canónicas y paquetes visuales propios. T
 
 ## Development version
 
-La rama de Exercise Library usa `1.1.0-alpha.1` para aislar Service Worker, cachés y assets de la versión estable `1.0.0-rc.1` que permanece en `main`. Este identificador no implica promoción a release.
+La rama de Exercise Library usa `1.1.0-alpha.2` para aislar Service Worker, cachés y assets de la versión estable `1.0.0-rc.1` que permanece en `main`. Este identificador no implica promoción a release.
 
 
 ## First Pack Audit — automated pass
@@ -268,3 +268,8 @@ El pack conserva 15/15 fichas base y puede crecer sin modificar el guardrail. La
 - revisión visual comparativa de los 15 ejercicios;
 - verificar que aliases coincidan con nombres usados realmente en las rutinas personales;
 - revisión biomecánica editorial adicional si el catálogo se expande mucho más allá del uso personal.
+
+
+### Alpha 2 acceptance reset
+
+`1.1.0-alpha.2` resets physical acceptance after the modal-composition fixes and the complete Anatomical v2 artwork rebuild. The previous alpha.1 visual acceptance is no longer representative.

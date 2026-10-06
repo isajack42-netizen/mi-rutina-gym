@@ -1,6 +1,6 @@
 # Exercise Library
 
-Esta carpeta contiene la base editorial y de datos de **LiftEngine v1.1 — Exercise Library** (`1.1.0-alpha.1` en la rama de desarrollo).
+Esta carpeta contiene la base editorial y de datos de **LiftEngine v1.1 — Exercise Library** (`1.1.0-alpha.2` en la rama de desarrollo).
 
 ## Estructura
 

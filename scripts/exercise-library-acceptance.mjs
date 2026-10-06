@@ -156,6 +156,6 @@ for(const ex of exercises){
   if((ex.taxonomy?.secondaryMuscles||[]).length && !(hero+muscleMap).includes('#f47a4a')) fail(ex.id+': visual pack is missing the standard secondary orange #f47a4a.');
 }
 
-if(!version.includes("1.1.0-alpha.1")||pkg.version!=='1.1.0-alpha.1'||lock.version!=='1.1.0-alpha.1'||lock.packages?.['']?.version!=='1.1.0-alpha.1') fail('Development version/cache isolation is inconsistent.');
+if(!version.includes("1.1.0-alpha.2")||pkg.version!=='1.1.0-alpha.2'||lock.version!=='1.1.0-alpha.2'||lock.packages?.['']?.version!=='1.1.0-alpha.2') fail('Development version/cache isolation is inconsistent.');
 
 console.log('LiftEngine Exercise Library acceptance OK · 15 exercises · '+assetCount+' Anatomical v2 SVG refs · '+Math.round(assetBytes/1024)+' KiB visuals · search/filter/offline/modal/navigation accepted');
