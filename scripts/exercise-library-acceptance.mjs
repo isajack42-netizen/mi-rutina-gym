@@ -103,7 +103,7 @@ hasAll(barbell,['bench-press-barbell','overhead-press-barbell','barbell-curl','b
 const squat=filter({pattern:'squat'});
 hasAll(squat,['back-squat-barbell','leg-press'],'movement-pattern filter');
 
-const primaryTabs=[...html.matchAll(/class="tab-btn"[^>]+id="tab-([^"]+)"/g)].map(m=>m[1]);
+const primaryTabs=[...html.matchAll(/<button\b[^>]*class="[^"]*\btab-btn\b[^"]*"[^>]*id="tab-([^"]+)"/g)].map(m=>m[1]);
 if(primaryTabs.length!==6) fail('Primary navigation must expose exactly six tabs in this acceptance round; got '+primaryTabs.length+'.');
 if(!primaryTabs.includes('ejercicios')) fail('Exercise Library tab missing from primary navigation.');
 if(!css.includes('grid-template-columns:repeat(6,minmax(0,1fr))')) fail('Desktop six-column nav CSS missing.');
