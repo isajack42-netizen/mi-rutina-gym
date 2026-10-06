@@ -125,7 +125,7 @@ const training=fs.readFileSync(path.join(root,'js/training.js'),'utf8');
 const ui=fs.readFileSync(path.join(root,'js/exercise-library.js'),'utf8');
 
 if(!app.includes("'exercise-library'")) fail('exercise-library.js is not in runtime loader.');
-if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-library/taxonomy.json')")||!sw.includes('exercise-library/planned-exercises.json')) fail('library metadata is not precached.');
+if(!sw.includes('const LIBRARY_OFFLINE=')||!sw.includes('exercise-library/index.json')||!sw.includes('exercise-library/taxonomy.json')||!sw.includes('exercise-library/planned-exercises.json')) fail('library metadata is missing from the offline warmup manifest.');
 for(const ex of exercises){
   if(ex.media?.status!=='ready') continue;
   const required=['exercise-library/exercises/'+ex.id+'.json',ex.media.thumbnail,ex.media.hero,ex.media.muscleMap,...ex.executionSteps.map(x=>x.asset),...ex.commonMistakes.map(x=>x.asset)];
