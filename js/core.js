@@ -220,11 +220,22 @@ function appDialog({title='LiftEngine',message='',confirmText='Aceptar',cancelTe
   });
 }
 function initAppDialogDismiss(){
-  const back=document.getElementById('dialogBackdrop');
+  const back=document.getElementById('dialogBackdrop'),box=document.getElementById('appDialog');
   if(!back||back.dataset.dismissBound==='1') return;
   back.dataset.dismissBound='1';
   back.addEventListener('pointerdown',ev=>{ if(ev.target===back) closeAppDialog(false); });
-  document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&back.classList.contains('show')){ev.preventDefault();closeAppDialog(false);} });
+  document.addEventListener('keydown',ev=>{
+    if(!back.classList.contains('show'))return;
+    if(ev.key==='Escape'){ev.preventDefault();closeAppDialog(false);return;}
+    if(ev.key==='Tab'&&box){
+      const items=[...box.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+        .filter(el=>!el.hidden&&el.getClientRects().length);
+      if(!items.length){ev.preventDefault();box.tabIndex=-1;box.focus();return;}
+      const first=items[0],last=items[items.length-1];
+      if(ev.shiftKey&&document.activeElement===first){ev.preventDefault();last.focus();}
+      else if(!ev.shiftKey&&document.activeElement===last){ev.preventDefault();first.focus();}
+    }
+  });
 }
 function appAlert(message,title='Aviso'){ return appDialog({title,message,confirmText:'Entendido'}); }
 function appConfirm(message,{title='Confirmar',confirmText='Continuar',cancelText='Cancelar',danger=false}={}){ return appDialog({title,message,confirmText,cancelText,danger}); }
@@ -776,7 +787,7 @@ window.cloudModeLabel=cloudModeLabel;
 async function cloudV2PermissionsAvailable(){
   if(!fb||!DOC_ID)return false;
   const ref=fb.doc(fb.db,'userData',DOC_ID,'meta','permissionProbe');
-  try{ await withTimeout(fb.setDoc(ref,{probe:true,at:Date.now()}),6000); await withTimeout(fb.deleteDoc(ref),6000); return true; }
+  try{ await fb.setDoc(ref,{probe:true,at:Date.now()}); await fb.deleteDoc(ref); return true; }
   catch(e){ if(e?.code==='permission-denied') lastSyncError='Las reglas de Firestore aún no permiten la nube v2. Publica firestore.rules de esta versión.'; return false; }
 }
 function localCloudMigrationBackup(){
@@ -794,10 +805,10 @@ async function migrateLocalToCloudV2(){
         batch.set(fb.doc(fb.db,'userData',DOC_ID,'days',date),{date,...content,revision,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp()});
         nextDays[date]={revision,hash:fingerprint(content)};
       }
-      await withTimeout(batch.commit(),15000);
+      await batch.commit();
     }
     const settings=buildSettingsContent();
-    await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp(),...settings}),10000);
+    await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp(),...settings});
     cloudMode='v2'; cloudMeta={days:nextDays,settings:{revision:1,hash:fingerprint(settings)},pull:{incrementalReady:false,cursor:null,lastFullAt:0}};
     cloudDirtyDays.clear(); cloudSettingsDirty=0; persistCloudDirtyMarkers(); saveCloudMeta();
     try{localStorage.removeItem(PENDING_KEY);}catch(e){} updateSyncStatus('Sincronizado','ok');
@@ -807,7 +818,7 @@ async function migrateLocalToCloudV2(){
 
 async function saveCloudLegacy(){
   const stamp=updatedAt, cloudData=compactDataForCloud(data);
-  await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,...buildSettingsSnapshot(),updatedAt:stamp }),10000);
+  await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,...buildSettingsSnapshot(),updatedAt:stamp });
 }
 async function applyLegacyCloud(cloud,stamp){
   const item=await prepareRecovery('Datos antes de usar nube heredada',{allDays:true,settings:true,training:true});
