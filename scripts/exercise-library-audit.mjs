@@ -10,6 +10,7 @@ const uniqIds = arr => new Set(arr.map(x => x.id));
 
 const taxonomy = readJson(path.join(lib, 'taxonomy.json'));
 const planned = readJson(path.join(lib, 'planned-exercises.json'));
+const index = readJson(path.join(lib, 'index.json'));
 const exerciseDir = path.join(lib, 'exercises');
 const files = fs.readdirSync(exerciseDir).filter(f => f.endsWith('.json')).sort();
 if (!files.length) fail('No exercise files found.');
@@ -20,8 +21,10 @@ const equipmentIds = uniqIds(taxonomy.equipment);
 const difficultyIds = uniqIds(taxonomy.difficulties);
 const goalIds = uniqIds(taxonomy.goals);
 const plannedIds = uniqIds(planned.exercises);
+const indexIds = uniqIds(index.exercises || []);
 
 if (plannedIds.size !== planned.exercises.length) fail('Duplicate IDs in planned-exercises.json.');
+if (indexIds.size !== (index.exercises || []).length) fail('Duplicate IDs in index.json.');
 
 const ids = new Set();
 const aliasOwner = new Map();
@@ -37,6 +40,10 @@ for (const file of files) {
   if (ids.has(ex.id)) fail(file + ': duplicate exercise id.');
   ids.add(ex.id);
   if (!plannedIds.has(ex.id)) fail(file + ': exercise is not registered in planned-exercises.json.');
+  const indexItem=(index.exercises||[]).find(x=>x.id===ex.id);
+  if(!indexItem) fail(file + ': exercise is missing from index.json.');
+  if(indexItem.name!==ex.name) fail(file + ': index canonical name does not match.');
+  if(JSON.stringify(indexItem.aliases||[])!==JSON.stringify(ex.aliases||[])) fail(file + ': index aliases do not match.');
 
   if (!ex.name || !Array.isArray(ex.aliases) || ex.locale !== 'es-MX') fail(file + ': identity fields incomplete.');
   const localNames = [ex.name, ...ex.aliases].map(norm);
@@ -84,4 +91,17 @@ for (const file of files) {
   }
 }
 
-console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles');
+const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const routines=fs.readFileSync(path.join(root,'js/routines.js'),'utf8');
+const training=fs.readFileSync(path.join(root,'js/training.js'),'utf8');
+const ui=fs.readFileSync(path.join(root,'js/exercise-library.js'),'utf8');
+
+if(!app.includes("'exercise-library'")) fail('exercise-library.js is not in runtime loader.');
+if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-library/exercises/bench-press-barbell.json')")) fail('pilot data is not precached.');
+if(!routines.includes('exerciseLibraryButtonHtml')) fail('routine integration is missing.');
+if(!training.includes('exerciseLibraryButtonHtml')) fail('training integration is missing.');
+for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey']){
+  if(!ui.includes(marker)) fail('pilot UI marker missing: '+marker);
+}
+console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · pilot UI wired');
