@@ -2,7 +2,7 @@
 
 LiftEngine es una PWA estática alojada en GitHub Pages. Usa Firebase Authentication + Firestore para sincronización y IndexedDB como persistencia local principal.
 
-Actualizada en v6.11.0. Desde v6, la arquitectura conserva scripts clásicos por compatibilidad, pero separa contratos de settings, métricas derivadas y orquestación de UI.
+Actualizada en v6.12.0. Desde v6, la arquitectura conserva scripts clásicos por compatibilidad, pero separa contratos de settings, métricas derivadas y orquestación de UI.
 
 ## Orden de carga
 
@@ -199,6 +199,6 @@ Responsabilidad principal por archivo:
 
 ## Pruebas y cierre personal
 
-`npm ci --ignore-scripts` instala únicamente la dependencia de pruebas fake-indexeddb fijada en el lockfile. `npm test` ejecuta validación estática, regresión y 26 escenarios de fiabilidad del código real con almacenamiento y nube controlados. GitHub Actions ejecuta estas puertas y la sintaxis de todos los scripts.
+`npm ci --ignore-scripts` instala únicamente la dependencia de pruebas fake-indexeddb fijada en el lockfile. `npm test` ejecuta validación estática, regresión, 26 escenarios de fiabilidad del código real con almacenamiento/nube controlados y los guardrails de fricción del Modo Entrenamiento. GitHub Actions ejecuta estas puertas y la sintaxis de todos los scripts.
 
 Las pruebas de transporte controlado no equivalen a integración con Firestore real ni a Safari/iPhone. El cierre pendiente y los criterios de v6.12/1.0 están en `ROADMAP-PERSONAL-EDITION.md`.
