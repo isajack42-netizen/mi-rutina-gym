@@ -424,7 +424,7 @@
 <!-- OVERLAY DE ENTRENAMIENTO -->
 <div id="trainOverlay" class="train-overlay">
   <div class="train-top">
-    <button class="icon-btn" onclick="trainExit()" title="Minimizar"><svg class="ic"><use href="#i-x"/></svg></button>
+    <button class="icon-btn" onclick="trainExit()" title="Minimizar" aria-label="Minimizar entrenamiento"><svg class="ic"><use href="#i-x"/></svg></button>
     <div class="train-title">
       <b id="trainTitle">Sesión</b>
       <small id="trainElapsed">00:00</small>
@@ -444,7 +444,7 @@
     </div>
   </div>
   <div class="train-foot">
-    <button class="btn btn-secondary" onclick="trainNav(-1)">&larr; Anterior</button>
+    <button class="btn btn-secondary" id="trainPrev" onclick="trainNav(-1)">&larr; Anterior</button>
     <button class="btn btn-primary" onclick="trainFinish()">Terminar sesión</button>
   </div>
 </div>
