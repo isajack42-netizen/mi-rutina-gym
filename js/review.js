@@ -107,7 +107,7 @@ function reviewRows(startKey,endKey,prEvents){
       const work=(e.sets||[]).filter(setCountsForWork);
       sets+=work.length;
       volume+=sessionVolume(e);
-      work.forEach(set=>{const r=Number(set.rir);if(Number.isFinite(r)){rirSum+=r;rirCount++;}});
+      work.forEach(set=>{if(set.rir===null||set.rir===undefined||set.rir===''||set.rir==='-')return;const r=Number(set.rir);if(Number.isFinite(r)){rirSum+=r;rirCount++;}});
     });
     return {date,exerciseNames,sets,volume,rirSum,rirCount,prs:(prEvents||[]).filter(p=>p.date===date).length};
   }).filter(Boolean);
