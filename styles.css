@@ -2626,3 +2626,9 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
 @media(max-width:720px){
   .intel-personal-memory{display:none}
 }
+
+/* v6.11 · Recovery and durable save feedback */
+.recovery-notice,.local-save-warning{position:fixed;z-index:12000;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));width:max-content;max-width:calc(100vw - 24px);display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card,var(--bg));color:var(--text);box-shadow:0 8px 32px #0005;flex-wrap:wrap}
+.local-save-warning{bottom:auto;top:calc(12px + env(safe-area-inset-top));max-width:600px;width:calc(100vw - 24px);border:2px solid #d97706}
+.local-save-warning span{flex-basis:100%}.recovery-item{padding:16px 0;border-bottom:1px solid var(--line)}.recovery-item>b,.recovery-item>small{display:block;margin-bottom:6px}.recovery-item>small{color:var(--muted)}
+@media(max-width:600px){.recovery-notice{bottom:calc(78px + env(safe-area-inset-bottom))}.recovery-notice .btn{min-height:44px}}

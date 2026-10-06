@@ -137,9 +137,10 @@ function initThemePreferenceListener(){
     else if(typeof mq.addListener==='function')mq.addListener(onChange);
 }
 async function initApp() {
-    if(DOC_ID) setTimeout(()=>{ document.getElementById('loadingOverlay').style.display='none'; },4000);
+
     document.getElementById('routineDate').value=todayStr();
     await load();
+    await loadRecoveryJournal();reliabilityLoaded=true;
     if(migrateNames()) await persistLocal();
     applyTheme();
     const versionLabel=document.getElementById('summaryVersionLabel');
@@ -155,12 +156,13 @@ async function initApp() {
     improveFormAccessibility(document);
     if(localRecoveryDetected) setTimeout(()=>toast('Se detectaron datos locales dañados y se conservó una copia de recuperación en este dispositivo.'),900);
 
+    if(DOC_ID)document.getElementById('loadingOverlay').style.display='none';
     updateSyncStatus('Conectando…','saving');
     if(await connectFirebase()) {
         fb.onAuthStateChanged(fb.auth, async user => {
             if(user) {
                 const prevUid=localStorage.getItem('gymLastUid');
-                if(prevUid && prevUid!==user.uid){ await wipeLocalData(); train=null; DOC_ID=user.uid; localStorage.setItem('gymLastUid',user.uid); await load(); refreshAll(); }
+                if(prevUid && prevUid!==user.uid){ reliabilityLoaded=false;await wipeLocalData(); train=null; DOC_ID=user.uid; localStorage.setItem('gymLastUid',user.uid); await load();await loadRecoveryJournal();reliabilityLoaded=true;refreshAll(); }
                 DOC_ID = user.uid;
                 localStorage.setItem('gymLastUid', user.uid);
                 document.getElementById('authOverlay').classList.add('hidden');
@@ -186,9 +188,9 @@ async function initApp() {
     }
 }
 
-window.addEventListener('online',()=>{ if(!saveInFlight && DOC_ID) syncFromCloudWithRetry(2).then(ok=>{ if(!ok) updateSyncStatus('Guardado local · sin conexión','error'); }); });
+window.addEventListener('online',()=>{ if(appOwnsStorage&&reliabilityLoaded&&!saveInFlight && DOC_ID) syncFromCloudWithRetry(2).then(ok=>{ if(!ok) updateSyncStatus('Guardado local · sin conexión','error'); }); });
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden) return;
+  if(document.hidden||!appOwnsStorage||!reliabilityLoaded) return;
   if(window.timerInt) tickTimer();
   if(DOC_ID && !syncing && !saveInFlight && navigator.onLine){
     const state=document.getElementById('syncStatus')?.dataset.state;
@@ -223,7 +225,7 @@ if(summaryMore){
 const accessibilityObserver=new MutationObserver(()=>improveFormAccessibility(document));
 accessibilityObserver.observe(document.body,{childList:true,subtree:true});
 
-initApp();
+startWithStorageLock(initApp).catch(e=>{appOwnsStorage=false;reliabilityLoaded=false;console.error('No se pudo iniciar de forma segura:',e);document.getElementById('loadingOverlay').style.display='flex';document.getElementById('loadingOverlay').innerHTML='<div style="padding:24px"><b>No se pudo abrir el almacenamiento.</b><p>Cierra las otras ventanas de LiftEngine y vuelve a cargar. No borres los datos del navegador.</p><button class="btn btn-secondary" onclick="reloadApp()">Reintentar</button></div>';});
 
 // Instalable y con modo sin conexión (requiere https o localhost)
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',async()=>{ try{ const reg=await navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}); reg.update().catch(()=>{}); }catch(e){ console.warn('Service Worker no disponible:',e); } });

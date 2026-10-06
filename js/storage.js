@@ -22,7 +22,7 @@
         if(!db.objectStoreNames.contains(SETTINGS_STORE)) db.createObjectStore(SETTINGS_STORE,{keyPath:'id'});
         if(!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE,{keyPath:'key'});
       };
-      req.onsuccess=()=>resolve(req.result);
+      req.onsuccess=()=>{ const db=req.result; db.onversionchange=()=>{db.close();dbPromise=null;}; resolve(db); };
       req.onerror=()=>{dbPromise=null;reject(req.error||new Error('No se pudo abrir IndexedDB'));};
       req.onblocked=()=>console.warn('LiftEngine · IndexedDB bloqueada por otra pestaña');
     });
@@ -52,7 +52,19 @@
     const db=await open(), tx=db.transaction([DAY_STORE,SETTINGS_STORE,META_STORE],'readwrite');
     tx.objectStore(DAY_STORE).clear(); tx.objectStore(SETTINGS_STORE).clear(); tx.objectStore(META_STORE).clear(); await txDone(tx);
   }
+  // Days, settings and recovery metadata commit together, or not at all.
+  async function commit({records=[],deleted=[],replace=false,settings=null,meta=[]}={}){
+    const db=await open(), tx=db.transaction([DAY_STORE,SETTINGS_STORE,META_STORE],'readwrite');
+    const done=txDone(tx), days=tx.objectStore(DAY_STORE);
+    try{
+      if(replace) days.clear();
+      records.forEach(r=>days.put(r)); deleted.forEach(d=>days.delete(d));
+      if(settings) tx.objectStore(SETTINGS_STORE).put({id:'main',...settings});
+      meta.forEach(([key,value])=>tx.objectStore(META_STORE).put({key,value}));
+    }catch(e){ tx.abort(); await done.catch(()=>{}); throw e; }
+    await done;
+  }
   async function countDays(){ const db=await open(), tx=db.transaction(DAY_STORE,'readonly'); return requestPromise(tx.objectStore(DAY_STORE).count()); }
 
-  globalThis.LiftLocalDB={supported,open,getAllDays,putDays,deleteDays,replaceDays,getSettings,putSettings,getMeta,setMeta,clearAll,countDays};
+  globalThis.LiftLocalDB={supported,open,commit,getAllDays,putDays,deleteDays,replaceDays,getSettings,putSettings,getMeta,setMeta,clearAll,countDays};
 })();

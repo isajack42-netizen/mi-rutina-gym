@@ -112,7 +112,7 @@ window.loadTemplate = async function() {
     toast('Rutina cargada como borrador local.');
 }
 
-window.saveEntry = function(){
+window.saveEntry = async function(){
   const date=document.getElementById('routineDate').value;if(!date)return;
   if(!data[date])data[date]=[];
   
@@ -134,6 +134,8 @@ window.saveEntry = function(){
     newEntry = {id: window.editingId || Date.now(), isCardio:true, name:document.getElementById('cardioType').value, time:time||'-', distance:dist||'-'};
   }
   
+  const wasEditing=!!window.editingId;
+  const ok=await recoverableChange(wasEditing?'Editar registro':'Guardar registro',{days:[date]},()=>{
   if(window.editingId) {
       const idx = data[date].findIndex(x => x.id === window.editingId);
       if(idx !== -1) data[date][idx] = newEntry; else data[date].push(newEntry);
@@ -143,7 +145,9 @@ window.saveEntry = function(){
 
   const sessionNote=document.getElementById('sessionNote').value.trim(); if(sessionNote) notes[date]=sessionNote; else delete notes[date];
   
-  const wasEditing=!!window.editingId; saveToFirebase({days:[date]}); clearEntry(); loadDay(); renderDashboard(); populateExercises(); updateChart(); toast(wasEditing ? 'Registro actualizado' : 'Guardado OK');
+  });
+  if(!ok)return;
+  clearEntry(); loadDay(); renderDashboard(); populateExercises(); updateChart(); toast(wasEditing ? 'Registro actualizado' : 'Guardado OK');
 }
 
 window.editEntry = function(date, id) {
@@ -286,7 +290,15 @@ function renderExerciseCard(e,date){
   return `<div class="exercise-card"><div class="exercise-title"><span>${ic('dumbbell')} ${escapeHtml(e.name)}${e.substitutedFrom?` <small class="muted">· sustituyó a ${escapeHtml(e.substitutedFrom)}</small>`:''}</span><span class="badge">${volDisplay} ${unitLabel()}</span></div>${e.sets.map((s,i)=>`<div class="set-log ${isWarmupSet(s)?'warmup-set':''}"><span>S${i+1}</span><span><b>${escapeHtml(s.reps)}</b> reps</span><span><b>${Math.round(fromKg(s.weight)*10)/10}</b>${unitLabel()}</span><span>${isWarmupSet(s)?'Calent.':isFailureSet(s)?'Fallo':'RIR '+escapeHtml(s.rir)}</span><span>${escapeHtml(s.restUsed?(s.restEstimated?'≈ ':'')+fmtRest(s.restUsed):normalizeRestLabel(s.rest))}</span></div>`).join('')}<div class="action-group"><button class="btn-edit-sm" onclick="editEntry('${date}',${e.id})">${ic('edit')} Editar</button><button class="btn-delete-sm" onclick="deleteEntry('${date}',${e.id})">${ic('trash')}</button></div></div>`
 }
 
-window.deleteEntry = async function(date,id){if(!(await appConfirm('¿Eliminar este registro?',{title:'Eliminar registro',confirmText:'Eliminar',danger:true})))return;data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];saveToFirebase({days:[date]});loadDay();renderDashboard();populateExercises();updateChart();toast('Registro eliminado')}
+window.deleteEntry = async function(date,id){
+  if(!(await appConfirm('¿Eliminar este registro?',{title:'Eliminar registro',confirmText:'Eliminar',danger:true})))return;
+  const ok=await recoverableChange('Eliminar registro',{days:[date],training:train?.date===date},()=>{
+    data[date]=(data[date]||[]).filter(x=>x.id!==id);if(!data[date].length)delete data[date];
+    if(train?.date===date){train.order=train.order.filter(x=>x!==id);saveTrain();}
+  });
+  refreshAll();if(ok)toast('Registro eliminado');
+}
+
 function setHasData(s){return !!s && s.done!==false && (parseFloat(s.reps)||0)>0}
 function setCountsForHistory(s){return setHasData(s)&&!isWarmupSet(s)}
 function sessionVolume(e){return (e.sets||[]).filter(setCountsForHistory).reduce((a,s)=>a+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0)}

@@ -4,15 +4,16 @@ let DOC_ID = localStorage.getItem('gymLastUid') || null;
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
 const DIRTY_DAYS_PREFIX='gymDirtyDaysV1:', DIRTY_SETTINGS_PREFIX='gymDirtySettingsV1:';
 const FULL_PULL_INTERVAL_MS=24*60*60*1000;
-let forceNextFullPull=false;
+let forceNextFullPull=false, cloudSyncPaused=false;
 let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0, lastSyncError='', lastCloudPullAt=0;
 let cloudMode='unknown', cloudMeta={days:{},settings:{revision:0,hash:''},pull:{incrementalReady:false,cursor:null,lastFullAt:0}};
 const CLOUD_META_PREFIX='gymCloudMetaV2:';
 let mutationSeq=0, localDirtyDays=new Map(), cloudDirtyDays=new Map(), localSettingsDirty=0, cloudSettingsDirty=0;
+let localSaveError='';
 let localStoreMode='legacy', localStoreReady=false, localPersistChain=Promise.resolve();
 
 function ic(n){return `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`}
-function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
+function withTimeout(p,ms){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('timeout')),ms);Promise.resolve(p).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});}
 
 async function connectFirebase(){
   if(fb) return true;
@@ -52,7 +53,9 @@ window.loginConGoogle = async function() {
 };
 
 async function wipeLocalData(){
-    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,BODY_GOAL_KEY,WEEKLY_PLAN_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymLastUid']
+    await localPersistChain;
+    if(typeof recoveryItems!=='undefined')recoveryItems=[];
+    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,BODY_GOAL_KEY,WEEKLY_PLAN_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymRecoveryJournalV1','gymAtomicSnapshotV1','gymIndexedDBPrimary','gymLastUid']
       .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
     try{
       for(let i=localStorage.length-1;i>=0;i--){
@@ -68,7 +71,8 @@ async function wipeLocalData(){
 
 window.logout = async function() {
     if(!fb) return;
-    if(localStorage.getItem(PENDING_KEY)==='1' && !(await appConfirm(`Hay cambios que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?`,{title:'Cambios pendientes',confirmText:'Cerrar sesión',danger:true}))) return;
+    if(saveInFlight||syncing||recoveryBusy){toast('Espera a que termine el guardado antes de cerrar sesión');return;}
+    if((localStorage.getItem(PENDING_KEY)==='1'||train||localSaveError||localDirtyDays.size||localSettingsDirty) && !(await appConfirm(`Hay cambios o una sesión en curso que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?`,{title:'Cambios pendientes',confirmText:'Cerrar sesión',danger:true}))) return;
     if(await appConfirm('¿Estás seguro de cerrar sesión? Solo podrás ver y sincronizar tus rutinas al volver a entrar.',{title:'Cerrar sesión',confirmText:'Cerrar sesión',danger:true})) {
         await fb.signOut(fb.auth);
         await wipeLocalData();
@@ -454,23 +458,13 @@ function loadLegacyLocal(){
   weeklyPlan=sanitizeWeeklyPlan(safeParse(localStorage.getItem(WEEKLY_PLAN_KEY),{}));
   customAliases = aliasesStored ? sanitizeAliases(readLocal('gymAliases', {}, x=>x)) : JSON.parse(JSON.stringify(defaultAliases));
   customMuscles = musclesStored ? sanitizeMuscles(readLocal('gymMuscles', {}, x=>x)) : JSON.parse(JSON.stringify(defaultMuscles));
+  const atomic=safeParse(localStorage.getItem('gymAtomicSnapshotV1'),null);
+  if(atomic&&atomic.uid===DOC_ID){data=sanitizeData(atomic.data);categories=sanitizeCategories(atomic.categories);weights=sanitizeWeights(atomic.weights);measurements=sanitizeMeasurements(atomic.measurements);notes=sanitizeNotes(atomic.notes);applySettingsSnapshot(atomic.settings);}
 }
 
 function persistLegacySnapshot(){
-  localStorage.setItem(KEY,JSON.stringify(data));
-  localStorage.setItem(CAT,JSON.stringify(categories));
-  localStorage.setItem(WEIGHT,JSON.stringify(weights));
-  localStorage.setItem(MEASURE,JSON.stringify(measurements));
-  localStorage.setItem('trackGym_notes',JSON.stringify(notes));
-  localStorage.setItem(EX_NOTES_KEY,JSON.stringify(exerciseNotes));
-  localStorage.setItem(ROUTINES_KEY,JSON.stringify(customRoutines));
-  localStorage.setItem('gymAliases',JSON.stringify(customAliases));
-  localStorage.setItem('gymMuscles',JSON.stringify(customMuscles));
-  localStorage.setItem(UNIT_KEY,currentUnit);
-  localStorage.setItem(THEME_KEY,currentTheme);
-  localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget));
-  localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal)));
-  localStorage.setItem(WEEKLY_PLAN_KEY,JSON.stringify(sanitizeWeeklyPlan(weeklyPlan)));
+  const snapshot={uid:DOC_ID,data,categories,weights,measurements,notes,settings:buildSettingsSnapshot(),reliability:localPersistenceMeta(),recovery:recoveryItems};
+  localStorage.setItem('gymAtomicSnapshotV1',JSON.stringify(snapshot));
 }
 
 function dirtyDaysKey(){ return DIRTY_DAYS_PREFIX+(DOC_ID||'anonymous'); }
@@ -563,10 +557,15 @@ async function load(){
       if(settings) applyLocalSettingsRecord(settings);
     }
     localStoreReady=true; localStoreMode='indexeddb';
+    await restoreLocalReliability(await LiftLocalDB.getMeta('reliability-v1'));
     localNormalizationDetected=false;
+    try{localStorage.setItem('gymIndexedDBPrimary','true');}catch(_){}
   }catch(e){
     localStoreReady=false; localStoreMode='legacy';
     console.warn('LiftEngine · IndexedDB no disponible, usando compatibilidad localStorage:',e);
+    const atomic=safeParse(localStorage.getItem('gymAtomicSnapshotV1'),null);
+    if(atomic?.uid===DOC_ID)await restoreLocalReliability(atomic.reliability);
+    if(safeParse(localStorage.getItem('gymIndexedDBPrimary'),false)){localSaveError='No se pudo abrir el almacenamiento principal.';throw e;}
   }
   document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
   applyTheme();
@@ -583,8 +582,8 @@ function persistLocal({forceAll=false,replaceDays=false,settings=false}={}){
   if(localPersistTimer){clearTimeout(localPersistTimer);localPersistTimer=null;}
   try{ localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme); localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal))); localStorage.setItem(WEEKLY_PLAN_KEY,JSON.stringify(sanitizeWeeklyPlan(weeklyPlan))); }catch(e){}
   if(!localStoreReady||!globalThis.LiftLocalDB){
-    try{persistLegacySnapshot();}catch(e){console.warn('No se pudo guardar localmente:',e);}
-    return Promise.resolve(false);
+    try{persistLegacySnapshot();localDirtyDays.clear();localSettingsDirty=0;localSaveSuccess();return Promise.resolve(true);}
+    catch(e){localSaveFailure(e);return Promise.resolve(false);}
   }
   const dayVersions=new Map();
   const dates=forceAll?[...new Set([...allLocalDates(),...localDirtyDays.keys()])]:[...localDirtyDays.keys()];
@@ -593,17 +592,14 @@ function persistLocal({forceAll=false,replaceDays=false,settings=false}={}){
   dates.forEach(d=>{const r=buildLocalDayRecord(d); if(r)records.push(r); else deleted.push(d);});
   const settingsVersion=settings||forceAll||localSettingsDirty ? (localSettingsDirty||mutationSeq||1) : 0;
   const settingsSnapshot=settingsVersion?buildLocalSettingsRecord():null;
+  const meta=[['reliability-v1',localPersistenceMeta()],[RECOVERY_KEY,copyRecovery({uid:DOC_ID,items:recoveryItems})]];
   localPersistChain=localPersistChain.then(async()=>{
-    if(replaceDays) await LiftLocalDB.replaceDays(records);
-    else{
-      if(records.length) await LiftLocalDB.putDays(records);
-      if(deleted.length) await LiftLocalDB.deleteDays(deleted);
-    }
-    if(settingsSnapshot) await LiftLocalDB.putSettings(settingsSnapshot);
+    await LiftLocalDB.commit({records,deleted,replace:replaceDays,settings:settingsSnapshot,meta});
     dayVersions.forEach((version,date)=>{ if(localDirtyDays.get(date)===version) localDirtyDays.delete(date); });
     if(settingsVersion&&localSettingsDirty===settingsVersion) localSettingsDirty=0;
+    localSaveSuccess();
     return true;
-  }).catch(e=>{ console.error('LiftEngine · error guardando IndexedDB:',e); return false; });
+  }).catch(e=>{ console.error('LiftEngine · error guardando IndexedDB:',e);localSaveFailure(e);return false; });
   return localPersistChain;
 }
 let localPersistTimer=null;
@@ -814,14 +810,17 @@ async function saveCloudLegacy(){
   await withTimeout(fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{ data:cloudData,categories,weights,measurements,notes,...buildSettingsSnapshot(),updatedAt:stamp }),10000);
 }
 async function applyLegacyCloud(cloud,stamp){
+  const item=await prepareRecovery('Datos antes de usar nube heredada',{allDays:true,settings:true,training:true});
+  if(!item)throw new Error('No se pudo proteger la copia local.');
   const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
-  const protectedContent=protectedDate?buildDayContent(protectedDate):null;
+  const protectedContent=protectedDate?buildLocalDayRecord(protectedDate):null;
   data=sanitizeData(cloud.data); categories=sanitizeCategories(cloud.categories); weights=sanitizeWeights(cloud.weights); measurements=sanitizeMeasurements(cloud.measurements); notes=sanitizeNotes(cloud.notes);
   applySettingsSnapshot({...cloud,exerciseNotes:cloud.exerciseNotes||readLocal(EX_NOTES_KEY,{},x=>x)});
-  if(protectedDate&&protectedContent) applyLocalDayContent(protectedDate,protectedContent);
+  if(protectedDate&&protectedContent)applyLocalDayRecord(protectedDate,protectedContent);
   const changed=migrateNames();
   markAllDaysDirty({cloud:false,local:true}); markSettingsDirty({cloud:false,local:true});
-  await persistLocal({forceAll:true,replaceDays:true,settings:true});
+  item.after=recoveryScopeSnapshot(item.scope);
+  if(!(await persistLocal({forceAll:true,replaceDays:true,settings:true})))throw new Error('No se pudo guardar la copia de nube.');
   updatedAt=stamp;try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(stamp));localStorage.setItem(UPDATED_KEY,String(stamp));}catch(e){}
   refreshAll();return changed;
 }
@@ -833,9 +832,33 @@ function applyLocalDayContent(date,c){
 }
 
 async function resolveDayConflict(date,cloudDoc){
-  const keepLocal=await appConfirm(`La fecha ${date} cambió también en otro dispositivo.\\n\\nPuedes conservar lo de este dispositivo o usar la versión de la nube.`,{title:'Conflicto de sincronización',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
-  if(!keepLocal){ applyCloudDay(date,cloudDoc); cloudMeta.days[date]={revision:Number(cloudDoc.revision)||0,hash:fingerprint(cloudDayContent({...cloudDoc,date}))}; persistLocal(); return 'cloud'; }
+  const before=JSON.stringify(buildLocalDayRecord(date));
+  const keepLocal=await chooseCloudConflict(`La fecha ${date} cambió también en otro dispositivo.`);
+  if(JSON.stringify(buildLocalDayRecord(date))!==before)throw new Error('El día cambió durante la decisión. Reintenta sincronizar.');
+  if(!keepLocal){
+    const item=await prepareRecovery('Versión local antes de usar nube',{days:[date],training:train?.date===date});
+    if(!item)throw new Error('No se pudo proteger la versión local.');
+    if(JSON.stringify(buildLocalDayRecord(date))!==before)throw new Error('El día cambió. Reintenta sincronizar.');
+    if(train?.date===date)discardTrainingForDate(date,{silent:true});
+    applyCloudDay(date,cloudDoc);
+    item.after=recoveryScopeSnapshot(item.scope);
+    cloudMeta.days[date]={revision:Number(cloudDoc.revision)||0,hash:fingerprint(cloudDayContent({...cloudDoc,date}))};
+    if(!(await persistLocal()))throw new Error('No se pudo guardar la versión elegida.');
+    return 'cloud';
+  }
   return 'local';
+}
+async function resolveSettingsConflict(cloud){
+  const before=JSON.stringify(buildSettingsSnapshot());
+  const keep=await chooseCloudConflict('La configuración cambió también en otro dispositivo.');
+  if(JSON.stringify(buildSettingsSnapshot())!==before)throw new Error('La configuración cambió durante la decisión. Reintenta sincronizar.');
+  if(!keep){
+    const item=await prepareRecovery('Configuración antes de usar nube',{settings:true});
+    if(!item)throw new Error('No se pudo proteger la configuración local.');
+    if(JSON.stringify(buildSettingsSnapshot())!==before)throw new Error('La configuración cambió. Reintenta sincronizar.');
+    applyCloudSettings(cloud);item.after=recoveryScopeSnapshot(item.scope);
+  }
+  return keep;
 }
 async function writeDayV2(date){
   let content=buildDayContent(date), expected=Number(cloudMeta.days[date]?.revision)||0;
@@ -843,11 +866,11 @@ async function writeDayV2(date){
   for(let attempt=0;attempt<2;attempt++){
     try{
       let nextRev=expected+1;
-      await withTimeout(fb.runTransaction(fb.db,async tx=>{
+      await fb.runTransaction(fb.db,async tx=>{
         const snap=await tx.get(ref), current=snap.exists()?(Number(snap.data().revision)||0):0;
         if(current!==expected) throw new Error('LIFTENGINE_DAY_CONFLICT');
         nextRev=current+1; tx.set(ref,{date,...content,revision:nextRev,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp()});
-      }),10000);
+      });
       cloudMeta.days[date]={revision:nextRev,hash:fingerprint(content)}; return true;
     }catch(e){
       if(!String(e?.message||'').includes('LIFTENGINE_DAY_CONFLICT'))throw e;
@@ -864,15 +887,15 @@ async function writeDayV2(date){
   return false;
 }
 async function writeSettingsV2(){
-  const content=buildSettingsContent(); let expected=Number(cloudMeta.settings?.revision)||0; const ref=fb.doc(fb.db,'userData',DOC_ID);
+  let content=buildSettingsContent(); let expected=Number(cloudMeta.settings?.revision)||0; const ref=fb.doc(fb.db,'userData',DOC_ID);
   for(let attempt=0;attempt<2;attempt++){
     try{
       let nextRev=expected+1;
-      await withTimeout(fb.runTransaction(fb.db,async tx=>{
+      await fb.runTransaction(fb.db,async tx=>{
         const snap=await tx.get(ref), current=snap.exists()?(Number(snap.data().revision)||0):0;
         if(current!==expected) throw new Error('LIFTENGINE_SETTINGS_CONFLICT');
         nextRev=current+1;tx.set(ref,{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:nextRev,updatedAt:Date.now(),serverUpdatedAt:fb.serverTimestamp(),...content});
-      }),10000);
+      });
       cloudMeta.settings={revision:nextRev,hash:fingerprint(content)};return true;
     }catch(e){
       if(!String(e?.message||'').includes('LIFTENGINE_SETTINGS_CONFLICT'))throw e;
@@ -882,9 +905,9 @@ async function writeSettingsV2(){
         cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(content)};
         return true;
       }
-      const keepLocal=await appConfirm('La configuración (rutinas, plan semanal, alias, tema o notas de ejercicios) cambió en otro dispositivo.\\n\\n¿Conservar la configuración de este dispositivo?',{title:'Conflicto de configuración',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
-      if(!keepLocal){applyCloudSettings(cloud);const renamed=(typeof migrateNames==='function')?migrateNames():false;cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};persistLocal();if(renamed)saveQueued=true;return true;}
-      expected=Number(cloud.revision)||0;
+      const keepLocal=await resolveSettingsConflict(cloud);
+      if(!keepLocal){const renamed=(typeof migrateNames==='function')?migrateNames():false;cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};if(!(await persistLocal()))throw new Error('No se pudo guardar la configuración.');if(renamed)saveQueued=true;return true;}
+      expected=Number(cloud.revision)||0;content=buildSettingsContent();
     }
   }
   return false;
@@ -956,13 +979,14 @@ async function saveToFirebase(scope=null){
   if(!scope&&!hasCloudDirty()) markFallbackDirtyFromState();
   updatedAt=Date.now();
   try{localStorage.setItem(UPDATED_KEY,String(updatedAt)); if(hasCloudDirty())localStorage.setItem(PENDING_KEY,'1');}catch(e){}
-  await persistLocal();
+  if(!(await persistLocal()))return false;
   if(!hasCloudDirty()) { updateSyncStatus('Sincronizado','ok'); return true; }
+  if(cloudSyncPaused){updateSyncStatus('Sincronización pausada · cambios locales conservados','saving');return false;}
   if(!cloudReady||!fb||!DOC_ID){updateSyncStatus('Pendiente de sincronizar','saving');return false;}
-  if(saveInFlight){saveQueued=true;return false;}saveInFlight=true;updateSyncStatus('Guardando…','saving');let ok=true;
+  if(saveInFlight||syncing){saveQueued=true;return false;}saveInFlight=true;updateSyncStatus('Guardando…','saving');let ok=true;
   try{
     do{
-      saveQueued=false;await persistLocal();
+      saveQueued=false;if(!(await persistLocal()))throw new Error('No se pudo guardar localmente.');
       if(cloudMode==='v2') await saveCloudV2Changes();
       else{
         try{ await saveCloudLegacy(); cloudDirtyDays.clear(); cloudSettingsDirty=0; persistCloudDirtyMarkers(); }
@@ -974,13 +998,13 @@ async function saveToFirebase(scope=null){
         }
       }
     }while(saveQueued||hasCloudDirty());
-    clearPendingIfClean(); updateSyncStatus('Sincronizado','ok');
+    clearPendingIfClean();if(!(await persistLocal())){ok=false;return false;}updateSyncStatus('Sincronizado','ok');
   }catch(e){console.error('LiftEngine · error sincronizando:',e);lastSyncError=e?.message||String(e);persistCloudDirtyMarkers();updateSyncStatus('Guardado local · sin conexión','error');ok=false;}
   finally{saveInFlight=false;if((saveQueued||hasCloudDirty())&&ok)saveToFirebase();}return ok;
 }
 
 async function syncCloudV2(rootCloud){
-  cloudMode='v2'; loadCloudMeta(); loadCloudDirtyMarkers();
+  cloudMode='v2'; loadCloudMeta();
   const {remote,full}=await fetchCloudDaysV2();
   const pending=localStorage.getItem(PENDING_KEY)==='1'||hasCloudDirty();
   const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
@@ -1018,7 +1042,7 @@ async function syncCloudV2(rootCloud){
       }else if(remoteChanged&&localChanged){
         const choice=await resolveDayConflict(date,rd);
         if(choice==='local') cloudMeta.days[date]={revision:remoteRev,hash:meta.hash};
-        else cloudDirtyDays.delete(date);
+        else {cloudDirtyDays.delete(date);delete localDrafts[date];}
       }else if(!cloudMeta.days[date]){
         cloudMeta.days[date]={revision:remoteRev,hash:fingerprint(cloudDayContent({...rd,date}))};
       }
@@ -1029,10 +1053,9 @@ async function syncCloudV2(rootCloud){
     if(remoteSettingsChanged&&!localSettingsChanged){
       applyCloudSettings(rootCloud); cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};
     }else if(remoteSettingsChanged&&localSettingsChanged){
-      const keep=await appConfirm('La configuración también cambió en otro dispositivo. ¿Conservar la configuración local?',{title:'Conflicto de configuración',confirmText:'Conservar local',cancelText:'Usar nube'});
+      const keep=await resolveSettingsConflict(rootCloud);
       if(keep) cloudMeta.settings.revision=Number(rootCloud.revision)||0;
       else{
-        applyCloudSettings(rootCloud);
         cloudMeta.settings={revision:Number(rootCloud.revision)||0,hash:settingsHash()};
         cloudSettingsDirty=0;
       }
@@ -1045,21 +1068,22 @@ async function syncCloudV2(rootCloud){
 
   // Un pull completo sustituye la colección local de días de IndexedDB. Un pull
   // incremental solo escribe las fechas efectivamente aplicadas/marcadas.
-  if(full) await persistLocal({forceAll:true,replaceDays:true,settings:true});
-  else await persistLocal({settings:localSettingsDirty>0});
+  const localOk=full?await persistLocal({forceAll:true,replaceDays:true,settings:true}):await persistLocal({settings:localSettingsDirty>0});
+  if(!localOk)throw new Error('No se pudo guardar la sincronización localmente.');
   saveCloudMeta(); updatedAt=Number(rootCloud.updatedAt)||Date.now(); refreshAll();
 
   if(pending||namesChanged||hasCloudDirty()||(protectedDate&&dayHash(protectedDate)!==(cloudMeta.days[protectedDate]?.hash||fingerprint({deleted:true})))){
     await saveCloudV2Changes();
   }
   clearPendingIfClean();
+  if(!(await persistLocal()))return false;
   try{localStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){}
   saveCloudMeta(); updateSyncStatus(hasCloudDirty()?'Pendiente de sincronizar':'Sincronizado',hasCloudDirty()?'saving':'ok');
   return !hasCloudDirty();
 }
 
 async function syncFromCloud(){
-  if(syncing||!DOC_ID)return false;syncing=true;
+  if(cloudSyncPaused||syncing||saveInFlight||recoveryBusy||!DOC_ID)return false;syncing=true;
   try{
     if(!(await connectFirebase()))return false;loadCloudMeta();
     const ref=fb.doc(fb.db,'userData',DOC_ID),snap=await withTimeout(fb.getDoc(ref),10000);cloudReady=true;
@@ -1071,7 +1095,7 @@ async function syncFromCloud(){
     const cloud=snap.data();
     if(Number(cloud.cloudSchemaVersion)>=CLOUD_SCHEMA_VERSION)return await syncCloudV2(cloud);
     cloudMode='legacy';const cloudStamp=Number(cloud.updatedAt)||0,pending=localStorage.getItem(PENDING_KEY)==='1';let useLocal=false;
-    if(pending){const synced=Number(localStorage.getItem(SYNCED_KEY))||0;useLocal=cloudStamp>synced?await appConfirm('Tienes cambios sin sincronizar en este dispositivo y la nube también cambió.\\n\\n¿Conservar lo de este dispositivo?',{title:'Conflicto de sincronización',confirmText:'Conservar local',cancelText:'Usar nube'}):true;}
+    if(pending){const synced=Number(localStorage.getItem(SYNCED_KEY))||0;useLocal=cloudStamp>synced?await chooseCloudConflict('Este dispositivo y la nube heredada tienen cambios pendientes.'):true;}
     let legacyChanged=false;
     if(useLocal) await saveCloudLegacy();
     else legacyChanged=!!(await applyLegacyCloud(cloud,cloudStamp));
@@ -1084,7 +1108,7 @@ async function syncFromCloud(){
     }
     return true;
   }catch(e){lastSyncError=(e&&((e.code?e.code+': ':'')+(e.message||'')))||String(e||'Error de sincronización');console.error('Error de sincronización:',e);return false;}
-  finally{syncing=false;}
+  finally{syncing=false;if(saveQueued){saveQueued=false;void saveToFirebase();}}
 }
 
 
@@ -1109,6 +1133,7 @@ async function syncFromCloudWithRetry(attempts=2){
   for(let i=0;i<attempts;i++){
     ok=await syncFromCloud();
     if(ok){ lastCloudPullAt=Date.now(); return true; }
+    if(cloudSyncPaused)return false;
     if(i<attempts-1){
       updateSyncStatus('Reintentando sincronización…','saving');
       await delay(1200*(i+1));
@@ -1132,7 +1157,7 @@ window.retryCloudSync = async function(){
   // Una sincronización manual fuerza un pull completo. Además de ser más
   // intuitivo para el usuario, sirve como red de compatibilidad con clientes
   // antiguos que todavía no escriben serverUpdatedAt.
-  forceNextFullPull=true;
+  forceNextFullPull=true;cloudSyncPaused=false;
   updateSyncStatus('Conectando…','saving');
   try{
     if(!(await connectFirebase())){ updateSyncStatus('Guardado local · sin conexión','error'); toast('No se pudo conectar con Firebase'); return false; }
@@ -1141,7 +1166,7 @@ window.retryCloudSync = async function(){
     DOC_ID=user.uid;
     localStorage.setItem('gymLastUid',user.uid);
     const ok=await syncFromCloudWithRetry(2);
-    if(!ok){ updateSyncStatus('Guardado local · sin conexión','error'); toast('No se pudo sincronizar. Tus datos siguen guardados en este dispositivo.'); }
+    if(!ok){ updateSyncStatus('Guardado local · sin conexión','error'); toast(localSaveError?'No se pudo guardar. Descarga una copia antes de cerrar.':'No se pudo sincronizar. Tus datos siguen guardados en este dispositivo.'); }
     else toast('Sincronización actualizada');
     return ok;
   }catch(e){
@@ -1160,6 +1185,8 @@ function updateCategorySelect() {
 }
 
 function updateSyncStatus(text,state){
+  if(cloudSyncPaused){text='Sincronización pausada · cambios locales conservados';state='saving';}
+  if(localSaveError){text='No guardado en este dispositivo';state='error';}
   const el=document.getElementById('syncStatus');
   if(!el) return;
   el.innerHTML=ic('cloud')+' '+escapeHtml(text);

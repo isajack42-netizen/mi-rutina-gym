@@ -44,7 +44,8 @@ function saveTrain(){
       const payload={...train,__restCtx:restCtx||null,__timerEndAt:Number(window.timerEndAt)||0,__timerAlarmed:!!window.timerAlarmed};
       localStorage.setItem(TRAIN_KEY,JSON.stringify(payload));
     }else localStorage.removeItem(TRAIN_KEY);
-  }catch(e){}
+  }catch(e){localSaveFailure(e);}
+  if(typeof reliabilityLoaded!=='undefined'&&reliabilityLoaded)queuePersistLocal(60);
 }
 function saveTrainingDraftLocal(){ try{if(train?.date)markDayDirty(train.date,{cloud:false,local:true});queuePersistLocal(60);saveTrain();}catch(e){console.warn('No se pudo guardar el borrador de entrenamiento:',e);} }
 const rd=v=>Math.round(fromKg(v)*10)/10;
@@ -132,24 +133,14 @@ window.discardTrainingForDate=function(date,{silent=false}={}){
   if(!silent)toast('Entrenamiento descartado');
   return true;
 }
-function cleanupAbandonedTraining(){
-  if(!train)return;
-  const d=train.date, ids=new Set(train.order||[]); let keptAny=false;
-  data[d]=(data[d]||[]).filter(e=>{
-    if(!ids.has(e.id)||e.isCardio)return true;
-    if(!e.trainingDraft)return true;
-    e.sets=(e.sets||[]).filter(isDone);e.sets.forEach((x,i)=>x.setNumber=i+1);delete e.trainingDraft;
-    if(e.sets.length){keptAny=true;return true;} return false;
-  });
-  if(!(data[d]||[]).length)delete data[d];
-  if(keptAny&&train.routine)categories[d]=train.routine;
-  restCtx=null;window.timerEndAt=0;window.timerAlarmed=false;train=null;saveTrain();saveToFirebase({days:[d]});
-}
 function resumeTrainingIfAny(){
-  if(!train) return;
-  if(Date.now()-train.startedAt>12*3600e3){ cleanupAbandonedTraining(); renderTrainCTA(); return; }
+  if(!train)return;
+  if(!validDateKey(train.date)||!Array.isArray(train.order)||!Number.isFinite(Number(train.startedAt))){
+    toast('El estado de la sesión no es válido. Tus registros se conservan.');return;
+  }
   openTraining();
-  if(restCtx&&window.timerEndAt>0) ensureTimerRunning();
+  if(Date.now()-train.startedAt>12*3600e3)toast('Sesión recuperada. Revisa las series pendientes antes de terminar.');
+  if(restCtx&&window.timerEndAt>0)ensureTimerRunning();
 }
 
 function renderTrain(){
@@ -194,9 +185,9 @@ function renderTrain(){
     const ri=has&&s.rir!=='-'&&!isNaN(parseFloat(s.rir))?s.rir:'';
     const tp=normalizeSetType(s.type), weightStep=1;
     return `<div class="tr-row ${setState} ${tp==='warmup'?'warmup':''} ${tp==='failure'?'failure':''}" data-set-state="${setState||'idle'}"><div class="tr-n">${i+1}</div>
-      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" onchange="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
-      <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" onchange="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
-      <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" onchange="trainSave(${i})" aria-label="RIR serie ${i+1}">
+      <div class="tr-weight-stepper"><button type="button" onclick="trainAdjustWeight(${i},-${weightStep})" aria-label="Bajar peso ${weightStep} ${unitLabel()}">−</button><input class="tr-w" type="number" step="0.5" min="0" value="${s.weight?rd(s.weight):''}" placeholder="${sw}" data-sug="${sw}" oninput="trainSave(${i})" aria-label="Peso serie ${i+1}"><button type="button" onclick="trainAdjustWeight(${i},${weightStep})" aria-label="Subir peso ${weightStep} ${unitLabel()}">+</button></div>
+      <div class="tr-reps-stepper"><button type="button" onclick="trainAdjustReps(${i},-1)" aria-label="Bajar una repetición">−</button><input class="tr-r" type="number" step="1" min="0" value="${has?escapeHtml(s.reps):''}" placeholder="${sr}" data-sug="${sr}" oninput="trainSave(${i})" aria-label="Reps serie ${i+1}"><button type="button" onclick="trainAdjustReps(${i},1)" aria-label="Subir una repetición">+</button></div>
+      <input class="tr-rir" type="number" min="0" max="10" value="${escapeHtml(ri)}" placeholder="${isNaN(rph)?'':rph}" oninput="trainSave(${i})" aria-label="RIR serie ${i+1}">
       <button class="tr-ok" onclick="trainToggle(${i})" aria-label="Marcar serie ${i+1}">${dn?ic('check'):ic('circle')}</button>
       <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${!dn&&restCtx?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">${train.activeSet&&train.activeSet.id===e.id&&train.activeSet.i===i?'En curso':'Empezar'}</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${restLabel(s)}</span>`:'<span></span>')}</div></div>`;
   }).join('');
@@ -210,7 +201,7 @@ function renderTrain(){
     <div class="train-tools"><button class="btn btn-secondary" onclick="trainAddSet()">+ Serie</button><button class="btn btn-secondary" onclick="trainAddExercise()">+ Ejercicio</button><button class="btn btn-secondary" onclick="trainSubstitute()">Sustituir ejercicio</button><button class="btn btn-secondary" onclick="trainDelSet()">− Serie</button><button class="btn btn-secondary" onclick="trainToggleAuto()">${ic('timer')} Auto: ${trainAutoRest?'Sí':'No'}</button></div>`;
   body.scrollTop=keep;
 }
-function trainCur(){ return trainEntries()[train.idx]; }
+function trainCur(){return train?trainEntries()[train.idx]:null;}
 function trainRead(i,useSug){
   const row=document.querySelectorAll('#trainBody .tr-row')[i], g=c=>{const el=row.querySelector(c);return el.value!==''?el.value:(useSug?(el.dataset.sug||''):'')};
   return {w:g('.tr-w'),r:g('.tr-r'),ri:g('.tr-rir'),type:normalizeSetType(row.querySelector('.tr-type')?.value)};
@@ -307,7 +298,7 @@ window.trainAddExerciseOk=function(){
   saveTrainingDraftLocal(); closeModal(); populateExercises(); renderTrain();
 }
 window.trainAddSet=function(){ const e=trainCur(); if(!e) return; const l=e.sets[e.sets.length-1]||{}; e.sets.push({setNumber:e.sets.length+1,reps:'-',weight:0,rir:'-',rest:l.rest||'90 s',type:normalizeSetType(l.type),done:false}); saveTrainingDraftLocal(); renderTrain(); }
-window.trainDelSet=function(){ const e=trainCur(); if(!e||e.sets.length<2) return; if(isDone(e.sets[e.sets.length-1])){ toast('Desmarca la última serie para quitarla'); return; } e.sets.pop(); saveTrainingDraftLocal(); renderTrain(); }
+window.trainDelSet=async function(){ const e=trainCur(); if(!e||e.sets.length<2) return; if(isDone(e.sets[e.sets.length-1])){ toast('Desmarca la última serie para quitarla'); return; } if(await recoverableChange('Quitar serie',{days:[train.date],training:true},()=>e.sets.pop()))renderTrain(); }
 window.trainToggleAuto=function(){ trainAutoRest=!trainAutoRest; try{localStorage.setItem('gymAutoRest',trainAutoRest?'1':'0')}catch(e){} if(!trainAutoRest) stopTimer(); renderTrain(); }
 window.trainGo=function(i){ train.idx=i; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0; }
 window.trainNav=function(n){
@@ -340,13 +331,20 @@ window.trainFinish=function(){
     <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Seguir</button>${pend?`<button class="btn btn-secondary" onclick="trainEnd(false)">Descartar</button><button class="btn btn-primary" onclick="trainEnd(true)">Guardar y terminar</button>`:`<button class="btn btn-primary" onclick="trainEnd(false)">Terminar y guardar</button>`}</div>`;
   openEl();
 }
-window.trainEnd=function(savePending){
-  if(restCtx)trainRestEnded();stopTimer();
-  const d=train.date, routine=train.routine;
-  const endResult=trainApplyEnd(trainEntries(),savePending===true);
-  data[d]=(data[d]||[]).filter(e=>e.isCardio||entryHasData(e));
-  if((data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))&&routine)categories[d]=routine;
-  if(!data[d]?.length) delete data[d];
-  train=null; restCtx=null; saveTrain(); closeTrainUI(); closeModal(); saveToFirebase({days:[d]}); refreshAll(); toast(endResult.saved?`¡Entrenamiento guardado! Se incluyeron ${endResult.saved} serie${endResult.saved===1?'':'s'} pendiente${endResult.saved===1?'':'s'}.`:endResult.dropped?`Entrenamiento guardado. Se descartaron ${endResult.dropped} serie${endResult.dropped===1?'':'s'} sin marcar.`:'¡Entrenamiento guardado!');
+window.trainEnd=function(savePending){return finishTrainingSafely(savePending);}
+async function finishTrainingSafely(savePending){
+  if(!train)return;
+  trainFlushInputs();
+  const d=train.date,routine=train.routine;
+  let endResult;
+  const ok=await recoverableChange('Finalizar entrenamiento',{days:[d],training:true},()=>{
+    if(restCtx)trainRestEnded();stopTimer();
+    endResult=trainApplyEnd(trainEntries(),savePending===true);
+    data[d]=(data[d]||[]).filter(e=>e.isCardio||entryHasData(e));
+    if((data[d]||[]).some(e=>!e.isCardio&&entryHasData(e))&&routine)categories[d]=routine;
+    if(!data[d]?.length)delete data[d];
+    train=null;restCtx=null;saveTrain();closeTrainUI();closeModal();
+  });
+  refreshAll();
+  if(ok)toast(endResult.saved?'Entrenamiento guardado con las series pendientes':endResult.dropped?'Entrenamiento guardado · puedes deshacer el descarte':'Entrenamiento guardado en este dispositivo');
 }
-

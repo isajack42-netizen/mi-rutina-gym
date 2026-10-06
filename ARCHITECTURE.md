@@ -2,7 +2,7 @@
 
 LiftEngine es una PWA estática alojada en GitHub Pages. Usa Firebase Authentication + Firestore para sincronización y IndexedDB como persistencia local principal.
 
-Desde v6, la arquitectura conserva scripts clásicos por compatibilidad, pero separa contratos de settings, métricas derivadas y orquestación de UI.
+Actualizada en v6.11.0. Desde v6, la arquitectura conserva scripts clásicos por compatibilidad, pero separa contratos de settings, métricas derivadas y orquestación de UI.
 
 ## Orden de carga
 
@@ -21,7 +21,10 @@ Desde v6, la arquitectura conserva scripts clásicos por compatibilidad, pero se
 13. `js/routines.js` — creación y gestión de rutinas.
 14. `js/notifications.js` — avisos de descanso y comportamiento móvil.
 15. `js/training.js` — modo entrenamiento.
-16. `js/bootstrap.js` — inicialización, listeners globales y `refreshAll()`.
+16. `js/recovery.js` — diario local, deshacer, persistencia verificable y bloqueo de escritor.
+17. `js/bootstrap.js` — inicialización, listeners globales y `refreshAll()`.
+
+El orden ejecutable completo, incluyendo History, Planning, Schedule y Review, está definido en `app.js` y comprobado contra `sw.js`.
 
 ## Principios de v6
 
@@ -51,7 +54,9 @@ Stores:
 - fallback legacy;
 - backups de recuperación puntuales.
 
-Si IndexedDB no está disponible, LiftEngine puede caer al snapshot legacy de `localStorage`.
+Si IndexedDB no está disponible en un dispositivo que aún no lo utilizaba, LiftEngine usa un snapshot atómico en `localStorage`. Si ya era el almacén principal, un fallo al abrirlo detiene el arranque para evitar cargar datos antiguos.
+
+Desde v6.11 `LiftLocalDB.commit` escribe días, ajustes y metadata de fiabilidad/recuperación en una transacción. La metadata contiene sesión activa y cambios de nube pendientes, incluidos borrados. Los checkpoints locales se limitan a 10 operaciones; un fallo de checkpoint impide el cambio destructivo. Deshacer exige coincidencia del estado afectado. Web Locks impide escritores simultáneos dentro del mismo origen en navegadores compatibles.
 
 ## Settings v6
 
@@ -104,7 +109,7 @@ Los borrados usan `deleted:true`.
 
 Cada día tiene su propia revisión.
 
-Una escritura solo continúa si la revisión remota coincide con la última revisión conocida por el dispositivo. Ante un conflicto del mismo día, el usuario elige explícitamente entre versión local y nube.
+Una escritura solo continúa si la revisión remota coincide con la última revisión conocida por el dispositivo. Ante un conflicto del mismo día, el usuario elige explícitamente entre versión local, nube y cancelar. Cancelar pausa la sincronización hasta un reintento manual. Usar nube guarda primero un checkpoint local. El código comprueba también cambios realizados mientras el diálogo estaba abierto.
 
 Los settings tienen revisión independiente en el documento raíz.
 
@@ -191,3 +196,9 @@ Responsabilidad principal por archivo:
 - `training.js`: sesión guiada.
 - `bootstrap.js`: arranque y orquestación.
 - `version.js`: versión runtime.
+
+## Pruebas y cierre personal
+
+`npm ci --ignore-scripts` instala únicamente la dependencia de pruebas fake-indexeddb fijada en el lockfile. `npm test` ejecuta validación estática, regresión y 26 escenarios de fiabilidad del código real con almacenamiento y nube controlados. GitHub Actions ejecuta estas puertas y la sintaxis de todos los scripts.
+
+Las pruebas de transporte controlado no equivalen a integración con Firestore real ni a Safari/iPhone. El cierre pendiente y los criterios de v6.12/1.0 están en `ROADMAP-PERSONAL-EDITION.md`.

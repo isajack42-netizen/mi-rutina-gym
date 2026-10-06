@@ -393,15 +393,15 @@ window.deleteCalendarWorkout=async function(d){
   const active=typeof train!=='undefined'&&train&&train.date===d;
   const msg=`¿Eliminar el entrenamiento completo del ${fmtDate(d)}?\n\nSe borrarán ejercicios, series, etiqueta de rutina y nota de la sesión.${active?' También se cerrará el entrenamiento que está en curso.':''}\n\nEl peso corporal y las medidas de ese día se conservarán.`;
   if(!(await appConfirm(msg,{title:'Eliminar entrenamiento completo',confirmText:'Eliminar entrenamiento',cancelText:'Cancelar',danger:true})))return;
-  if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
-  if(active&&typeof window.discardTrainingForDate==='function')window.discardTrainingForDate(d,{silent:true});
-  delete data[d];delete categories[d];delete notes[d];
-  await saveToFirebase({days:[d]});
+  const ok=await recoverableChange('Eliminar entrenamiento',{days:[d],training:!!active},()=>{
+    if(active)discardTrainingForDate(d,{silent:true});
+    delete data[d];delete categories[d];delete notes[d];
+  });
   selectedDate=d;
   if(typeof refreshAll==='function')refreshAll();else{renderCalendar();renderDashboard();populateExercises();updateChart();renderProgressionPanel();renderAnalytics();}
   showDaySummary(d);
   if(typeof window.closeAppDialog==='function') window.closeAppDialog(false);
-  toast('Entrenamiento eliminado');
+  if(ok)toast('Entrenamiento eliminado');
 }
 window.changeMonth = function(n){currentMonth+=n;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
 function avgWeight(days){
@@ -484,9 +484,14 @@ window.saveMeasurements=async function(){
   const occupied=measurements.some(x=>x.date===date&&date!==original);
   if(occupied&&!(await appConfirm('Ya existen medidas en '+fmtDate(date)+'. ¿Quieres reemplazarlas?',{title:'Medición existente',confirmText:'Reemplazar',danger:true})))return;
   measurements=measurements.filter(x=>x.date!==date && (!original||x.date!==original));measurements.push(entry);
-  window.editingMeasurementDate='';saveToFirebase({days:[...new Set([date,original].filter(Boolean))]});closeModal();renderBodyWeights();toast('Medidas guardadas OK');
+  if(!(await saveLocalThenSync({days:[...new Set([date,original].filter(Boolean))]})))return;window.editingMeasurementDate='';closeModal();renderBodyWeights();toast('Medidas guardadas OK');
 }
-window.deleteMeasurement=async function(date){if(!(await appConfirm('¿Eliminar las medidas del '+fmtDate(date)+'?',{title:'Eliminar medición',confirmText:'Eliminar',danger:true})))return;measurements=measurements.filter(x=>x.date!==date);saveToFirebase({days:[date]});renderBodyWeights();toast('Medición eliminada')}
+window.deleteMeasurement=async function(date){
+  if(!(await appConfirm('¿Eliminar las medidas del '+fmtDate(date)+'?',{title:'Eliminar medición',confirmText:'Eliminar',danger:true})))return;
+  const ok=await recoverableChange('Eliminar medidas',{days:[date]},()=>{measurements=measurements.filter(x=>x.date!==date);});
+  renderBodyWeights();if(ok)toast('Medición eliminada');
+}
+
 
 window.openWeightModal = function(){
     const modalEl=document.getElementById('modal');
@@ -497,15 +502,15 @@ window.openWeightModal = function(){
     document.body.classList.add('modal-open');
     requestAnimationFrame(() => { modalEl.scrollTop = 0; modalEl.scrollLeft = 0; });
 }
-window.saveBodyWeight = function(){
+window.saveBodyWeight = async function(){
     const date=document.getElementById('mwDate').value,w=parseFloat(document.getElementById('mwWeight').value);if(!date||!w)return;
     weights=weights.filter(x=>x.date!==date);weights.push({date,weight:toKg(w)});
-    saveToFirebase({days:[date]}); closeModal(); renderBodyWeights(); toast('Peso guardado OK');
+    if(!(await saveLocalThenSync({days:[date]})))return;closeModal();renderBodyWeights();toast('Peso guardado en este dispositivo');
 }
 
 window.deleteBodyWeight = async function(date){
     if(!(await appConfirm('¿Eliminar el peso del '+fmtDate(date)+'?',{title:'Eliminar peso',confirmText:'Eliminar',danger:true}))) return;
-    weights=weights.filter(x=>x.date!==date);
-    saveToFirebase({days:[date]}); renderBodyWeights(); toast('Peso eliminado');
+    const ok=await recoverableChange('Eliminar peso corporal',{days:[date]},()=>{weights=weights.filter(x=>x.date!==date);});
+    renderBodyWeights();if(ok)toast('Peso eliminado');
 }
 

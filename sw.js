@@ -5,7 +5,7 @@ const VER=`liftengine-v${APPV}`;
 const q=u=>`${u}?v=${APPV}`;
 const SHELL=[
   './','index.html','app.js',q('styles.css'),'js/version.js',
-  ...['version','config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','routines','notifications','training','bootstrap'].map(n=>q(`js/${n}.js`)),
+  ...['version','config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','routines','notifications','training','recovery','bootstrap'].map(n=>q(`js/${n}.js`)),
   'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
 ];
 self.addEventListener('install',e=>{
@@ -25,7 +25,7 @@ self.addEventListener('install',e=>{
   })());
 });
 self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('liftengine-')&&k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('liftengine-')&&k!==VER).slice(0,-1).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET') return;
@@ -50,7 +50,14 @@ self.addEventListener('fetch',e=>{
   // Archivos propios: red primero, pero con timeout corto. En mala señal
   // usamos la copia local en vez de esperar indefinidamente.
   e.respondWith((async()=>{
-    const c=await caches.open(VER), controller=new AbortController();
+    const c=await caches.open(VER), requestedVersion=u.searchParams.get('v');
+    // Versioned assets are immutable once cached. Never substitute another
+    // release when offline; retain one previous shell for an already open tab.
+    if(requestedVersion){
+      const versionCache=await caches.open(`liftengine-v${requestedVersion}`);
+      const exact=await versionCache.match(r);if(exact)return exact;
+    }
+    const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),2200);
     try{
       const res=await fetch(r,{cache:'no-store',signal:controller.signal});
@@ -59,6 +66,7 @@ self.addEventListener('fetch',e=>{
       return res;
     }catch(_){
       clearTimeout(timeout);
+      if(requestedVersion)return Response.error();
       const hit=(await c.match(r,{ignoreSearch:true})) || (await c.match(u.pathname.replace(/^\//,''),{ignoreSearch:true})) || (await c.match(u.pathname.replace(/^\//,'')+u.search,{ignoreSearch:true}));
       if(hit) return hit;
       if(r.mode==='navigate') return (await c.match('index.html')) || Response.error();

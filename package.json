@@ -1,0 +1,12 @@
+{
+  "name": "liftengine-personal",
+  "private": true,
+  "version": "6.11.0",
+  "description": "Development checks for LiftEngine. No runtime npm dependencies.",
+  "scripts": {
+    "test": "node scripts/validate.mjs && node scripts/regression.mjs && node scripts/reliability.mjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.5"
+  }
+}

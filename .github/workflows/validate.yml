@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install test dependency
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: JavaScript syntax
         shell: bash
         run: |
@@ -34,3 +37,6 @@ jobs:
 
       - name: Regression suite
         run: node scripts/regression.mjs
+
+      - name: Reliability and recovery scenarios
+        run: node scripts/reliability.mjs

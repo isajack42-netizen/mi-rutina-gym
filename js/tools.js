@@ -238,7 +238,9 @@ window.importCSV=async function(event){
     const dates=Object.keys(stagedData), existing=dates.filter(d=>(data[d]||[]).length).length;
     const mode=existing?await appConfirm(`Se encontraron ${valid} registros válidos${skipped?` y ${skipped} filas omitidas`:''}.\n\n${existing} fecha(s) ya tienen entrenamientos.\n\n¿Quieres REEMPLAZAR los entrenamientos de esas fechas?`,{title:'Importar CSV',confirmText:'Reemplazar',cancelText:'Agregar sin borrar',danger:true}):false;
     if(existing && !(await appConfirm(`¿Confirmas la importación? ${mode?'Se reemplazarán':'Se agregarán'} los entrenamientos en las fechas coincidentes.`,{title:'Confirmar importación',confirmText:'Importar'}))){ input.value=''; return; }
-    try{ localStorage.setItem('gymBackupBeforeCSVImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo al CSV:',e); }
+    const affectedDates=[...new Set([...Object.keys(stagedData),...Object.keys(stagedCats),...Object.keys(stagedNotes),...stagedWeights.map(x=>x.date),...stagedMeasures.map(x=>x.date)])];
+    if(train&&affectedDates.includes(train.date)){await appAlert('Termina el entrenamiento en curso antes de importar datos de esa fecha.','Entrenamiento en curso');return;}
+    const imported=await recoverableChange('Importar CSV',{days:affectedDates,settings:Object.keys(stagedExerciseNotes).length>0},()=>{
     for(const [d,arr] of Object.entries(stagedData)){
       const merged=mode?arr:[...(data[d]||[]),...arr];
       const clean=sanitizeData({[d]:merged})[d]||[];
@@ -247,8 +249,8 @@ window.importCSV=async function(event){
     Object.assign(categories,sanitizeCategories(stagedCats)); Object.assign(notes,sanitizeNotes(stagedNotes)); Object.assign(exerciseNotes,sanitizeExerciseNotes(stagedExerciseNotes));
     const byDate=(arr,sanitizer)=>{const m=new Map();sanitizer(arr).forEach(x=>m.set(x.date,x));return [...m.values()].sort((a,b)=>a.date.localeCompare(b.date));};
     weights=byDate([...weights,...stagedWeights],sanitizeWeights); measurements=byDate([...measurements,...stagedMeasures],sanitizeMeasurements);
-    const affectedDates=[...new Set([...Object.keys(stagedData),...Object.keys(stagedCats),...Object.keys(stagedNotes),...stagedWeights.map(x=>x.date),...stagedMeasures.map(x=>x.date)])];
-    await saveToFirebase({days:affectedDates,settings:Object.keys(stagedExerciseNotes).length>0}); refreshAll(); closeModal(); toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);
+    });
+    if(imported){refreshAll();closeModal();toast(`CSV importado: ${valid} registros${skipped?` · ${skipped} omitidos`:''}`);}
   }catch(err){ await appAlert('No se pudo importar el CSV: '+(err&&err.message?err.message:err),'Error de importación'); }
   finally{ input.value=''; }
 }
@@ -359,6 +361,7 @@ function renderSettingsModal(){
                     <button class="btn btn-primary full" onclick="exportData()">${ic('download')}<span><b>Crear copia</b><small>Respaldo JSON completo</small></span></button>
                     <button class="btn btn-secondary full" onclick="document.getElementById('importFile').click()">${ic('upload')}<span><b>Restaurar copia</b><small>Desde respaldo JSON</small></span></button>
                 </div>
+                <button class="btn btn-secondary full" onclick="openRecovery()">Historial de recuperación y deshacer</button>
                 <input id="importCSVFile" type="file" accept=".csv,text/csv" hidden onchange="importCSV(event)">
                 <input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
             </section>
@@ -469,6 +472,7 @@ function buildBackupPayload(){
     appVersion:APP_VERSION,
     schemaVersion:DATA_SCHEMA_VERSION,
     exportedAt:new Date().toISOString(),
+    activeTraining:trainingSnapshot(),
     data:sanitizeData(data),
     categories:sanitizeCategories(categories),
     weights:sanitizeWeights(weights),
@@ -513,6 +517,7 @@ window.importData = function(ev){
   r.onload=async()=>{
     try{
       const x=JSON.parse(r.result);
+      if(x.type==='liftengine-recovery'){await importRecoveryFile(x);return;}
       const validation=validateBackupPayload(x);
       if(!validation.ok) throw new Error(validation.reason);
       const clean={
@@ -526,20 +531,19 @@ window.importData = function(ev){
       const days=Object.keys(clean.data).length;
       const sourceDays=Object.keys(x.data).length;
       const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
-      if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia de seguridad local.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
-      try{ localStorage.setItem('gymBackupBeforeImport',JSON.stringify(buildBackupPayload())); }catch(e){ console.warn('No se pudo guardar el backup previo a importación:',e); }
-      const previousDates=new Set([...allLocalDates(),...Object.keys(cloudMeta.days||{})]);
-      data=clean.data; categories=clean.categories; weights=clean.weights; measurements=clean.measurements; notes=clean.notes;
-      applySettingsSnapshot(clean);
-      migrateNames();
-      const currentDates=new Set(allLocalDates());
-      currentDates.forEach(d=>markDayDirty(d,{cloud:true,local:true}));
-      previousDates.forEach(d=>{if(validDateKey(d)&&!currentDates.has(d))markDayDirty(d,{cloud:true,local:true});});
-      markSettingsDirty({cloud:true,local:true});
-      await persistLocal({forceAll:true,replaceDays:true,settings:true});
-      const synced=await saveToFirebase({allDays:true,settings:true});
+      if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia en Recuperación; si no es posible, la importación se detendrá.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
+      if(x.activeTraining&&!validTrainingSnapshot(x.activeTraining))throw new Error('La sesión activa del respaldo no es válida.');
+      const synced=await recoverableChange('Restaurar respaldo JSON',{allDays:true,settings:true,training:true},()=>{
+        const previousDates=new Set([...allLocalDates(),...Object.keys(cloudMeta.days||{})]);
+        data=clean.data;categories=clean.categories;weights=clean.weights;measurements=clean.measurements;notes=clean.notes;
+        applySettingsSnapshot(clean);migrateNames();
+        restoreTrainingSnapshot(x.activeTraining||null);
+        previousDates.forEach(d=>{if(validDateKey(d))markDayDirty(d);});
+      });
+      if(!synced)return;
+      // recoverableChange uses persistLocal({replaceDays:true}) for full restores.
       closeModal(); refreshAll();
-      toast(synced?'Importado y sincronizado correctamente':'Importado localmente · sincronización pendiente');
+      toast('Importado en este dispositivo · sincronización pendiente');
     }catch(e){ await appAlert('Archivo no válido.\n\n'+(e.message||'No se pudo validar la estructura.'),'No se pudo restaurar'); }
     finally{ ev.target.value=''; }
   };

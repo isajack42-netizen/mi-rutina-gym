@@ -73,17 +73,7 @@ window.saveRoutine = async function() {
     const origName = nameInput.getAttribute('data-orig');
     const affectedDates=[];
 
-    if(!newName) { toast('Ingresa un nombre para la rutina'); return; }
-
-    if(origName && origName !== newName) {
-        if(customRoutines[newName] && !(await appConfirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true}))) return;
-        delete customRoutines[origName];
-        Object.keys(categories).forEach(d=>{ if(categories[d]===origName){ categories[d]=newName; affectedDates.push(d); } });
-        if(typeof renameWeeklyPlanRoutine==='function')renameWeeklyPlanRoutine(origName,newName);
-        if(train&&train.routine===origName){ train.routine=newName; saveTrain(); }
-    } else if(!origName && customRoutines[newName]) {
-        if(!(await appConfirm('Ya existe una rutina llamada "'+newName+'". ¿Quieres reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true}))) return;
-    }
+    if(!newName||!safeKey(newName)||newName.length>80){toast('Escribe un nombre de rutina válido de hasta 80 caracteres');return;}
 
     const rows = document.querySelectorAll('.routine-edit-row');
     const newExercises = [];
@@ -101,8 +91,18 @@ window.saveRoutine = async function() {
 
     if(newExercises.length === 0) { toast('Agrega al menos un ejercicio con series válidas'); return; }
 
-    customRoutines[newName] = newExercises;
-    saveToFirebase({days:affectedDates,settings:true});
+    if((!origName||origName!==newName)&&customRoutines[newName]&&!(await appConfirm('Ya existe esa rutina. ¿Reemplazarla?',{title:'Rutina existente',confirmText:'Reemplazar',danger:true})))return;
+    Object.keys(categories).forEach(d=>{if(origName&&origName!==newName&&categories[d]===origName)affectedDates.push(d);});
+    const ok=await recoverableChange('Guardar rutina',{days:affectedDates,settings:true,training:!!(train&&train.routine===origName)},()=>{
+      if(origName&&origName!==newName){
+        delete customRoutines[origName];
+        affectedDates.forEach(d=>{categories[d]=newName;});
+        if(typeof renameWeeklyPlanRoutine==='function')renameWeeklyPlanRoutine(origName,newName);
+        if(train&&train.routine===origName){train.routine=newName;saveTrain();}
+      }
+      customRoutines[newName]=newExercises;
+    });
+    if(!ok)return;
     updateCategorySelect();
     renderRoutines();
     closeModal();
@@ -111,13 +111,14 @@ window.saveRoutine = async function() {
 
 window.deleteRoutine = async function(name) {
     if(!(await appConfirm(`¿Estás seguro de eliminar la rutina "${name}"?`,{title:'Eliminar rutina',confirmText:'Eliminar',danger:true}))) return;
-    delete customRoutines[name];
-    if(typeof removeWeeklyPlanRoutine==='function')removeWeeklyPlanRoutine(name);
-    saveToFirebase({settings:true});
+    const ok=await recoverableChange('Eliminar rutina',{settings:true},()=>{
+      delete customRoutines[name];
+      if(typeof removeWeeklyPlanRoutine==='function')removeWeeklyPlanRoutine(name);
+    });
     updateCategorySelect();
     renderRoutines();
     closeModal();
-    toast('Rutina eliminada');
+    if(ok)toast('Rutina eliminada');
 }
 
 window.trainRoutineFromLibrary=async function(name){
