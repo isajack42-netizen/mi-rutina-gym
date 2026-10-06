@@ -176,6 +176,74 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   x=ctx.window.getTrainingIntelligence('Dominadas asistidas',{sessions:[session('2026-10-01',[12,12,12],2,40)],target});
   assert.equal(x.action,'difficulty');
   assert.equal(x.plan.weightKg,40);
+
+  const repSessions=[
+    session('2026-09-01',[8,8,8],2,30),
+    session('2026-09-08',[9,9,9],2,30),
+    session('2026-09-15',[10,10,10],2,30),
+    session('2026-09-22',[11,11,11],2,30)
+  ];
+  x=ctx.window.getTrainingIntelligence('Press',{sessions:repSessions,target:null});
+  assert.equal(x.patterns.strategy.status,'reps-first');
+  assert.equal(x.action,'reps');
+  assert.equal(x.title,'Tu patrón favorece sumar reps');
+  assert.ok(x.reasons.some(r=>r.includes('misma carga')));
+
+  const loadSessions=[
+    session('2026-09-01',[8,8,8],2,30),
+    session('2026-09-08',[8,8,8],2,32.5),
+    session('2026-09-15',[8,8,8],2,35),
+    session('2026-09-22',[8,8,8],2,37.5)
+  ];
+  x=ctx.window.getTrainingIntelligence('Press',{sessions:loadSessions,target:null});
+  assert.equal(x.patterns.strategy.status,'load-tolerant');
+  assert.equal(x.patterns.strategy.loadIncreases,3);
+  assert.equal(x.patterns.strategy.loadSustained,3);
+
+  const dropSessions=[
+    session('2026-09-01',[12,10,8],2,30),
+    session('2026-09-08',[12,10,8],2,30),
+    session('2026-09-15',[12,10,8],2,30)
+  ];
+  x=ctx.window.getTrainingIntelligence('Press',{sessions:dropSessions,target});
+  assert.equal(x.patterns.setConsistency.status,'drop');
+  assert.ok(x.patterns.setConsistency.avgDrop>30);
+  assert.ok(x.patterns.signals.some(s=>s.key==='sets'));
+
+  const effortSessions=[
+    session('2026-09-01',[10,10,10],3,30),
+    session('2026-09-08',[10,10,10],3,30),
+    session('2026-09-15',[10,10,10],2,30),
+    session('2026-09-22',[10,10,10],1,30)
+  ];
+  x=ctx.window.getTrainingIntelligence('Press',{sessions:effortSessions,target});
+  assert.equal(x.patterns.effort.status,'harder');
+  assert.ok(x.patterns.effort.delta<=-1.4);
+
+  const positioned=(date,weight,index)=>({
+    ...session(date,[10,10,10],2,weight),
+    exerciseIndex:index,
+    exerciseCount:4,
+    routine:'Push'
+  });
+  const alternating=[
+    positioned('2026-09-01',40,0),
+    positioned('2026-09-08',35,3),
+    positioned('2026-09-15',40,0),
+    positioned('2026-09-22',35,3)
+  ];
+  x=ctx.window.getTrainingIntelligence('Press',{sessions:alternating,target:null});
+  assert.equal(x.patterns.position.status,'late-down');
+  assert.ok(x.patterns.position.switches>=2);
+
+  const oneSwitch=[
+    positioned('2026-09-01',40,0),
+    positioned('2026-09-08',40,0),
+    positioned('2026-09-15',35,3),
+    positioned('2026-09-22',35,3)
+  ];
+  x=ctx.window.getTrainingIntelligence('Press',{sessions:oneSwitch,target:null});
+  assert.equal(x.patterns.position.status,'forming','un único cambio de orden no debe atribuir efecto a la posición');
 }
 
 // ===== Weekly & Monthly Review (v6.9.0) =====
