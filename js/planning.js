@@ -81,6 +81,27 @@ function planningBalanceSignals(plan,targetSessions=6){
   }
   return out.slice(0,6);
 }
+function planningRoutineMuscleMap(rows){
+  const out={};
+  (rows||[]).forEach(r=>{
+    const muscle=r?.muscle||'Otros';
+    const sets=Math.max(0,Number(r?.sets)||0);
+    if(sets>0)out[muscle]=(out[muscle]||0)+sets;
+  });
+  return out;
+}
+function planningRoutineDelta(beforeRows,afterRows,frequency=0){
+  const before=planningRoutineMuscleMap(beforeRows),after=planningRoutineMuscleMap(afterRows);
+  const freq=planningClampFrequency(frequency);
+  const muscles=[...new Set([...Object.keys(before),...Object.keys(after)])].sort((a,b)=>a.localeCompare(b,'es'));
+  const changes=muscles.map(muscle=>{
+    const beforeSets=before[muscle]||0,afterSets=after[muscle]||0,deltaSets=afterSets-beforeSets;
+    return {muscle,beforeSets,afterSets,deltaSets,weeklyDelta:deltaSets*freq};
+  }).filter(x=>x.deltaSets!==0);
+  const beforeTotal=Object.values(before).reduce((a,b)=>a+b,0);
+  const afterTotal=Object.values(after).reduce((a,b)=>a+b,0);
+  return {before,after,changes,beforeTotal,afterTotal,totalDelta:afterTotal-beforeTotal,weeklyDelta:(afterTotal-beforeTotal)*freq};
+}
 // </planning-helpers>
 
 let planningFrequencyOverrides=Object.create(null);
@@ -178,37 +199,62 @@ window.renderRoutineEditorPreview=function(){
   const typed=nameEl.value.trim();
   const draftName=typed||orig||'Borrador';
   const draftRows=planningDraftRowsFromEditor();
-  const source=planningEnrichedRoutines();
-  if(orig&&orig!==draftName)delete source[orig];
-  source[draftName]=draftRows;
-  const names=Object.keys(source);
-  const defaults=planningDefaultFrequencies(names,weeklySessionTarget);
-  const frequencies={};
-  names.forEach(name=>{
-    if(name===draftName&&orig&&Number.isFinite(Number(planningFrequencyOverrides[orig])))frequencies[name]=planningClampFrequency(planningFrequencyOverrides[orig]);
-    else if(Number.isFinite(Number(planningFrequencyOverrides[name])))frequencies[name]=planningClampFrequency(planningFrequencyOverrides[name]);
-    else frequencies[name]=defaults[name]||0;
+
+  const baselineSource=planningEnrichedRoutines();
+  const baselineNames=Object.keys(baselineSource);
+  const baselineDefaults=planningDefaultFrequencies(baselineNames,weeklySessionTarget);
+  const baselineFrequencies={};
+  baselineNames.forEach(name=>{
+    baselineFrequencies[name]=Number.isFinite(Number(planningFrequencyOverrides[name]))
+      ? planningClampFrequency(planningFrequencyOverrides[name])
+      : (baselineDefaults[name]||0);
   });
-  const plan=planningComputePlan(source,frequencies);
-  const routine=plan.routineStats.find(x=>x.name===draftName)||{frequency:frequencies[draftName]||0,setsPerPass:0,weeklySets:0,exercises:0};
-  const draftMuscles={};
-  draftRows.forEach(r=>{draftMuscles[r.muscle]=(draftMuscles[r.muscle]||0)+r.sets;});
-  const muscleRows=Object.entries(draftMuscles).sort((a,b)=>b[1]-a[1]);
-  const signals=planningBalanceSignals(plan,weeklySessionTarget).slice(0,3);
-  box.innerHTML=`<div class="routine-editor-preview-head"><span class="eyebrow">Vista previa</span><h3>Impacto del borrador</h3><p>Se recalcula mientras editas. No se guarda hasta pulsar Guardar.</p></div>
+
+  const draftSource=planningEnrichedRoutines();
+  if(orig&&orig!==draftName)delete draftSource[orig];
+  draftSource[draftName]=draftRows;
+  const draftNames=Object.keys(draftSource);
+  const draftDefaults=planningDefaultFrequencies(draftNames,weeklySessionTarget);
+  const draftFrequencies={};
+  draftNames.forEach(name=>{
+    if(name===draftName&&orig&&Number.isFinite(Number(baselineFrequencies[orig])))draftFrequencies[name]=baselineFrequencies[orig];
+    else if(Number.isFinite(Number(planningFrequencyOverrides[name])))draftFrequencies[name]=planningClampFrequency(planningFrequencyOverrides[name]);
+    else draftFrequencies[name]=draftDefaults[name]||0;
+  });
+
+  const baselinePlan=planningComputePlan(baselineSource,baselineFrequencies);
+  const plan=planningComputePlan(draftSource,draftFrequencies);
+  const routine=plan.routineStats.find(x=>x.name===draftName)||{frequency:draftFrequencies[draftName]||0,setsPerPass:0,weeklySets:0,exercises:0};
+  const originalRows=orig&&baselineSource[orig]?baselineSource[orig]:[];
+  const delta=planningRoutineDelta(originalRows,draftRows,routine.frequency);
+  const muscleRows=Object.entries(delta.after).sort((a,b)=>b[1]-a[1]);
+  const totalPlanDelta=plan.totalSets-baselinePlan.totalSets;
+  const signed=n=>`${n>0?'+':''}${Number(n).toFixed(1)}`;
+  const comparisonTitle=orig?`Cambios respecto a ${escapeHtml(orig)} guardada`:'Aporte de la nueva rutina';
+  const comparisonMarkup=orig
+    ? (delta.changes.length
+      ? delta.changes.map(x=>`<div class="preview-delta-row"><span>${escapeHtml(x.muscle)}</span><strong>${x.beforeSets} → ${x.afterSets} / sesión · ${signed(x.weeklyDelta)} / semana</strong></div>`).join('')
+      : '<div class="preview-no-change"><b>Sin cambios en series por músculo</b><span>El borrador mantiene el mismo volumen directo que la rutina guardada.</span></div>')
+    : (muscleRows.length
+      ? muscleRows.map(([m,n])=>`<div class="preview-delta-row"><span>${escapeHtml(m)}</span><strong>${n} / sesión · +${(n*routine.frequency).toFixed(1)} / semana</strong></div>`).join('')
+      : '<p class="muted">Añade ejercicios y series para calcular su aporte.</p>');
+
+  box.innerHTML=`<div class="routine-editor-preview-head"><span class="eyebrow">Vista previa</span><h3>Impacto de ${escapeHtml(draftName)}</h3><p>Solo muestra el efecto de esta rutina. No se guarda hasta pulsar Guardar.</p></div>
     <div class="routine-editor-preview-kpis">
       <div><small>Ejercicios</small><b>${draftRows.length}</b></div>
       <div><small>Series / sesión</small><b>${routine.setsPerPass}</b></div>
       <div><small>Frecuencia escenario</small><b>${routine.frequency.toFixed(1)}×</b></div>
       <div><small>Series / semana</small><b>${routine.weeklySets.toFixed(1)}</b></div>
     </div>
-    <div class="routine-editor-preview-block"><b>Impacto muscular directo</b>
-      ${muscleRows.length?muscleRows.map(([m,n])=>`<div><span>${escapeHtml(m)}</span><strong>${n} series / sesión</strong></div>`).join(''):'<p class="muted">Añade ejercicios y series para ver el impacto.</p>'}
+    <div class="routine-editor-preview-block"><b>Impacto muscular directo de ${escapeHtml(draftName)}</b>
+      ${muscleRows.length?muscleRows.map(([m,n])=>`<div><span>${escapeHtml(m)}</span><strong>${n} series / sesión · ${(n*routine.frequency).toFixed(1)} / semana</strong></div>`).join(''):'<p class="muted">Añade ejercicios y series para ver el impacto.</p>'}
     </div>
-    <div class="routine-editor-preview-block"><b>Plan semanal resultante</b>
-      <div><span>Sesiones</span><strong>${plan.totalSessions.toFixed(1)} / ${Number(weeklySessionTarget)||0}</strong></div>
-      <div><span>Series directas</span><strong>${plan.totalSets.toFixed(1)}</strong></div>
-      ${signals.map(s=>`<div class="preview-signal ${s.kind}"><span>${escapeHtml(s.title)}</span><strong>${escapeHtml(s.text)}</strong></div>`).join('')}
+    <div class="routine-editor-preview-block"><b>${comparisonTitle}</b>
+      ${comparisonMarkup}
     </div>
-    <p class="routine-editor-preview-note">La frecuencia pertenece al escenario del planificador; no forma parte de la rutina guardada.</p>`;
+    <div class="routine-editor-preview-block"><b>Efecto sobre el total semanal</b>
+      <div><span>Sesiones del escenario</span><strong>${plan.totalSessions.toFixed(1)} / ${Number(weeklySessionTarget)||0}</strong></div>
+      <div><span>Series directas del plan</span><strong>${baselinePlan.totalSets.toFixed(1)} → ${plan.totalSets.toFixed(1)} · ${signed(totalPlanDelta)}</strong></div>
+    </div>
+    <p class="routine-editor-preview-note">Las alertas globales de otros músculos permanecen en el Planificador principal. Esta vista se limita a la rutina que estás editando.</p>`;
 };
