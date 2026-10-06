@@ -49,3 +49,6 @@ jobs:
 
       - name: Exercise Library foundation audit
         run: node scripts/exercise-library-audit.mjs
+
+      - name: Exercise Library acceptance round
+        run: node scripts/exercise-library-acceptance.mjs
