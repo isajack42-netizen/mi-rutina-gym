@@ -148,7 +148,7 @@ async function startWithStorageLock(start){
   if(!navigator.locks?.request){appOwnsStorage=true;await start();toast('Este navegador no protege varias pestañas. Usa solo una ventana de LiftEngine.');return;}
   const loading=document.getElementById('loadingOverlay'), original=loading.innerHTML;
   loading.innerHTML='<div style="padding:24px;text-align:center"><b>Abre LiftEngine en una sola ventana.</b><p>Cierra la otra pestaña o ventana de la app para continuar aquí.</p></div>';
-  return navigator.locks.request('liftengine-local-writer',async()=>{
+  return navigator.locks.request('liftengine-preview-v1.1-alpha.1-writer',async()=>{
     appOwnsStorage=true;DOC_ID=PreviewLocalStorage.getItem('gymLastUid')||null;loading.innerHTML=original;
     // training.js loads before the lock. Refresh its state after acquiring it.
     train=safeParse(PreviewLocalStorage.getItem(TRAIN_KEY),null);
