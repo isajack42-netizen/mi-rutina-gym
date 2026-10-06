@@ -181,7 +181,7 @@ function exerciseLibraryRender(ex,activeTab='overview'){
   modal.classList.add('exercise-library-modal');
   modal.innerHTML=`<div class="exercise-sheet" data-exercise-id="${escapeHtml(ex.id)}" data-active-tab="${escapeHtml(activeTab)}">
     <header class="exercise-sheet-head">
-      <div><span class="eyebrow">Exercise Library · ficha piloto</span><h2 id="exerciseLibraryTitle">${escapeHtml(ex.name)}</h2><p>${escapeHtml(primary)} · ${escapeHtml(exerciseLibraryTaxLabel('movementPatterns',t.movementPattern))}</p></div>
+      <div><span class="eyebrow">Exercise Library</span><h2 id="exerciseLibraryTitle">${escapeHtml(ex.name)}</h2><p>${escapeHtml(primary)} · ${escapeHtml(exerciseLibraryTaxLabel('movementPatterns',t.movementPattern))}</p></div>
       <button class="icon-btn exercise-sheet-close" type="button" onclick="closeModal()" aria-label="Cerrar ficha"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </header>
     <nav class="exercise-sheet-tabs" role="tablist" aria-label="Información del ejercicio">
@@ -208,6 +208,7 @@ window.exerciseLibrarySetTab=function(tab){
   const panel=shell.querySelector('#exercise-panel');
   panel.setAttribute('aria-labelledby','exercise-tab-'+active);
   panel.innerHTML=exerciseLibraryTabContent(ex,active);
+  panel.scrollTop=0;
 };
 window.exerciseLibraryTabKey=function(event){
   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
@@ -235,7 +236,7 @@ window.openExerciseInfo=async function(name,initialTab='overview'){
     if(train?.classList.contains('open'))train.setAttribute('inert','');
     const back=document.getElementById('modalBackdrop');
     back.classList.add('show');
-    document.body.classList.add('modal-open');
+    document.body.classList.add('modal-open','exercise-library-open');
   }catch(error){
     console.error(error);
     toast('No se pudo abrir la ficha técnica');

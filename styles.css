@@ -2796,3 +2796,95 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .exercise-browser-thumb{width:76px}
   .tab-btn{font-size:.58rem}
 }
+
+/* ===== v1.1 acceptance corrections · modal composition ===== */
+.modal-backdrop{z-index:600}
+.toast{z-index:500}
+body.modal-open .toast{z-index:590}
+body.exercise-library-open .toast{visibility:hidden}
+body.train-open.exercise-library-open .modal-backdrop{
+  background:rgba(3,7,12,.92);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.exercise-library-modal{
+  width:min(1120px,calc(100vw - 40px));
+  height:min(92dvh,900px);
+  max-height:min(92dvh,900px);
+  max-width:1120px;
+  overflow:hidden;
+  box-shadow:0 28px 80px rgba(0,0,0,.55);
+}
+.exercise-sheet{
+  height:100%;
+  max-height:none;
+  min-height:0;
+}
+.exercise-sheet-head{
+  flex:none;
+  padding:18px 22px 14px;
+}
+.exercise-sheet-tabs{
+  flex:none;
+  position:relative;
+  z-index:2;
+}
+.exercise-sheet-panel{
+  min-height:0;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding:18px 20px 24px;
+}
+.exercise-media img,
+.exercise-step-media,
+.exercise-mistake-media{
+  object-fit:contain;
+  background:linear-gradient(180deg,#f8fafc,#e9eef3);
+}
+.exercise-step{
+  grid-template-columns:220px 42px minmax(0,1fr);
+  gap:14px;
+  padding:14px;
+}
+.exercise-step-media{
+  width:220px;
+  aspect-ratio:4/3;
+}
+.exercise-mistake-grid{
+  grid-template-columns:1fr;
+  gap:14px;
+}
+.exercise-mistake-card{
+  display:grid;
+  grid-template-columns:260px minmax(0,1fr);
+  column-gap:18px;
+  align-items:start;
+  padding:14px;
+}
+.exercise-mistake-media{
+  width:260px;
+  aspect-ratio:4/3;
+  margin:0;
+  grid-row:1 / span 3;
+}
+.exercise-mistake-head{padding-top:2px}
+.exercise-mistake-card>p{margin:10px 0}
+.exercise-correction{align-self:end}
+@media(max-width:900px){
+  .exercise-library-modal{width:calc(100vw - 24px);height:min(94dvh,900px);max-height:min(94dvh,900px)}
+  .exercise-step{grid-template-columns:190px 38px minmax(0,1fr)}
+  .exercise-step-media{width:190px}
+  .exercise-mistake-card{grid-template-columns:220px minmax(0,1fr)}
+  .exercise-mistake-media{width:220px}
+}
+@media(max-width:720px){
+  .exercise-library-modal{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}
+  .exercise-sheet{height:100dvh;min-height:0;max-height:none}
+  .exercise-sheet-head{padding:max(14px,env(safe-area-inset-top,0px)) 15px 12px}
+  .exercise-sheet-panel{padding:14px 14px calc(24px + env(safe-area-inset-bottom,0px))}
+  .exercise-step{grid-template-columns:1fr;padding:12px}
+  .exercise-step-media{width:100%;aspect-ratio:16/10;grid-column:auto}
+  .exercise-step-number{width:32px;height:32px}
+  .exercise-mistake-card{display:block;padding:12px}
+  .exercise-mistake-media{width:100%;aspect-ratio:16/10;margin:0 0 12px}
+}

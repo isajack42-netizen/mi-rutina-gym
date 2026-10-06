@@ -466,7 +466,7 @@ window.deleteAlias = async function(alias) {
 }
 // ==========================================
 
-window.closeModal = function(){const b=document.getElementById('modalBackdrop'),m=document.getElementById('modal');b.classList.remove('show');document.body.classList.remove('modal-open');document.getElementById('trainOverlay')?.removeAttribute('inert');m.scrollTop=0;m.scrollLeft=0;m.classList.remove('routine-editor-modal','exercise-library-modal');m.oninput=null}
+window.closeModal = function(){const b=document.getElementById('modalBackdrop'),m=document.getElementById('modal');b.classList.remove('show');document.body.classList.remove('modal-open','exercise-library-open');document.getElementById('trainOverlay')?.removeAttribute('inert');m.scrollTop=0;m.scrollLeft=0;m.classList.remove('routine-editor-modal','exercise-library-modal');m.oninput=null}
 function buildBackupPayload(){
   return {
     appVersion:APP_VERSION,
