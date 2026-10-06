@@ -128,6 +128,8 @@ if(!app.includes("'history','planning','intelligence'")||!sw.includes("'history'
 if(!read('js/routines.js').includes("modal.classList.add('routine-editor-modal')")||!read('js/routines.js').includes("renderRoutineEditorPreview")) fail.push('El editor de rutinas debe mostrar vista previa de planificación en escritorio.');
 if(!css.includes('v6.6 · PLANNING WORKSPACE')||!css.includes('.routine-plan-summary')||!css.includes('.routine-editor-preview')) fail.push('Faltan estilos del Planning Workspace v6.6.');
 if(!read('js/analytics.js').includes("resetRoutinePlanScenario")) fail.push('El planificador debe reajustar su escenario cuando cambia la meta semanal.');
+if(!read('js/planning.js').includes('function planningRoutineDelta')||!read('js/planning.js').includes('Cambios respecto a')||!read('js/planning.js').includes('Las alertas globales de otros músculos permanecen en el Planificador principal')) fail.push('La vista previa del editor debe limitarse a la rutina editada en v6.6.1.');
+if(!css.includes('.preview-delta-row')||!css.includes('.preview-no-change')) fail.push('Faltan estilos para los deltas específicos del editor v6.6.1.');
 
 let depth=0;
 for(const ch of css){
