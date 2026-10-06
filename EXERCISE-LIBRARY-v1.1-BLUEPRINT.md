@@ -195,10 +195,10 @@ Antes de producir el resto del catálogo debe validar:
 - empty states. ✅
 
 ### Fase 5 — First Pack
-- completar 15 fichas;
-- assets consistentes;
-- revisión de contenido;
-- prueba de peso/PWA/cache.
+- completar 15 fichas; ✅
+- assets consistentes; ✅
+- revisión de contenido; ✅ primera pasada
+- prueba de peso/PWA/cache. ✅ automatizada
 
 ### Fase 6 — Expansion
 - 30 → 60 → 100+ ejercicios;
@@ -233,3 +233,8 @@ Por ahora no se incluyen:
 v1.1 debe sentirse como una extensión nativa de LiftEngine, no como un micrositio pegado a la app.
 
 La prioridad es: **claridad técnica + consistencia visual + acceso rápido + cero regresiones al motor estable**.
+
+
+## Estado de Fase 5
+
+First Pack completado con 15/15 fichas canónicas y paquetes visuales propios. Todos los ejercicios del lote están marcados como `ready`, forman parte del índice navegable y se incluyen en el shell offline. La siguiente fase no debe ampliar el catálogo hasta cerrar la evaluación del pack en UI real y corregir cualquier defecto encontrado.

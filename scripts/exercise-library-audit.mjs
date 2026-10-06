@@ -130,4 +130,6 @@ if(!ui.includes('renderExerciseLibraryBrowser')||!ui.includes('exerciseLibraryIn
 for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey','exercise-step-media','exercise-mistake-media']){
   if(!ui.includes(marker)) fail('pilot UI marker missing: '+marker);
 }
-console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · ' + exercises.filter(x=>x.media?.status==='ready').length + ' ready offline packs');
+if(exercises.length!==15) fail('First Pack must contain exactly 15 exercise files at this stage.');
+if(exercises.filter(x=>x.media?.status==='ready').length!==15) fail('First Pack must have 15 ready media packs.');
+console.log('LiftEngine exercise library OK · 15/15 First Pack · ' + taxonomy.muscles.length + ' muscles · all packs ready offline');

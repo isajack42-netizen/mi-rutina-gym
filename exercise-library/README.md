@@ -14,9 +14,12 @@ La biblioteca todavía no forma parte del runtime de 1.0. El objetivo de la rama
 
 ## Estado actual
 
-- Foundation: en implementación.
-- Ejercicio piloto: `bench-press-barbell`.
-- Assets del piloto: paquete vectorial propio listo e integrado para evaluación.
+- Foundation: completa.
+- Pilot UI: completa.
+- Biblioteca navegable: completa.
+- First Pack: **15/15 ejercicios ready**.
+- Assets: paquetes vectoriales propios integrados y disponibles offline.
+- Referencia maestra: `bench-press-barbell`.
 
 ## Validación
 
