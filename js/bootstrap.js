@@ -78,6 +78,18 @@ function focusableIn(root){
   return [...root.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
     .filter(el=>!el.hidden&&el.offsetParent!==null);
 }
+function labelModalDialog(box){
+  if(!box)return;
+  const heading=box.querySelector('h1,h2,h3');
+  if(heading){
+    if(!heading.id)heading.id='liftengineModalTitle';
+    box.setAttribute('aria-labelledby',heading.id);
+    box.removeAttribute('aria-label');
+  }else{
+    box.removeAttribute('aria-labelledby');
+    box.setAttribute('aria-label','LiftEngine');
+  }
+}
 function initModalFocusManagement(){
   const back=document.getElementById('modalBackdrop'), box=document.getElementById('modal');
   if(!back||!box||back.dataset.focusManaged==='1')return;
@@ -85,6 +97,7 @@ function initModalFocusManagement(){
   const sync=()=>{
     const open=back.classList.contains('show');
     if(open&&!modalWasOpen){
+      labelModalDialog(box);
       modalReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
       requestAnimationFrame(()=>{
         const target=focusableIn(box)[0]||box;
@@ -93,13 +106,15 @@ function initModalFocusManagement(){
       });
     }else if(!open&&modalWasOpen){
       const previous=modalReturnFocus;modalReturnFocus=null;
-      if(previous&&previous.isConnected&&typeof previous.focus==='function'){
+      if(previous&&previous.isConnected&&previous.getClientRects().length&&typeof previous.focus==='function'){
         requestAnimationFrame(()=>{try{previous.focus({preventScroll:true});}catch(_){}});
       }
     }
     modalWasOpen=open;
   };
   new MutationObserver(sync).observe(back,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(()=>labelModalDialog(box)).observe(box,{childList:true,subtree:true});
+  labelModalDialog(box);
   sync();
 }
 
@@ -222,7 +237,7 @@ if(summaryMore){
     summaryMore.addEventListener('toggle',()=>{if(summaryMore.open&&typeof renderDashboard==='function')requestAnimationFrame(()=>renderDashboard());});
 }
 
-const accessibilityObserver=new MutationObserver(()=>improveFormAccessibility(document));
+const accessibilityObserver=new MutationObserver(()=>{improveFormAccessibility(document);labelModalDialog(document.getElementById('modal'));});
 accessibilityObserver.observe(document.body,{childList:true,subtree:true});
 
 startWithStorageLock(initApp).catch(e=>{appOwnsStorage=false;reliabilityLoaded=false;console.error('No se pudo iniciar de forma segura:',e);document.getElementById('loadingOverlay').style.display='flex';document.getElementById('loadingOverlay').innerHTML='<div style="padding:24px"><b>No se pudo abrir el almacenamiento.</b><p>Cierra las otras ventanas de LiftEngine y vuelve a cargar. No borres los datos del navegador.</p><button class="btn btn-secondary" onclick="reloadApp()">Reintentar</button></div>';});
