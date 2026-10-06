@@ -410,7 +410,7 @@ window.openCatalogsModal = function(tab = 'musculos') {
                 <div style="font-size:0.85rem; font-weight:bold; margin-bottom:4px;">${escapeHtml(ex)}</div>
                 <select data-ex="${escapeHtml(ex)}" onchange="updateExerciseMuscle(this.dataset.ex, this.value)" style="min-height:36px; height:36px; padding:4px 8px; font-size:14px;">
                     <option value="Otros">Otros</option>
-                    ${Object.keys(customMuscles).concat(['Pecho','Espalda','Piernas','Hombros','Brazos','Core']).filter((v,i,a)=>a.indexOf(v)===i).sort().map(m => `<option value="${m}" ${currentMuscle===m?'selected':''}>${m}</option>`).join('')}
+                    ${Object.keys(customMuscles).concat(['Pecho','Espalda','Piernas','Hombros','Brazos','Core']).filter((v,i,a)=>a.indexOf(v)===i).sort().map(m => `<option value="${escapeHtml(m)}" ${currentMuscle===m?'selected':''}>${escapeHtml(m)}</option>`).join('')}
                 </select>
             </div>`;
         }).join('');
@@ -482,6 +482,20 @@ function buildBackupPayload(){
   };
 }
 
+function backupDataShapeCounts(raw){
+  const out={days:0,entries:0,sets:0};
+  if(!isPlainObject(raw))return out;
+  Object.values(raw).forEach(rows=>{
+    out.days++;
+    if(!Array.isArray(rows))return;
+    rows.forEach(entry=>{
+      out.entries++;
+      if(Array.isArray(entry?.sets))out.sets+=entry.sets.length;
+    });
+  });
+  return out;
+}
+
 function validateBackupPayload(x){
   if(!isPlainObject(x)) return {ok:false,reason:'El archivo no contiene un objeto JSON válido.'};
   if(x.schemaVersion!=null&&Number(x.schemaVersion)>Number(DATA_SCHEMA_VERSION)) return {ok:false,reason:'Este respaldo pertenece a una versión futura de LiftEngine y no se puede restaurar de forma segura.'};
@@ -497,9 +511,15 @@ function validateBackupPayload(x){
   const settingsError=validateSettingsInput(x);
   if(settingsError) return {ok:false,reason:settingsError};
   const cleanData=sanitizeData(x.data);
-  const sourceDays=Object.keys(x.data).length,cleanDays=Object.keys(cleanData).length;
-  if(sourceDays>0&&cleanDays===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
-  return {ok:true,cleanDays};
+  const source=backupDataShapeCounts(x.data),clean=backupDataShapeCounts(cleanData);
+  if(source.days>0&&clean.days===0) return {ok:false,reason:'Los registros no tienen una estructura reconocible.'};
+  return {
+    ok:true,
+    cleanDays:clean.days,
+    omittedDays:Math.max(0,source.days-clean.days),
+    omittedEntries:Math.max(0,source.entries-clean.entries),
+    omittedSets:Math.max(0,source.sets-clean.sets)
+  };
 }
 
 window.exportData = function(){
@@ -529,8 +549,12 @@ window.importData = function(ev){
         ...sanitizeSettingsSnapshot(x)
       };
       const days=Object.keys(clean.data).length;
-      const sourceDays=Object.keys(x.data).length;
-      const warning=sourceDays!==days?`\n\nAviso: ${sourceDays-days} día(s) con estructura inválida serán omitidos.`:'';
+      const omissions=[
+        validation.omittedDays?`${validation.omittedDays} día(s)`:'',
+        validation.omittedEntries?`${validation.omittedEntries} registro(s)`:'',
+        validation.omittedSets?`${validation.omittedSets} serie(s)`:''
+      ].filter(Boolean);
+      const warning=omissions.length?`\n\nAviso: el respaldo contiene elementos con estructura inválida que serán omitidos: ${omissions.join(', ')}.`:'';
       if(!(await appConfirm(`Este respaldo contiene ${days} días de registros.${warning}\n\nImportarlo REEMPLAZARÁ todos tus datos actuales (también en la nube). Se guardará antes una copia en Recuperación; si no es posible, la importación se detendrá.`,{title:'Restaurar copia',confirmText:'Restaurar',danger:true}))) return;
       if(x.activeTraining&&!validTrainingSnapshot(x.activeTraining))throw new Error('La sesión activa del respaldo no es válida.');
       const synced=await recoverableChange('Restaurar respaldo JSON',{allDays:true,settings:true,training:true},()=>{
