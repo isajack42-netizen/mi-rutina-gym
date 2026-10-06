@@ -3,7 +3,7 @@
 // ===== MODO ENTRENAMIENTO =====
 const TRAIN_KEY='gymTrainState';
 const rawTrainState=safeParse(localStorage.getItem(TRAIN_KEY),null);
-let train=rawTrainState&&typeof rawTrainState==='object'?{...rawTrainState}:null, trainClock=null, wakeLock=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
+let train=rawTrainState&&typeof rawTrainState==='object'?{...rawTrainState}:null, trainClock=null, wakeLock=null, trainReturnFocus=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
 let restCtx=train&&train.__restCtx&&typeof train.__restCtx==='object'?train.__restCtx:null;
 if(train){
   window.timerEndAt=Number(train.__timerEndAt)||0;
@@ -72,6 +72,23 @@ function trainRestEnded(measured=true){
   }
 }
 function trainEntries(){ return train?train.order.map(id=>(data[train.date]||[]).find(x=>x.id===id)).filter(Boolean):[]; }
+function trainFocusable(root){
+  return [...root.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(el=>!el.hidden&&el.getClientRects().length);
+}
+function bindTrainFocusTrap(ov){
+  if(!ov||ov.dataset.focusBound==='1')return;
+  ov.dataset.focusBound='1';
+  ov.addEventListener('keydown',event=>{
+    if(event.key!=='Tab'||!ov.classList.contains('open'))return;
+    const items=trainFocusable(ov);
+    if(!items.length){event.preventDefault();ov.focus();return;}
+    const first=items[0],last=items[items.length-1];
+    if(document.activeElement===ov){event.preventDefault();(event.shiftKey?last:first).focus();return;}
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  });
+}
 function openEl(){ document.getElementById('modalBackdrop').classList.add('show'); document.body.classList.add('modal-open'); }
 
 function renderTrainCTA(){
@@ -125,12 +142,26 @@ function updateTrainClock(){
 }
 window.openTraining=function(){
   if(!train) return;
-  document.getElementById('trainOverlay').classList.add('open'); document.body.classList.add('train-open');
+  const ov=document.getElementById('trainOverlay'),active=document.activeElement;
+  if(!ov.classList.contains('open')&&active instanceof HTMLElement&&!active.closest('#modalBackdrop')&&active.getClientRects().length)trainReturnFocus=active;
+  document.querySelector('.app')?.setAttribute('inert','');
+  ov.setAttribute('aria-hidden','false');ov.classList.add('open'); document.body.classList.add('train-open');bindTrainFocusTrap(ov);
   clearInterval(trainClock); trainClock=setInterval(updateTrainClock,1000); updateTrainClock(); trainWake(); renderTrain(); trainRevealCurrentTarget(false);
+  requestAnimationFrame(()=>{try{ov.focus({preventScroll:true});}catch(_){try{ov.focus();}catch(__){}}});
 }
 function closeTrainUI(){
-  document.getElementById('trainOverlay').classList.remove('open'); document.body.classList.remove('train-open');
+  const ov=document.getElementById('trainOverlay'),wasOpen=ov.classList.contains('open');
+  ov.classList.remove('open');ov.setAttribute('aria-hidden','true');document.body.classList.remove('train-open');document.querySelector('.app')?.removeAttribute('inert');
   clearInterval(trainClock); trainClock=null; try{wakeLock&&wakeLock.release()}catch(e){} wakeLock=null;
+  if(wasOpen){
+    const previous=trainReturnFocus;trainReturnFocus=null;
+    requestAnimationFrame(()=>{
+      if(document.getElementById('modalBackdrop')?.classList.contains('show'))return;
+      const fallback=document.querySelector('.desktop-train-slot button,.train-cta-slot button,#tab-resumen');
+      const target=previous&&previous.isConnected&&previous.getClientRects().length?previous:fallback;
+      try{target?.focus({preventScroll:true});}catch(_){try{target?.focus();}catch(__){}}
+    });
+  }
 }
 window.trainExit=function(){ closeTrainUI(); renderTrainCTA(); toast('Entrenamiento en pausa · toca "Continuar" para volver'); }
 window.discardTrainingForDate=function(date,{silent=false}={}){
