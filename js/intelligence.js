@@ -419,6 +419,8 @@ function intelligenceSignalChips(intel){
   if(intel.trend?.performanceDown)chips.push('<span class="intel-chip down">Rendimiento ↓</span>');
   else if(intel.trend?.status==='improving')chips.push('<span class="intel-chip up">Tendencia ↑</span>');
   if(intel.trend?.fatigueLike)chips.push('<span class="intel-chip watch">Revisar recuperación</span>');
+  const personal=intel.patterns?.signals?.[0];
+  if(personal)chips.push(`<span class="intel-chip ${personal.kind==='warning'?'watch':personal.kind==='positive'?'up':''}">${escapeHtml(personal.label)}</span>`);
   if(intel.maturity?.label)chips.push(`<span class="intel-chip">${escapeHtml(intel.maturity.label)}</span>`);
   chips.push(`<span class="intel-chip">Confianza ${escapeHtml(intel.confidence.label.toLowerCase())}</span>`);
   return chips.join('');
@@ -426,11 +428,21 @@ function intelligenceSignalChips(intel){
 window.renderIntelligenceCard=function(intel,{compact=false,whyAction='openCurrentIntelligenceWhy()'}={}){
   if(!intel)return '<div class="empty">No hay suficiente información.</div>';
   const eyebrow=intel.maturity?.label||'Próxima decisión';
+  const patternSignals=(intel.patterns?.signals||[]).slice(0,3);
+  const patternHtml=!compact
+    ? `<div class="intel-personal-memory">
+        <div class="intel-personal-memory-head"><span class="eyebrow">Tu patrón reciente</span><small>${intel.patterns?.sessionsUsed||0} sesiones analizadas</small></div>
+        ${patternSignals.length
+          ? `<div class="intel-pattern-list">${patternSignals.map(x=>`<div class="intel-pattern-item ${escapeHtml(x.kind)}"><b>${escapeHtml(x.label)}</b><span>${escapeHtml(x.detail)}</span></div>`).join('')}</div>`
+          : '<div class="intel-pattern-empty">Todavía no hay un patrón personal suficientemente repetido para usarlo como contexto.</div>'}
+      </div>`
+    :'';
   return `<div class="intelligence-card ${escapeHtml(intel.tone)} ${compact?'compact':''}">
     <div class="intelligence-head"><div><span class="eyebrow">${escapeHtml(eyebrow)}</span><strong>${escapeHtml(intel.title)}</strong></div><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span></div>
     <div class="intelligence-plan">${escapeHtml(intelligencePlanText(intel))}</div>
     <p>${escapeHtml(intel.summary)}</p>
     <div class="intelligence-chips">${intelligenceSignalChips(intel)}</div>
+    ${patternHtml}
     ${compact?'<small class="intel-placeholder-note">Los valores grises de las series son la propuesta; puedes ajustarlos antes de ✓.</small>':''}
     <button class="intel-why" type="button" onclick="${whyAction}">¿Por qué?</button>
   </div>`;
@@ -438,6 +450,10 @@ window.renderIntelligenceCard=function(intel,{compact=false,whyAction='openCurre
 
 function intelligenceWhyHtml(intel){
   const target=intel.target;
+  const personalSignals=intel.patterns?.signals||[];
+  const personalHtml=personalSignals.length
+    ? `<div class="intel-pattern-dialog"><h3>Patrones personales recientes</h3>${personalSignals.map(x=>`<div class="intel-pattern-item ${escapeHtml(x.kind)}"><b>${escapeHtml(x.label)}</b><span>${escapeHtml(x.detail)}</span></div>`).join('')}</div>`
+    : '<div class="intel-pattern-dialog"><h3>Patrones personales recientes</h3><div class="intel-pattern-empty">Aún no existe una señal repetida suficiente. LiftEngine seguirá usando la sesión reciente y el objetivo de rutina sin inventar un patrón.</div></div>';
   const targetText=target?.ambiguous
     ? `Objetivo variable entre: ${target.routines.join(', ')}`
     : target?.repRange?`${target.sets} × ${target.repRange.min}–${target.repRange.max} · RIR ${target.rir} · descanso ${normalizeRestLabel(target.rest)}`:'Sin objetivo único de rutina';
@@ -445,6 +461,7 @@ function intelligenceWhyHtml(intel){
   return `<h2>¿Por qué esta recomendación?</h2>
     <div class="intel-dialog-summary"><span class="intelligence-action ${escapeHtml(intel.tone)}">${escapeHtml(intel.label)}</span><b>${escapeHtml(intel.title)}</b><span>${escapeHtml(intelligencePlanText(intel))}</span></div>
     <div class="intel-reason-list">${intel.reasons.length?intel.reasons.map(x=>`<div>${ic('check')}<span>${escapeHtml(x)}</span></div>`).join(''):'<div><span>Aún falta historial para explicar una progresión con detalle.</span></div>'}</div>
+    ${personalHtml}
     <div class="intel-detail-grid">
       <div><small>Última referencia</small><b>${escapeHtml(history)}</b></div>
       <div><small>Objetivo de rutina</small><b>${escapeHtml(targetText)}</b></div>
@@ -452,7 +469,7 @@ function intelligenceWhyHtml(intel){
       <div><small>Confianza</small><b>${escapeHtml(intel.confidence.label)}</b><span>${escapeHtml(intel.confidence.text)}</span></div>
       <div><small>Lectura de tendencia</small><b>${escapeHtml(intel.trend.status==='down'?'Descendente':intel.trend.status==='plateau'?'Meseta reciente':intel.trend.status==='improving'?'En mejora':'Estable / insuficiente')}</b><span>Una señal no equivale a un diagnóstico de fatiga.</span></div>
     </div>
-    <p class="muted intel-disclaimer">LiftEngine usa reglas transparentes basadas en tus series, repeticiones, carga, RIR, objetivo de rutina y tendencia de e1RM. No evalúa técnica, sueño, dolor, nutrición ni recuperación fuera de lo que registras.</p>
+    <p class="muted intel-disclaimer">LiftEngine usa reglas transparentes basadas en tus series, repeticiones, carga, RIR, objetivo de rutina, tendencia de e1RM y patrones repetidos de hasta 8 sesiones. Los patrones describen tu historial; no prueban causalidad ni evalúan técnica, sueño, dolor, nutrición o recuperación fuera de lo que registras.</p>
     <div class="actions"><button class="btn btn-primary" onclick="closeModal()">Entendido</button></div>`;
 }
 window.openCurrentIntelligenceWhy=function(){
