@@ -223,6 +223,7 @@
     <button class="progress-nav-btn active" id="progress-tab-performance" role="tab" aria-selected="true" aria-controls="progress-performance" tabindex="0" data-view="performance" onclick="setProgressView('performance',this)">Rendimiento</button>
     <button class="progress-nav-btn" id="progress-tab-intelligence" role="tab" aria-selected="false" aria-controls="progress-intelligence" tabindex="-1" data-view="intelligence" onclick="setProgressView('intelligence',this)">Inteligencia</button>
     <button class="progress-nav-btn" id="progress-tab-analytics" role="tab" aria-selected="false" aria-controls="progress-analytics" tabindex="-1" data-view="analytics" onclick="setProgressView('analytics',this)">Analítica</button>
+    <button class="progress-nav-btn desktop-progress-only" id="progress-tab-review" role="tab" aria-selected="false" aria-controls="progress-review" tabindex="-1" data-view="review" onclick="setProgressView('review',this)">Revisión</button>
     <button class="progress-nav-btn desktop-progress-only" id="progress-tab-history" role="tab" aria-selected="false" aria-controls="progress-history" tabindex="-1" data-view="history" onclick="setProgressView('history',this)">Historial</button>
     <button class="progress-nav-btn" id="progress-tab-body" role="tab" aria-selected="false" aria-controls="progress-body" tabindex="-1" data-view="body" onclick="setProgressView('body',this)">Cuerpo</button>
   </nav>
@@ -287,6 +288,37 @@
       <div class="analytics-panel-head"><h3>Próximas decisiones</h3><span class="muted">Motor explicable · reglas deterministas</span></div>
       <div id="analyticsIntelligence" class="intel-list"></div>
     </div>
+  </div>
+
+  <div class="card progress-view desktop-review-view" id="progress-review" role="tabpanel" aria-labelledby="progress-tab-review" data-progress-view="review">
+    <div class="section-title review-title">
+      <div>
+        <span class="eyebrow">Revisión periódica</span>
+        <h2>Qué cambió y qué importa</h2>
+        <p class="muted review-subtitle">LiftEngine resume tu entrenamiento en conclusiones comparables, sin sustituir las métricas detalladas de Analítica.</p>
+      </div>
+      <div class="review-controls">
+        <label for="reviewPeriod">Horizonte</label>
+        <select id="reviewPeriod" onchange="renderReview()">
+          <option value="week" selected>Últimos 7 días</option>
+          <option value="month">Últimos 28 días</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="reviewHero"></div>
+    <div id="reviewKpis" class="review-kpi-grid"></div>
+
+    <div class="review-section-head">
+      <div><span class="eyebrow">Lectura</span><h3>Lo más importante</h3></div>
+      <span class="badge" id="reviewRange"></span>
+    </div>
+    <div id="reviewInsights" class="review-insight-grid"></div>
+
+    <div class="review-section-head">
+      <div><span class="eyebrow">Rendimiento</span><h3>Ejercicios que movieron el periodo</h3></div>
+    </div>
+    <div id="reviewExercises" class="review-exercise-grid"></div>
   </div>
 
   <div class="card progress-view desktop-history-view" id="progress-history" role="tabpanel" aria-labelledby="progress-tab-history" data-progress-view="history">
