@@ -5,7 +5,7 @@ const root=process.cwd();
 const runtime=[
   'app.js','sw.js',
   'js/config.js','js/storage.js','js/core.js','js/settings.js','js/logbook.js','js/metrics.js','js/dashboard.js',
-  'js/analytics.js','js/history.js','js/planning.js','js/schedule.js','js/intelligence.js','js/tools.js','js/routines.js',
+  'js/analytics.js','js/history.js','js/planning.js','js/schedule.js','js/review.js','js/intelligence.js','js/tools.js','js/routines.js',
   'js/notifications.js','js/training.js','js/bootstrap.js','js/version.js'
 ];
 
@@ -119,8 +119,8 @@ if(!read('js/logbook.js').includes('function exercisePeriodComparison')||!read('
 if(!css.includes('.desktop-compare-grid')||!css.includes('.desktop-milestone-list')) fail.push('Faltan estilos del perfil analítico de ejercicio v6.4.');
 if(!html.includes('id="progress-tab-history"')||!html.includes('id="progress-history"')||!html.includes('id="historyCompareSummary"')) fail.push('Falta el workspace Historial de v6.5.');
 if(!read('js/history.js').includes('function historyPeriodCompare')||!read('js/history.js').includes('window.renderHistory')) fail.push('Falta el motor de historial/comparación v6.5.');
-if(!read('js/bootstrap.js').includes("'performance','intelligence','analytics','history','body'")||!read('js/bootstrap.js').includes("activeProgressView==='history'")) fail.push('Historial no está integrado en la subnavegación de Progreso.');
-if(!css.includes('v6.5 · TRAINING HISTORY & COMPARE')||!css.includes('.desktop-progress-only{display:none!important}')||!css.includes('#progreso .desktop-history-view.active{display:block!important}')) fail.push('Historial debe ser una experiencia exclusiva de escritorio.');
+if(!read('js/bootstrap.js').includes("'history'")||!read('js/bootstrap.js').includes("activeProgressView==='history'")) fail.push('Historial no está integrado en la subnavegación de Progreso.');
+if(!css.includes('v6.5 · TRAINING HISTORY & COMPARE')||!css.includes('.desktop-progress-only{display:none!important}')||!css.includes('#progreso .desktop-history-view.active')||!css.includes('display:block!important')) fail.push('Historial debe ser una experiencia exclusiva de escritorio.');
 if(!app.includes("'history'")||!sw.includes("'history'")) fail.push('history.js debe cargarse y precachearse.');
 if(!html.includes('id="routinePlanSummary"')||!html.includes('id="routinePlanFrequency"')||!html.includes('id="routinePlanMuscles"')) fail.push('Falta el Planning Workspace v6.6 en Rutinas.');
 if(!read('js/planning.js').includes('function planningComputePlan')||!read('js/planning.js').includes('window.renderRoutinePlanner')||!read('js/planning.js').includes('window.renderRoutineEditorPreview')) fail.push('Falta el motor o la vista previa del planificador v6.6.');
@@ -133,7 +133,7 @@ if(!css.includes('.preview-delta-row')||!css.includes('.preview-no-change')) fai
 if(!read('js/settings.js').includes('function sanitizeWeeklyPlan')||!read('js/settings.js').includes('weeklyPlan:sanitizeWeeklyPlan')) fail.push('Falta el contrato persistente del plan semanal v6.7.');
 if(!read('js/core.js').includes("WEEKLY_PLAN_KEY='gymWeeklyPlanV1'")||!read('js/core.js').includes("weeklyPlan={template:{},overrides:{}}")) fail.push('Falta el estado/localStorage del plan semanal v6.7.');
 if(!read('js/schedule.js').includes('function scheduleBuildTemplate')||!read('js/schedule.js').includes('window.scheduleStatusForDate')||!read('js/schedule.js').includes('window.moveScheduledSession')) fail.push('Falta el motor de planificación/reprogramación v6.7.');
-if(!app.includes("'planning','schedule','intelligence'")||!sw.includes("'planning','schedule','intelligence'")) fail.push('schedule.js debe cargarse y precachearse entre Planning e Intelligence.');
+if(!app.includes("'schedule'")||!sw.includes("'schedule'")) fail.push('schedule.js debe cargarse y precachearse.');
 if(!html.includes('id="routineWeeklySchedule"')||!read('js/planning.js').includes('renderWeeklySchedulePlanner')) fail.push('El plan semanal debe integrarse en el Planning Workspace.');
 if(!read('js/dashboard.js').includes('plannedRoutineForDate')||!read('js/dashboard.js').includes('openScheduleDateEditor')) fail.push('Calendario no muestra planeado vs. realizado en v6.7.');
 if(!read('js/training.js').includes("plannedRoutineForDate(todayStr())")||!read('js/training.js').includes('startPlannedRoutine')) fail.push('Modo Entrenamiento no utiliza la rutina planeada de hoy.');
@@ -143,6 +143,11 @@ if(!css.includes('#resumen .summary-glance-grid')||!css.includes('align-items:st
 if(!css.includes('#progreso .progress-nav-btn.active')||!css.includes('box-shadow:inset 2px 0 0 var(--accent)')) fail.push('La navegación desktop v6.8 debe usar un estado activo más sutil.');
 if(!css.includes('.cal-day.selected')||!css.includes('color-mix(in srgb,var(--accent) 11%,var(--card))')) fail.push('Calendario v6.8 debe usar selección de bajo contraste.');
 if(!css.includes('.routine details')||!css.includes('.routine summary:hover')||!css.includes('.modal,')||!css.includes('.app-dialog')) fail.push('Rutinas/modales deben compartir el lenguaje visual v6.8.');
+if(!html.includes('id="progress-tab-review"')||!html.includes('id="progress-review"')||!html.includes('id="reviewHero"')) fail.push('Falta el workspace de Revisión v6.9.');
+if(!read('js/review.js').includes('function reviewInsightModel')||!read('js/review.js').includes('function reviewNextFocus')||!read('js/review.js').includes('window.renderReview')) fail.push('Falta el motor de Weekly & Monthly Review v6.9.');
+if(!app.includes("'schedule','review','intelligence'")||!sw.includes("'schedule','review','intelligence'")) fail.push('review.js debe cargarse y precachearse entre Schedule e Intelligence.');
+if(!read('js/bootstrap.js').includes("'performance','intelligence','analytics','review','history','body'")||!read('js/bootstrap.js').includes("activeProgressView==='review'")) fail.push('Revisión no está integrada correctamente en Progreso.');
+if(!css.includes('v6.9 · PERIODIC REVIEW')||!css.includes('.review-hero')||!css.includes('.review-insight-grid')||!css.includes('.desktop-review-view.active')) fail.push('Faltan estilos o responsive de Revisión v6.9.');
 
 let depth=0;
 for(const ch of css){

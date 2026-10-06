@@ -13,6 +13,7 @@ function refreshAll(){
     // updateChart() ya refresca el detalle y Training Intelligence.
     updateChart();
     renderAnalytics();
+    if(typeof renderReview==='function')renderReview();
     if(typeof renderHistory==='function')renderHistory();
     renderRoutines();
     renderTrainCTA();
@@ -20,7 +21,7 @@ function refreshAll(){
 }
 let activeProgressView='performance';
 window.setProgressView=function(view,btn=null){
-    const allowed=['performance','intelligence','analytics','history','body'];
+    const allowed=['performance','intelligence','analytics','review','history','body'];
     activeProgressView=allowed.includes(view)?view:'performance';
     const root=document.getElementById('progreso');
     if(root)root.dataset.progressMode=['performance','intelligence'].includes(activeProgressView)?'exercise':'overview';
@@ -41,6 +42,7 @@ window.setProgressView=function(view,btn=null){
         if(typeof renderProgressionPanel==='function')renderProgressionPanel();
       }
       if(activeProgressView==='analytics'&&typeof renderAnalytics==='function')renderAnalytics();
+      if(activeProgressView==='review'&&typeof renderReview==='function')renderReview();
       if(activeProgressView==='history'&&typeof renderHistory==='function')renderHistory();
       if(activeProgressView==='body'){
         if(typeof renderBodyWeights==='function')renderBodyWeights();
@@ -108,7 +110,7 @@ function initDesktopExperience(){
   const mq=matchMedia('(min-width:1200px)');
   const apply=()=>{
     const details=document.getElementById('summaryMore');
-    if(!mq.matches&&activeProgressView==='history'){
+    if(!mq.matches&&['review','history'].includes(activeProgressView)){
       const analyticsBtn=document.getElementById('progress-tab-analytics');
       if(analyticsBtn)setProgressView('analytics',analyticsBtn);
     }
