@@ -231,6 +231,8 @@ window.openExerciseInfo=async function(name,initialTab='overview'){
     const ex=await exerciseLibraryLoad(id);
     if(!ex){toast('No se encontró la ficha técnica');return;}
     exerciseLibraryRender(ex,initialTab);
+    const train=document.getElementById('trainOverlay');
+    if(train?.classList.contains('open'))train.setAttribute('inert','');
     const back=document.getElementById('modalBackdrop');
     back.classList.add('show');
     document.body.classList.add('modal-open');

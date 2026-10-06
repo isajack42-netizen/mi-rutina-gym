@@ -44,6 +44,15 @@ for (const file of files) {
   if(!indexItem) fail(file + ': exercise is missing from index.json.');
   if(indexItem.name!==ex.name) fail(file + ': index canonical name does not match.');
   if(JSON.stringify(indexItem.aliases||[])!==JSON.stringify(ex.aliases||[])) fail(file + ': index aliases do not match.');
+  const plannedItem=planned.exercises.find(x=>x.id===ex.id);
+  if(!plannedItem||plannedItem.name!==ex.name) fail(file + ': planned catalog metadata does not match.');
+  if(indexItem.contentStatus!==ex.contentStatus) fail(file + ': index contentStatus does not match.');
+  if(indexItem.mediaStatus!==ex.media?.status) fail(file + ': index mediaStatus does not match.');
+  if(JSON.stringify(indexItem.primaryMuscles||[])!==JSON.stringify(ex.taxonomy?.primaryMuscles||[])) fail(file + ': index primary muscles do not match.');
+  if(indexItem.movementPattern!==ex.taxonomy?.movementPattern) fail(file + ': index movement pattern does not match.');
+  if(JSON.stringify(indexItem.equipment||[])!==JSON.stringify(ex.taxonomy?.equipment||[])) fail(file + ': index equipment does not match.');
+  if(indexItem.difficulty!==ex.taxonomy?.difficulty) fail(file + ': index difficulty does not match.');
+  if(JSON.stringify(indexItem.goals||[])!==JSON.stringify(ex.taxonomy?.goals||[])) fail(file + ': index goals do not match.');
 
   if (!ex.name || !Array.isArray(ex.aliases) || ex.locale !== 'es-MX') fail(file + ': identity fields incomplete.');
   const localNames = [ex.name, ...ex.aliases].map(norm);
@@ -130,6 +139,21 @@ if(!ui.includes('renderExerciseLibraryBrowser')||!ui.includes('exerciseLibraryIn
 for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey','exercise-step-media','exercise-mistake-media']){
   if(!ui.includes(marker)) fail('pilot UI marker missing: '+marker);
 }
-if(exercises.length!==15) fail('First Pack must contain exactly 15 exercise files at this stage.');
-if(exercises.filter(x=>x.media?.status==='ready').length!==15) fail('First Pack must have 15 ready media packs.');
-console.log('LiftEngine exercise library OK · 15/15 First Pack · ' + taxonomy.muscles.length + ' muscles · all packs ready offline');
+const FIRST_PACK_IDS=[
+  'bench-press-barbell','incline-dumbbell-press','cable-fly','overhead-press-barbell','lateral-raise-dumbbell',
+  'lat-pulldown','seated-cable-row','one-arm-dumbbell-row','barbell-curl','incline-dumbbell-curl',
+  'triceps-cable-pushdown','parallel-bar-dip','back-squat-barbell','leg-press','lying-leg-curl'
+];
+for(const id of FIRST_PACK_IDS){
+  const ex=exercises.find(x=>x.id===id);
+  if(!ex) fail('First Pack missing exercise: '+id);
+  if(ex.media?.status!=='ready') fail('First Pack media not ready: '+id);
+  if(!['reviewed','ready'].includes(ex.contentStatus)) fail('First Pack content not reviewed: '+id);
+  const plannedItem=planned.exercises.find(x=>x.id===id);
+  if(plannedItem?.status!=='ready') fail('First Pack plan status not ready: '+id);
+}
+const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+if(!css.includes('grid-template-columns:repeat(6,minmax(0,1fr))')) fail('desktop primary navigation is not sized for six tabs.');
+if(!ui.includes("train.setAttribute('inert','')")) fail('training overlay is not isolated behind Exercise Library modal.');
+if(!fs.readFileSync(path.join(root,'js/tools.js'),'utf8').includes("trainOverlay')?.removeAttribute('inert')")) fail('training inert state is not restored when modal closes.');
+console.log('LiftEngine exercise library OK · 15/15 First Pack baseline · ' + exercises.length + ' total · ' + taxonomy.muscles.length + ' muscles');

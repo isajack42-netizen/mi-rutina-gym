@@ -80,7 +80,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:10p
 .icon-btn{width:var(--control-h);padding:0}
 
 /* PESTAÑAS SIMÉTRICAS EN PC */
-.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:16px;width:100%}
+.tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:16px;width:100%}
 .tab-btn{
   border:1px solid var(--line);background:var(--card);color:var(--muted);
   border-radius:var(--radius-sm);min-height:var(--control-h);padding:8px 12px;
