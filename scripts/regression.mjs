@@ -177,7 +177,7 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   const a=src.indexOf('// <planning-helpers>'), z=src.indexOf('// </planning-helpers>');
   assert.ok(a>=0&&z>a,'faltan los helpers puros del Planning Workspace v6.6');
   const ctx=context();
-  vm.runInContext(src.slice(a,z)+'\nglobalThis.__plan={planningClampFrequency,planningDefaultFrequencies,planningMedian,planningComputePlan,planningBalanceSignals};',ctx);
+  vm.runInContext(src.slice(a,z)+'\nglobalThis.__plan={planningClampFrequency,planningDefaultFrequencies,planningMedian,planningComputePlan,planningBalanceSignals,planningRoutineMuscleMap,planningRoutineDelta};',ctx);
   const p=ctx.__plan, J=x=>JSON.parse(JSON.stringify(x));
 
   assert.equal(p.planningClampFrequency(1.24),1);
@@ -228,6 +228,24 @@ function run(file,ctx){ vm.runInContext(read(file),ctx,{filename:file}); }
   assert.ok(signals.some(x=>x.kind==='high'));
   assert.ok(signals.some(x=>x.kind==='low'));
   assert.ok(signals.some(x=>x.title==='Ejercicios sin clasificar'));
+
+  const delta=J(p.planningRoutineDelta(
+    [{name:'Press',sets:3,muscle:'Pecho'},{name:'Aperturas',sets:3,muscle:'Pecho'},{name:'Laterales',sets:3,muscle:'Hombros'}],
+    [{name:'Press',sets:4,muscle:'Pecho'},{name:'Aperturas',sets:3,muscle:'Pecho'},{name:'Laterales',sets:3,muscle:'Hombros'}],
+    2
+  ));
+  assert.equal(delta.beforeTotal,9);
+  assert.equal(delta.afterTotal,10);
+  assert.equal(delta.totalDelta,1);
+  assert.equal(delta.weeklyDelta,2);
+  assert.deepEqual(delta.changes,[{muscle:'Pecho',beforeSets:6,afterSets:7,deltaSets:1,weeklyDelta:2}]);
+
+  const unchanged=J(p.planningRoutineDelta(
+    [{name:'Press',sets:3,muscle:'Pecho'}],
+    [{name:'Press',sets:3,muscle:'Pecho'}],
+    2
+  ));
+  assert.equal(unchanged.changes.length,0);
 }
 
 // ===== Training History & Compare (v6.5.0) =====
