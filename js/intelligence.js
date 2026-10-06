@@ -173,14 +173,24 @@ function intelPersonalPatterns(name,profiles){
   }
 
   const positioned=rows.filter(x=>x.e1rm>0&&Number.isFinite(x.positionRatio));
-  const early=positioned.filter(x=>x.positionRatio<=.4),late=positioned.filter(x=>x.positionRatio>=.6);
-  let position={status:'forming',label:'Posición sin señal',detail:'El ejercicio no ha variado suficiente de posición para comparar su rendimiento.',deltaPct:null,earlyCount:early.length,lateCount:late.length};
-  if(early.length>=2&&late.length>=2){
+  const bucket=x=>x.positionRatio<=.4?'early':x.positionRatio>=.6?'late':'middle';
+  const early=positioned.filter(x=>bucket(x)==='early'),late=positioned.filter(x=>bucket(x)==='late');
+  let positionSwitches=0,previousBucket='';
+  positioned.forEach(x=>{
+    const b=bucket(x);
+    if(b==='middle')return;
+    if(previousBucket&&previousBucket!==b)positionSwitches++;
+    previousBucket=b;
+  });
+  let position={status:'forming',label:'Posición sin señal',detail:'El ejercicio no ha variado suficiente de posición para comparar su rendimiento.',deltaPct:null,earlyCount:early.length,lateCount:late.length,switches:positionSwitches};
+  // Exigimos cambios de posición repetidos para reducir el riesgo de confundir
+  // una progresión temporal con un efecto real del orden de la sesión.
+  if(early.length>=2&&late.length>=2&&positionSwitches>=2){
     const earlyMean=intelMean(early.map(x=>x.e1rm)),lateMean=intelMean(late.map(x=>x.e1rm));
     const deltaPct=intelPctChange(earlyMean,lateMean);
     position=deltaPct!=null&&deltaPct<=-5
-      ? {status:'late-down',label:'Rinde menos al final',detail:`Cuando aparece tarde en la sesión, el e1RM medio es ${Math.abs(deltaPct).toFixed(1)}% menor que cuando aparece temprano.`,deltaPct,earlyCount:early.length,lateCount:late.length}
-      : {status:'stable',label:'Posición estable',detail:`No aparece una diferencia grande por posición (${deltaPct==null?'—':`${deltaPct>=0?'+':''}${deltaPct.toFixed(1)}%`}).`,deltaPct,earlyCount:early.length,lateCount:late.length};
+      ? {status:'late-down',label:'Rinde menos al final',detail:`Tras varios cambios de posición, el e1RM medio es ${Math.abs(deltaPct).toFixed(1)}% menor cuando aparece tarde en la sesión.`,deltaPct,earlyCount:early.length,lateCount:late.length,switches:positionSwitches}
+      : {status:'stable',label:'Posición estable',detail:`Tras varios cambios de posición no aparece una diferencia grande (${deltaPct==null?'—':`${deltaPct>=0?'+':''}${deltaPct.toFixed(1)}%`}).`,deltaPct,earlyCount:early.length,lateCount:late.length,switches:positionSwitches};
   }
 
   const signals=[];
