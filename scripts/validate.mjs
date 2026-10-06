@@ -5,7 +5,7 @@ const root=process.cwd();
 const runtime=[
   'app.js','sw.js',
   'js/config.js','js/storage.js','js/core.js','js/settings.js','js/logbook.js','js/metrics.js','js/dashboard.js',
-  'js/analytics.js','js/history.js','js/planning.js','js/intelligence.js','js/tools.js','js/routines.js',
+  'js/analytics.js','js/history.js','js/planning.js','js/schedule.js','js/intelligence.js','js/tools.js','js/routines.js',
   'js/notifications.js','js/training.js','js/bootstrap.js','js/version.js'
 ];
 
@@ -124,12 +124,20 @@ if(!css.includes('v6.5 · TRAINING HISTORY & COMPARE')||!css.includes('.desktop-
 if(!app.includes("'history'")||!sw.includes("'history'")) fail.push('history.js debe cargarse y precachearse.');
 if(!html.includes('id="routinePlanSummary"')||!html.includes('id="routinePlanFrequency"')||!html.includes('id="routinePlanMuscles"')) fail.push('Falta el Planning Workspace v6.6 en Rutinas.');
 if(!read('js/planning.js').includes('function planningComputePlan')||!read('js/planning.js').includes('window.renderRoutinePlanner')||!read('js/planning.js').includes('window.renderRoutineEditorPreview')) fail.push('Falta el motor o la vista previa del planificador v6.6.');
-if(!app.includes("'history','planning','intelligence'")||!sw.includes("'history','planning','intelligence'")) fail.push('planning.js debe cargarse y precachearse entre History e Intelligence.');
+if(!app.includes("'planning'")||!sw.includes("'planning'")) fail.push('planning.js debe cargarse y precachearse.');
 if(!read('js/routines.js').includes("modal.classList.add('routine-editor-modal')")||!read('js/routines.js').includes("renderRoutineEditorPreview")) fail.push('El editor de rutinas debe mostrar vista previa de planificación en escritorio.');
 if(!css.includes('v6.6 · PLANNING WORKSPACE')||!css.includes('.routine-plan-summary')||!css.includes('.routine-editor-preview')) fail.push('Faltan estilos del Planning Workspace v6.6.');
 if(!read('js/analytics.js').includes("resetRoutinePlanScenario")) fail.push('El planificador debe reajustar su escenario cuando cambia la meta semanal.');
 if(!read('js/planning.js').includes('function planningRoutineDelta')||!read('js/planning.js').includes('Cambios respecto a')||!read('js/planning.js').includes('Las alertas globales de otros músculos permanecen en el Planificador principal')) fail.push('La vista previa del editor debe limitarse a la rutina editada en v6.6.1.');
 if(!css.includes('.preview-delta-row')||!css.includes('.preview-no-change')) fail.push('Faltan estilos para los deltas específicos del editor v6.6.1.');
+if(!read('js/settings.js').includes('function sanitizeWeeklyPlan')||!read('js/settings.js').includes('weeklyPlan:sanitizeWeeklyPlan')) fail.push('Falta el contrato persistente del plan semanal v6.7.');
+if(!read('js/core.js').includes("WEEKLY_PLAN_KEY='gymWeeklyPlanV1'")||!read('js/core.js').includes("weeklyPlan={template:{},overrides:{}}")) fail.push('Falta el estado/localStorage del plan semanal v6.7.');
+if(!read('js/schedule.js').includes('function scheduleBuildTemplate')||!read('js/schedule.js').includes('window.scheduleStatusForDate')||!read('js/schedule.js').includes('window.moveScheduledSession')) fail.push('Falta el motor de planificación/reprogramación v6.7.');
+if(!app.includes("'planning','schedule','intelligence'")||!sw.includes("'planning','schedule','intelligence'")) fail.push('schedule.js debe cargarse y precachearse entre Planning e Intelligence.');
+if(!html.includes('id="routineWeeklySchedule"')||!read('js/planning.js').includes('renderWeeklySchedulePlanner')) fail.push('El plan semanal debe integrarse en el Planning Workspace.');
+if(!read('js/dashboard.js').includes('plannedRoutineForDate')||!read('js/dashboard.js').includes('openScheduleDateEditor')) fail.push('Calendario no muestra planeado vs. realizado en v6.7.');
+if(!read('js/training.js').includes("plannedRoutineForDate(todayStr())")||!read('js/training.js').includes('startPlannedRoutine')) fail.push('Modo Entrenamiento no utiliza la rutina planeada de hoy.');
+if(!css.includes('v6.7 · WEEKLY SCHEDULE')||!css.includes('.dashboard-week-plan')||!css.includes('.weekly-template-grid')||!css.includes('.calendar-plan-line')) fail.push('Faltan estilos del Weekly Schedule v6.7.');
 
 let depth=0;
 for(const ch of css){
