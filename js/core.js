@@ -882,7 +882,7 @@ async function writeSettingsV2(){
         cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(content)};
         return true;
       }
-      const keepLocal=await appConfirm('La configuración (rutinas, alias, tema o notas de ejercicios) cambió en otro dispositivo.\\n\\n¿Conservar la configuración de este dispositivo?',{title:'Conflicto de configuración',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
+      const keepLocal=await appConfirm('La configuración (rutinas, plan semanal, alias, tema o notas de ejercicios) cambió en otro dispositivo.\\n\\n¿Conservar la configuración de este dispositivo?',{title:'Conflicto de configuración',confirmText:'Conservar este dispositivo',cancelText:'Usar nube'});
       if(!keepLocal){applyCloudSettings(cloud);const renamed=(typeof migrateNames==='function')?migrateNames():false;cloudMeta.settings={revision:Number(cloud.revision)||0,hash:fingerprint(buildSettingsContent())};persistLocal();if(renamed)saveQueued=true;return true;}
       expected=Number(cloud.revision)||0;
     }
