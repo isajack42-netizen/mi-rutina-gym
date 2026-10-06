@@ -52,7 +52,7 @@ window.loginConGoogle = async function() {
 };
 
 async function wipeLocalData(){
-    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,BODY_GOAL_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymLastUid']
+    [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,BODY_GOAL_KEY,WEEKLY_PLAN_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymLastUid']
       .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
     try{
       for(let i=localStorage.length-1;i>=0;i--){
@@ -76,7 +76,7 @@ window.logout = async function() {
     }
 };
 
-const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines', EX_NOTES_KEY='gymExerciseNotes', ANALYTICS_TARGET_KEY='gymWeeklySessionTarget', BODY_GOAL_KEY='gymBodyGoalV1';
+const KEY='trackGymDataV2', CAT='gymCategories', WEIGHT='gymBodyWeight', MEASURE='gymBodyMeasurements', UNIT_KEY='gymUnitSystem', THEME_KEY='gymTheme', ROUTINES_KEY='gymCustomRoutines', EX_NOTES_KEY='gymExerciseNotes', ANALYTICS_TARGET_KEY='gymWeeklySessionTarget', BODY_GOAL_KEY='gymBodyGoalV1', WEEKLY_PLAN_KEY='gymWeeklyPlanV1';
 const THEME_VALUES=['auto','light','default','ocean','forest','coffee'];
 function normalizeTheme(v){ const t=cleanString(v,'auto'); return THEME_VALUES.includes(t)?t:'auto'; }
 function systemPrefersLight(){ return typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme: light)').matches; }
@@ -146,7 +146,7 @@ const defaultMuscles = {
 };
 
 // Variables globales del sistema
-let data={}, categories={}, weights=[], measurements=[], notes={}, exerciseNotes={}, customRoutines={}, currentUnit='kg', currentTheme='auto', weeklySessionTarget=6, bodyGoal={mode:'neutral',targetWeightKg:null,targetWaistCm:null}, setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, analyticsWeeklyChart=null, saveInFlight=false, saveQueued=false;
+let data={}, categories={}, weights=[], measurements=[], notes={}, exerciseNotes={}, customRoutines={}, currentUnit='kg', currentTheme='auto', weeklySessionTarget=6, bodyGoal={mode:'neutral',targetWeightKg:null,targetWaistCm:null}, weeklyPlan={template:{},overrides:{}}, setCounter=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear(), selectedDate='', logType='pesas', chart=null, muscleChart=null, bodyWeightChart=null, measurementChart=null, analyticsWeeklyChart=null, saveInFlight=false, saveQueued=false;
 let customAliases={}, customMuscles={};
 let localRecoveryDetected=false; // Solo para corrupción real (JSON ilegible o pérdida estructural grave)
 let localNormalizationDetected=false; // Migraciones/normalizaciones compatibles, sin alarmar al usuario
@@ -451,6 +451,7 @@ function loadLegacyLocal(){
   currentTheme=normalizeTheme(localStorage.getItem(THEME_KEY));
   weeklySessionTarget=Math.min(7,Math.max(1,parseInt(localStorage.getItem(ANALYTICS_TARGET_KEY),10)||6));
   bodyGoal=sanitizeBodyGoal(safeParse(localStorage.getItem(BODY_GOAL_KEY),{}));
+  weeklyPlan=sanitizeWeeklyPlan(safeParse(localStorage.getItem(WEEKLY_PLAN_KEY),{}));
   customAliases = aliasesStored ? sanitizeAliases(readLocal('gymAliases', {}, x=>x)) : JSON.parse(JSON.stringify(defaultAliases));
   customMuscles = musclesStored ? sanitizeMuscles(readLocal('gymMuscles', {}, x=>x)) : JSON.parse(JSON.stringify(defaultMuscles));
 }
@@ -469,6 +470,7 @@ function persistLegacySnapshot(){
   localStorage.setItem(THEME_KEY,currentTheme);
   localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget));
   localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal)));
+  localStorage.setItem(WEEKLY_PLAN_KEY,JSON.stringify(sanitizeWeeklyPlan(weeklyPlan)));
 }
 
 function dirtyDaysKey(){ return DIRTY_DAYS_PREFIX+(DOC_ID||'anonymous'); }
@@ -579,7 +581,7 @@ async function load(){
 
 function persistLocal({forceAll=false,replaceDays=false,settings=false}={}){
   if(localPersistTimer){clearTimeout(localPersistTimer);localPersistTimer=null;}
-  try{ localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme); localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal))); }catch(e){}
+  try{ localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme); localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal))); localStorage.setItem(WEEKLY_PLAN_KEY,JSON.stringify(sanitizeWeeklyPlan(weeklyPlan))); }catch(e){}
   if(!localStoreReady||!globalThis.LiftLocalDB){
     try{persistLegacySnapshot();}catch(e){console.warn('No se pudo guardar localmente:',e);}
     return Promise.resolve(false);
