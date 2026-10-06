@@ -98,6 +98,7 @@
 <button class="tab-btn" id="tab-calendario" role="tab" aria-selected="false" aria-controls="calendario" tabindex="-1" onclick="switchTab('calendario',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Calendario</span></button>
 <button class="tab-btn" id="tab-progreso" role="tab" aria-selected="false" aria-controls="progreso" tabindex="-1" onclick="switchTab('progreso',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg></span><span>Progreso</span></button>
 <button class="tab-btn" id="tab-rutinas" role="tab" aria-selected="false" aria-controls="rutinas" tabindex="-1" onclick="switchTab('rutinas',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span>Rutinas</span></button>
+<button class="tab-btn" id="tab-ejercicios" role="tab" aria-selected="false" aria-controls="ejercicios" tabindex="-1" onclick="switchTab('ejercicios',this)"><span class="ti"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg></span><span>Ejercicios</span></button>
 </nav>
 <div class="desktop-train-slot" aria-label="Acción de entrenamiento"></div>
 </div>
@@ -415,6 +416,30 @@
       <div id="routinePlanSignals" class="routine-plan-signals"></div>
       <p class="routine-plan-footnote">Las series se asignan al grupo muscular principal configurado para cada ejercicio. El escenario no cambia tus rutinas ni se sincroniza.</p>
     </aside>
+  </div>
+</section>
+
+<!-- PESTAÑA: EJERCICIOS -->
+<section id="ejercicios" class="tab exercise-library-browser-tab" role="tabpanel" aria-labelledby="tab-ejercicios">
+  <div class="card exercise-browser-shell">
+    <div class="section-title exercise-browser-title">
+      <div>
+        <span class="eyebrow">Exercise Library</span>
+        <h2>Biblioteca de ejercicios</h2>
+        <p class="muted">Consulta técnica, músculos, variantes y errores comunes sin salir de LiftEngine.</p>
+      </div>
+      <span class="badge" id="exerciseLibraryCount">0 ejercicios</span>
+    </div>
+    <div class="exercise-browser-search">
+      <label for="exerciseLibrarySearch">Buscar</label>
+      <input id="exerciseLibrarySearch" type="search" autocomplete="off" placeholder="Ej. Press banca, pecho, barra…" oninput="renderExerciseLibraryBrowser()">
+    </div>
+    <div class="exercise-browser-filters" aria-label="Filtros de ejercicios">
+      <label>Músculo<select id="exerciseLibraryMuscleFilter" onchange="renderExerciseLibraryBrowser()"><option value="">Todos</option></select></label>
+      <label>Equipo<select id="exerciseLibraryEquipmentFilter" onchange="renderExerciseLibraryBrowser()"><option value="">Todos</option></select></label>
+      <label>Patrón<select id="exerciseLibraryPatternFilter" onchange="renderExerciseLibraryBrowser()"><option value="">Todos</option></select></label>
+    </div>
+    <div id="exerciseLibraryBrowserList" class="exercise-browser-list" aria-live="polite"></div>
   </div>
 </section>
 <footer class="credit"><svg class="ic logo" aria-hidden="true"><use href="#i-logo"/></svg><b>LiftEngine</b><span>Creada y diseñada por <b>Isaias Cruz</b></span><a href="mailto:isajack42@gmail.com">isajack42@gmail.com</a></footer>

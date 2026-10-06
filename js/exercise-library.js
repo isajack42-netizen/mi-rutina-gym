@@ -239,3 +239,69 @@ window.exerciseLibraryButtonHtml=function(name,label='Técnica'){
   if(!window.exerciseLibraryHas(name))return '';
   return `<button class="exercise-info-btn" type="button" data-exercise="${escapeHtml(name)}" onclick="event.preventDefault(); event.stopPropagation(); openExerciseInfo(this.dataset.exercise)">${ic('bulb')} <span>${escapeHtml(label)}</span></button>`;
 };
+
+
+function exerciseLibraryUniqueTax(group,ids){
+  const wanted=new Set(ids);
+  return (exerciseLibraryTaxonomy?.[group]||[]).filter(row=>wanted.has(row.id));
+}
+function exerciseLibraryFillSelect(id,rows){
+  const select=document.getElementById(id); if(!select||select.dataset.libraryReady==='1')return;
+  const current=select.value;
+  select.innerHTML='<option value="">Todos</option>'+rows.map(row=>`<option value="${escapeHtml(row.id)}">${escapeHtml(row.label)}</option>`).join('');
+  if([...select.options].some(o=>o.value===current))select.value=current;
+  select.dataset.libraryReady='1';
+}
+function exerciseLibraryInitFilters(){
+  const muscles=new Set(),equipment=new Set(),patterns=new Set();
+  exerciseLibraryIndex.forEach(item=>{
+    (item.primaryMuscles||[]).forEach(id=>muscles.add(id));
+    (item.equipment||[]).forEach(id=>equipment.add(id));
+    if(item.movementPattern)patterns.add(item.movementPattern);
+  });
+  exerciseLibraryFillSelect('exerciseLibraryMuscleFilter',exerciseLibraryUniqueTax('muscles',muscles));
+  exerciseLibraryFillSelect('exerciseLibraryEquipmentFilter',exerciseLibraryUniqueTax('equipment',equipment));
+  exerciseLibraryFillSelect('exerciseLibraryPatternFilter',exerciseLibraryUniqueTax('movementPatterns',patterns));
+}
+function exerciseLibrarySearchText(item){
+  const labels=[
+    ...(item.primaryMuscles||[]).map(id=>exerciseLibraryTaxLabel('muscles',id)),
+    ...(item.equipment||[]).map(id=>exerciseLibraryTaxLabel('equipment',id)),
+    exerciseLibraryTaxLabel('movementPatterns',item.movementPattern),
+    exerciseLibraryTaxLabel('difficulties',item.difficulty),
+    ...(item.goals||[]).map(id=>exerciseLibraryTaxLabel('goals',id))
+  ];
+  return exerciseLibraryNorm([item.name,...(item.aliases||[]),...labels].join(' '));
+}
+window.renderExerciseLibraryBrowser=function(){
+  const root=document.getElementById('exerciseLibraryBrowserList'); if(!root)return;
+  exerciseLibraryInitFilters();
+  const q=exerciseLibraryNorm(document.getElementById('exerciseLibrarySearch')?.value||'');
+  const muscle=document.getElementById('exerciseLibraryMuscleFilter')?.value||'';
+  const equipment=document.getElementById('exerciseLibraryEquipmentFilter')?.value||'';
+  const pattern=document.getElementById('exerciseLibraryPatternFilter')?.value||'';
+  const rows=exerciseLibraryIndex.filter(item=>
+    (!q||exerciseLibrarySearchText(item).includes(q))&&
+    (!muscle||(item.primaryMuscles||[]).includes(muscle))&&
+    (!equipment||(item.equipment||[]).includes(equipment))&&
+    (!pattern||item.movementPattern===pattern)
+  );
+  const count=document.getElementById('exerciseLibraryCount');
+  if(count)count.textContent=`${rows.length} ejercicio${rows.length===1?'':'s'}`;
+  if(!rows.length){
+    root.innerHTML='<div class="empty"><b>No encontré ejercicios</b><span>Prueba otro nombre o quita alguno de los filtros.</span></div>';
+    return;
+  }
+  root.innerHTML=rows.map(item=>{
+    const muscleLabel=(item.primaryMuscles||[]).map(id=>exerciseLibraryTaxLabel('muscles',id)).join(', ');
+    const equipmentLabel=(item.equipment||[]).map(id=>exerciseLibraryTaxLabel('equipment',id)).join(', ');
+    const patternLabel=exerciseLibraryTaxLabel('movementPatterns',item.movementPattern);
+    const thumb=item.thumbnail?`<img src="${escapeHtml(exerciseLibraryAssetUrl(item.thumbnail))}" alt="" loading="lazy">`:'<div class="exercise-browser-thumb-placeholder" aria-hidden="true"></div>';
+    return `<button class="exercise-browser-card" type="button" data-exercise="${escapeHtml(item.name)}" onclick="openExerciseInfo(this.dataset.exercise)">
+      <span class="exercise-browser-thumb">${thumb}</span>
+      <span class="exercise-browser-card-copy"><b>${escapeHtml(item.name)}</b><small>${escapeHtml(muscleLabel)} · ${escapeHtml(patternLabel)}</small><span>${escapeHtml(equipmentLabel)}</span></span>
+      <span class="exercise-browser-open" aria-hidden="true">→</span>
+    </button>`;
+  }).join('');
+};
+exerciseLibraryReady.then(ok=>{if(ok)window.renderExerciseLibraryBrowser();});

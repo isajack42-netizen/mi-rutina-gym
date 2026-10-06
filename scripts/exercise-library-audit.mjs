@@ -119,7 +119,10 @@ if(!app.includes("'exercise-library'")) fail('exercise-library.js is not in runt
 if(!sw.includes("q('exercise-library/index.json')")||!sw.includes("q('exercise-library/exercises/bench-press-barbell.json')")) fail('pilot data is not precached.');
 if(!routines.includes('exerciseLibraryButtonHtml')) fail('routine integration is missing.');
 if(!training.includes('exerciseLibraryButtonHtml')) fail('training integration is missing.');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+if(!html.includes('id="tab-ejercicios"')||!html.includes('id="exerciseLibraryBrowserList"')) fail('Exercise Library browser tab is missing.');
+if(!ui.includes('renderExerciseLibraryBrowser')||!ui.includes('exerciseLibraryInitFilters')) fail('Exercise Library browser logic is missing.');
 for(const marker of ['Visión general','Técnica','Músculos','Variantes','Errores comunes','exerciseLibraryTabKey','exercise-step-media','exercise-mistake-media']){
   if(!ui.includes(marker)) fail('pilot UI marker missing: '+marker);
 }
-console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · pilot UI + ready assets wired');
+console.log('LiftEngine exercise library OK · ' + exercises.length + ' exercise(s) · ' + planned.exercises.length + ' planned · ' + taxonomy.muscles.length + ' muscles · pilot UI + ready assets + browser wired');

@@ -188,11 +188,11 @@ Antes de producir el resto del catálogo debe validar:
 - pruebas de teclado, foco y rest timer.
 
 ### Fase 4 — Library
-- sección Ejercicios;
-- búsqueda;
-- filtros;
-- aliases;
-- empty states.
+- sección Ejercicios; ✅ piloto
+- búsqueda; ✅
+- filtros por músculo/equipo/patrón; ✅
+- aliases; ✅
+- empty states. ✅
 
 ### Fase 5 — First Pack
 - completar 15 fichas;
