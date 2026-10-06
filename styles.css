@@ -1799,3 +1799,109 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   #rutinas .routine-planner-card{max-height:calc(100vh - 24px)}
   .modal.routine-editor-modal{max-height:calc(100vh - 24px)}
 }
+
+
+/* ===== v6.7 · WEEKLY SCHEDULE ===== */
+.dashboard-week-plan{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  gap:12px;
+  align-items:center;
+  margin-bottom:10px;
+  padding:12px 14px;
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:11px;
+}
+.dashboard-week-plan h3{margin:1px 0 3px!important;font-size:.96rem!important}
+.dashboard-week-plan p{margin:0;color:var(--muted);font-size:.7rem}
+.dashboard-week-plan-meta{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:2px;
+  min-width:150px;
+  text-align:right;
+}
+.dashboard-week-plan-meta b{font-size:.72rem}
+.dashboard-week-plan-meta span{color:var(--muted);font-size:.62rem;white-space:nowrap}
+
+.cal-day.has-plan:not(.has-workout){
+  border-color:color-mix(in srgb,var(--accent) 34%,var(--line));
+  background:color-mix(in srgb,var(--accent) 5%,var(--card));
+}
+.cal-day.plan-completed{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--green) 70%,transparent)}
+.cal-day.plan-changed{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--yellow) 70%,transparent)}
+.cal-day.plan-missed{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--muted) 60%,transparent)}
+.cal-routine.planned{color:var(--accent);font-weight:800}
+.cal-plan-text{color:var(--muted)}
+.calendar-plan-line{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0 0 12px;
+  padding:10px 11px;
+  background:var(--soft);
+  border:1px solid var(--line);
+  border-radius:9px;
+}
+.calendar-plan-line>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.calendar-plan-line b{font-size:.78rem}
+.calendar-plan-line small{color:var(--muted);font-size:.64rem}
+.calendar-plan-line.subtle{background:transparent}
+.calendar-head-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+
+.routine-weekly-schedule{margin-top:2px}
+.weekly-template-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:5px;
+}
+.weekly-template-day{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.weekly-template-day>span{
+  color:var(--muted);
+  font-size:.61rem;
+  font-weight:800;
+  text-align:center;
+}
+.weekly-template-day select{
+  min-width:0;
+  height:36px;
+  min-height:36px;
+  padding:6px 7px;
+  font-size:.67rem;
+}
+.weekly-template-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  margin-top:8px;
+}
+.weekly-template-actions .btn{min-height:34px;padding:6px 10px;font-size:.68rem}
+
+@media(max-width:720px){
+  .dashboard-week-plan{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .dashboard-week-plan-meta{
+    align-items:flex-start;
+    min-width:0;
+    text-align:left;
+  }
+  .dashboard-week-plan-meta span{white-space:normal}
+  .dashboard-week-plan .btn{width:100%}
+  .calendar-plan-line{align-items:flex-start}
+  .calendar-head-actions{width:100%;justify-content:stretch}
+  .calendar-head-actions .btn{flex:1}
+}
+
+@media(min-width:1200px) and (max-width:1399px){
+  .weekly-template-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
