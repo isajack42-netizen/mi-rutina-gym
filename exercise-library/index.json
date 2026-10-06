@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "locale": "es-MX",
+  "exercises": [
+    {
+      "id": "bench-press-barbell",
+      "name": "Press banca con barra",
+      "aliases": [
+        "Press banca",
+        "Press plano",
+        "Press de banca",
+        "Bench press",
+        "Barbell bench press"
+      ],
+      "contentStatus": "pilot",
+      "mediaStatus": "planned",
+      "primaryMuscles": [
+        "pectoralis-major"
+      ],
+      "movementPattern": "horizontal-push",
+      "equipment": [
+        "barbell",
+        "flat-bench",
+        "rack"
+      ]
+    }
+  ]
+}
