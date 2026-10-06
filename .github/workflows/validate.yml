@@ -43,3 +43,6 @@ jobs:
 
       - name: Training friction audit
         run: node scripts/friction.mjs
+
+      - name: Personal Edition final audit
+        run: node scripts/final-audit.mjs
