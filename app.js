@@ -6,7 +6,7 @@
   catch(_){ await import('./js/version.js'); }
   const version=globalThis.LIFTENGINE_VERSION || 'dev';
   const css=document.querySelector('link[rel="stylesheet"][href^="styles.css"]'); if(css) css.href=`styles.css?v=${encodeURIComponent(version)}`;
-  const files=['config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','routines','notifications','training','recovery','bootstrap'];
+  const files=['config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','exercise-library','routines','notifications','training','recovery','bootstrap'];
   for(const name of files){
     await new Promise((resolve,reject)=>{
       const s=document.createElement('script');

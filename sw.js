@@ -5,7 +5,8 @@ const VER=`liftengine-v${APPV}`;
 const q=u=>`${u}?v=${APPV}`;
 const SHELL=[
   './','index.html','app.js',q('styles.css'),'js/version.js',
-  ...['version','config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','routines','notifications','training','recovery','bootstrap'].map(n=>q(`js/${n}.js`)),
+  ...['version','config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','exercise-library','routines','notifications','training','recovery','bootstrap'].map(n=>q(`js/${n}.js`)),
+  q('exercise-library/index.json'),q('exercise-library/taxonomy.json'),q('exercise-library/exercises/bench-press-barbell.json'),
   'manifest.webmanifest','icons/icon.svg','icons/icon-192.png','icons/icon-512.png'
 ];
 self.addEventListener('install',e=>{
