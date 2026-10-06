@@ -121,12 +121,7 @@
       "note": "Variante con mancuernas y hombro extendido que modifica el perfil del bíceps."
     }
   ],
-  "substitutions": [
-    {
-      "exerciseId": "incline-dumbbell-curl",
-      "note": "Opción unilateral si buscas mayor libertad de muñeca y brazo."
-    }
-  ],
+  "substitutions": [],
   "relatedExercises": [
     {
       "exerciseId": "lat-pulldown",

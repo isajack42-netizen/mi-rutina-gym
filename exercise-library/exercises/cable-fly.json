@@ -116,12 +116,7 @@
     "No es necesario llevar los brazos exageradamente atrás.",
     "Evita cargas que obliguen a balancearte para completar repeticiones."
   ],
-  "variants": [
-    {
-      "exerciseId": "incline-dumbbell-press",
-      "note": "Alternativa de press con mayor participación de tríceps y capacidad de carga."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "bench-press-barbell",

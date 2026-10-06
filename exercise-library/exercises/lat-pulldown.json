@@ -119,12 +119,7 @@
     "Ajusta agarre y recorrido si aparece molestia en hombro o codo.",
     "Evita cargas que obliguen a balancear el torso."
   ],
-  "variants": [
-    {
-      "exerciseId": "seated-cable-row",
-      "note": "Tirón horizontal que desplaza más énfasis hacia la retracción escapular."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "one-arm-dumbbell-row",
@@ -135,10 +130,6 @@
     {
       "exerciseId": "seated-cable-row",
       "note": "Complementa el trabajo de espalda con un vector horizontal."
-    },
-    {
-      "exerciseId": "one-arm-dumbbell-row",
-      "note": "Permite entrenar la espalda de forma unilateral."
     }
   ],
   "media": {

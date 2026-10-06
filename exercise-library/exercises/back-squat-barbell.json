@@ -119,12 +119,7 @@
     "No entrenes cerca del fallo sin una estrategia segura para abandonar la barra.",
     "Ajusta profundidad y postura a tu movilidad y comodidad individual."
   ],
-  "variants": [
-    {
-      "exerciseId": "leg-press",
-      "note": "Alternativa guiada con menor demanda de estabilización del torso."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "leg-press",

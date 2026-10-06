@@ -121,12 +121,7 @@
       "note": "Versión de pie con barra que permite una carga bilateral más estable."
     }
   ],
-  "substitutions": [
-    {
-      "exerciseId": "barbell-curl",
-      "note": "Alternativa simple cuando no tienes banco inclinado."
-    }
-  ],
+  "substitutions": [],
   "relatedExercises": [
     {
       "exerciseId": "lat-pulldown",
