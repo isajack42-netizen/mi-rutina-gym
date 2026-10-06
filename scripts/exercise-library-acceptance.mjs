@@ -149,12 +149,22 @@ for(const ex of exercises){
 if(assetCount<160) fail('Expected a complete visual pack; only '+assetCount+' SVG refs found.');
 if(assetBytes>1100*1024) fail('First Pack visual assets exceed 1.1 MiB acceptance budget: '+assetBytes+' bytes.');
 
+function visualMuscleFamily(id){
+  if(['anterior-deltoid','lateral-deltoid'].includes(id)) return 'deltoid';
+  if(['biceps-brachii','brachialis'].includes(id)) return 'elbow-flexors';
+  if(['latissimus-dorsi','rhomboids','middle-trapezius','upper-trapezius','erector-spinae'].includes(id)) return 'back';
+  if(['quadriceps'].includes(id)) return 'quadriceps';
+  if(['hamstrings'].includes(id)) return 'hamstrings';
+  if(['gastrocnemius'].includes(id)) return 'calf';
+  if(['triceps-brachii'].includes(id)) return 'triceps';
+  if(['pectoralis-major'].includes(id)) return 'chest';
+  if(['gluteus-maximus'].includes(id)) return 'glutes';
+  return id;
+}
 function secondaryNeedsDistinctOrange(ex){
-  const primary=new Set(ex.taxonomy?.primaryMuscles||[]);
+  const primaryFamilies=new Set((ex.taxonomy?.primaryMuscles||[]).map(visualMuscleFamily));
   const secondary=ex.taxonomy?.secondaryMuscles||[];
-  const deltoids=new Set(['anterior-deltoid','lateral-deltoid']);
-  if(secondary.length && secondary.every(id=>deltoids.has(id)) && [...primary].some(id=>deltoids.has(id))) return false;
-  return secondary.length>0;
+  return secondary.some(id=>!primaryFamilies.has(visualMuscleFamily(id)));
 }
 for(const ex of exercises){
   const hero=read(ex.media.hero).toLowerCase();
