@@ -139,13 +139,15 @@ for(const ex of exercises){
     const svg=fs.readFileSync(abs,'utf8');
     if(!svg.includes('<svg')||!svg.includes('viewBox=')) fail(rel+': invalid SVG structure.');
     if(!svg.includes('role="img"')||!svg.includes('aria-label=')) fail(rel+': SVG lacks image semantics.');
+    if(!svg.includes('data-style="anatomical-v2"')) fail(rel+': asset is not on Anatomical v2 visual system.');
+    if(!svg.includes('<linearGradient')) fail(rel+': asset lost dimensional shading.');
     if(/<script\b|<foreignObject\b|\son[a-z]+\s*=/i.test(svg)) fail(rel+': unsafe active SVG content.');
     if(/<text\b/i.test(svg)) fail(rel+': essential text must stay in UI, not SVG.');
     if(!sw.includes(rel)) fail(rel+': missing from offline warmup manifest.');
   }
 }
 if(assetCount<160) fail('Expected a complete visual pack; only '+assetCount+' SVG refs found.');
-if(assetBytes>400*1024) fail('First Pack visual assets exceed 400 KiB baseline budget: '+assetBytes+' bytes.');
+if(assetBytes>1100*1024) fail('First Pack visual assets exceed 1.1 MiB acceptance budget: '+assetBytes+' bytes.');
 
 for(const ex of exercises){
   const hero=read(ex.media.hero).toLowerCase();
@@ -156,4 +158,4 @@ for(const ex of exercises){
 
 if(!version.includes("1.1.0-alpha.1")||pkg.version!=='1.1.0-alpha.1'||lock.version!=='1.1.0-alpha.1'||lock.packages?.['']?.version!=='1.1.0-alpha.1') fail('Development version/cache isolation is inconsistent.');
 
-console.log('LiftEngine Exercise Library acceptance OK · 15 exercises · '+assetCount+' SVG refs · '+Math.round(assetBytes/1024)+' KiB visuals · search/filter/offline/modal/navigation accepted');
+console.log('LiftEngine Exercise Library acceptance OK · 15 exercises · '+assetCount+' Anatomical v2 SVG refs · '+Math.round(assetBytes/1024)+' KiB visuals · search/filter/offline/modal/navigation accepted');
