@@ -68,11 +68,15 @@ function renderTrainCTA(){
   const primary=train
     ? `<button class="btn btn-primary" onclick="openTraining()">${ic('play')} Continuar entrenamiento · ${escapeHtml(train.routine||'Sesión libre')}</button>`
     : `<button class="btn btn-primary" onclick="openTrainStart()">${ic('dumbbell')} Iniciar modo entrenamiento</button>`;
+  const planned=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(todayStr()):'';
+  const plannedReady=!train&&planned&&planned!=='Descanso'&&!!customRoutines[planned];
   document.querySelectorAll('.train-cta-slot').forEach(b=>{b.innerHTML=primary;});
   document.querySelectorAll('.desktop-train-slot').forEach(b=>{
     b.innerHTML=train
       ? `<button class="desktop-train-btn active" onclick="openTraining()">${ic('play')} <span><b>Continuar</b><small>${escapeHtml(train.routine||'Sesión libre')}</small></span></button>`
-      : `<button class="desktop-train-btn" onclick="openTrainStart()">${ic('dumbbell')} <span><b>Entrenar</b><small>Iniciar una sesión</small></span></button>`;
+      : plannedReady
+        ? `<button class="desktop-train-btn active" data-routine="${escapeHtml(planned)}" onclick="startPlannedRoutine(this.dataset.routine)">${ic('dumbbell')} <span><b>Entrenar ${escapeHtml(planned)}</b><small>Plan de hoy</small></span></button>`
+        : `<button class="desktop-train-btn" onclick="openTrainStart()">${ic('dumbbell')} <span><b>Entrenar</b><small>Iniciar una sesión</small></span></button>`;
   });
 }
 window.openTrainStart=function(){
