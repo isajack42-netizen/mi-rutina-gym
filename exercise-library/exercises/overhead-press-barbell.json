@@ -121,12 +121,7 @@
     "Usa el rack para iniciar y terminar la serie de forma controlada.",
     "No fuerces una posición sobre la cabeza que resulte dolorosa."
   ],
-  "variants": [
-    {
-      "exerciseId": "incline-dumbbell-press",
-      "note": "Empuje inclinado con mayor énfasis en pecho y libertad individual de brazos."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "lateral-raise-dumbbell",
@@ -137,10 +132,6 @@
     {
       "exerciseId": "bench-press-barbell",
       "note": "Otro patrón de empuje compuesto con participación de tríceps y deltoides anterior."
-    },
-    {
-      "exerciseId": "lateral-raise-dumbbell",
-      "note": "Complementa el trabajo del hombro con énfasis lateral."
     }
   ],
   "media": {

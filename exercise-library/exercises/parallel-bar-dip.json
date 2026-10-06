@@ -119,12 +119,7 @@
     "Usa asistencia si aún no puedes controlar el peso corporal.",
     "Añade lastre solo después de dominar el movimiento sin carga externa."
   ],
-  "variants": [
-    {
-      "exerciseId": "triceps-cable-pushdown",
-      "note": "Versión de aislamiento con menor demanda de estabilidad."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "bench-press-barbell",
@@ -135,10 +130,6 @@
     {
       "exerciseId": "triceps-cable-pushdown",
       "note": "Complementa los fondos con trabajo aislado de tríceps."
-    },
-    {
-      "exerciseId": "bench-press-barbell",
-      "note": "Comparte trabajo de pecho y tríceps."
     }
   ],
   "media": {

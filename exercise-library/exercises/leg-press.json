@@ -116,12 +116,7 @@
     "Comprueba que los seguros estén bien liberados y colocados.",
     "Ajusta el recorrido si aparece molestia de rodilla o cadera."
   ],
-  "variants": [
-    {
-      "exerciseId": "back-squat-barbell",
-      "note": "Versión libre con mayor demanda de estabilidad y coordinación."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "back-squat-barbell",

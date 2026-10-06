@@ -117,12 +117,7 @@
     "Evita convertir cada repetición en un balanceo de cuerpo completo.",
     "Las cargas pequeñas pueden ser suficientes cuando el movimiento se controla bien."
   ],
-  "variants": [
-    {
-      "exerciseId": "overhead-press-barbell",
-      "note": "Movimiento compuesto de hombro con mayor participación de tríceps."
-    }
-  ],
+  "variants": [],
   "substitutions": [
     {
       "exerciseId": "overhead-press-barbell",

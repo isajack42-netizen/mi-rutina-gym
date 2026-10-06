@@ -114,18 +114,8 @@
     "No fuerces una flexión dolorosa de rodilla.",
     "Reduce la carga si necesitas levantar la cadera para completar repeticiones."
   ],
-  "variants": [
-    {
-      "exerciseId": "leg-press",
-      "note": "Movimiento de pierna compuesto que puede combinarse con el curl femoral."
-    }
-  ],
-  "substitutions": [
-    {
-      "exerciseId": "back-squat-barbell",
-      "note": "Alternativa compuesta de pierna, aunque no reemplaza el aislamiento de flexión de rodilla."
-    }
-  ],
+  "variants": [],
+  "substitutions": [],
   "relatedExercises": [
     {
       "exerciseId": "leg-press",

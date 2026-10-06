@@ -128,20 +128,11 @@
   ],
   "substitutions": [
     {
-      "exerciseId": "seated-cable-row",
-      "note": "Opción estable cuando prefieres trabajar ambos lados simultáneamente."
-    }
-  ],
-  "relatedExercises": [
-    {
       "exerciseId": "lat-pulldown",
       "note": "Aporta un vector vertical para completar el trabajo de espalda."
-    },
-    {
-      "exerciseId": "seated-cable-row",
-      "note": "Comparte patrón de tirón horizontal."
     }
   ],
+  "relatedExercises": [],
   "media": {
     "status": "ready",
     "thumbnail": "assets/exercise-library/one-arm-dumbbell-row/thumbnail.svg",
