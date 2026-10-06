@@ -1,39 +1,54 @@
 # LiftEngine — cierre de Personal Edition
 
-Base: v6.11.0. Etapa actual: v6.12.0 Friction Audit implementada; siguiente etapa: LiftEngine 1.0 Personal Edition — Final Audit.
+Estado actual: **LiftEngine 1.0.0-rc.1 Personal Edition**. Funciones congeladas. La auditoría técnica automatizable está cerrada; falta únicamente aceptación física en dispositivos reales antes de promover a 1.0.0.
 
-## v6.11 — Reliability & Recovery
+## Cerrado
 
-Implementado: guardado verificable, transacción local conjunta, deshacer con comprobación de cambios posteriores, recuperación local y exportable, protección al importar, sesiones antiguas conservadas, conflictos cancelables, pendientes durables y escritor único entre pestañas compatibles.
+### v6.11 — Reliability & Recovery
 
-Puerta automatizada: sintaxis, validación estática, regresiones previas y 26 escenarios de fiabilidad. Consultar CHANGELOG-v6.11.0.md para alcance y límites.
+Guardado verificable, transacción local conjunta, undo protegido, recuperación local/exportable, importaciones protegidas, sesiones recuperables, conflictos cancelables, pendientes durables, bloqueo de escritor y 26 escenarios controlados.
 
-Verificación real pendiente: dos dispositivos con la misma cuenta, cambios del mismo día sin conexión, reconexión, suspensión de iPhone, reanudación tras varias horas y comportamiento visual/táctil del aviso de recuperación. Esta evidencia se conserva como requisito del cierre 1.0.
+### v6.12 — Friction Audit
 
-## v6.12 — Friction Audit
+Recorrido de entrenamiento simplificado sin cambiar contratos de datos: inicio directo del plan, teclado móvil, autoavance seguro, acciones secundarias agrupadas, mejor navegación, targets táctiles y guardrails específicos.
 
-Implementado tras recorrer el flujo entrar → elegir rutina → registrar → marcar → descansar → corregir → sustituir → terminar → retomar.
+### 1.0 Final Audit — automatizable
 
-- El plan de hoy puede iniciarse en un toque desde el CTA principal, manteniendo acceso inmediato a Otra rutina.
-- La rutina asignada aparece primero cuando se abre el selector.
-- Peso, reps y RIR usan teclado móvil apropiado, selección al enfocar y avance con Enter/Next; Enter sobre RIR marca la serie.
-- Al completar el último set de un ejercicio se avanza al siguiente ejercicio incompleto, sin saltar trabajo pendiente.
-- Durante el descanso, Empezar aparece únicamente en la siguiente serie relevante, no en todas las series pendientes.
-- La navegación mantiene visible el ejercicio/serie actual y Anterior queda deshabilitado cuando no puede hacer nada.
-- Acciones poco frecuentes del ejercicio se agrupan en Más opciones; Añadir serie y Añadir ejercicio permanecen directas.
-- Los chips táctiles del entrenamiento cumplen un objetivo mínimo de 44 px.
-- No cambia el modelo de datos, Firestore, recuperación, backups ni compatibilidad de sesiones de v6.11.
+Auditoría de código, persistencia, sincronización, backups, estados extremos, accesibilidad, PWA y presupuesto de runtime.
 
-Puerta automatizada: validación estática, regresión funcional, 26 escenarios de fiabilidad y pruebas específicas de fricción/guardrails de interacción.
+Hallazgos corregidos:
 
-Verificación física pendiente para 1.0: iPhone/Safari instalado y navegador, Android/Chrome si se usa, escritorio, teclado móvil real, rotación, reanudación tras bloqueo y recorrido completo con una sesión real.
+- escrituras Firestore sin timeouts locales abandonables;
+- guardia de tamaño antes del límite de documento;
+- avisos de omisiones parciales al restaurar backups;
+- escape de grupos musculares dinámicos;
+- focus trap y nombres accesibles en diálogos;
+- aislamiento de foco/fondo en Modo Entrenamiento.
 
-## LiftEngine 1.0 Personal Edition — Final Audit
+Evidencia CI actual:
 
-Congelar funciones. No añadir funcionalidades nuevas durante esta fase.
+- 22 archivos runtime;
+- 144 IDs;
+- 176 handlers;
+- regresiones existentes;
+- 26 escenarios Reliability & Recovery;
+- Friction Audit;
+- Final Audit;
+- 380 KiB JS runtime y 114 KiB CSS;
+- cero dependencias npm de runtime.
 
-Auditar código, contratos y datos históricos, rendimiento, experiencia móvil/escritorio, accesibilidad, sincronización real, backups, recuperación, estados extremos y consistencia visual. Corregir únicamente defectos, regresiones o fricción demostrable y repetir los recorridos afectados.
+Ver FINAL-AUDIT-1.0.md y CHANGELOG-1.0.0-rc.1.md.
 
-Salida: cero fallos críticos o graves conocidos; puertas automáticas verdes; pruebas físicas esenciales documentadas; límites y problemas menores explícitos. Una puntuación subjetiva no sustituye esta evidencia.
+## Puerta restante para 1.0.0
 
-No ampliar a un producto multiusuario ni iniciar nuevas funciones hasta cerrar esta auditoría.
+No añadir funciones. Ejecutar únicamente aceptación física:
+
+1. iPhone/Safari en navegador y como PWA instalada: sesión completa, teclado, safe areas, descanso, bloqueo y reanudación.
+2. Dos dispositivos con la misma cuenta: conflicto del mismo día probando Conservar dispositivo, Usar nube y Cancelar.
+3. Cambio offline seguido de reconexión real.
+4. Exportar un backup y restaurarlo en un navegador/perfil secundario.
+5. Chrome y Brave de escritorio: menús, modales, resize y Modo Entrenamiento.
+
+Si no aparece ningún fallo crítico o grave, promover el mismo candidato a **LiftEngine 1.0.0 Personal Edition**. Si aparece un defecto, corregir únicamente ese defecto, repetir sus pruebas afectadas y volver a pasar todas las puertas.
+
+No iniciar v1.1 ni convertirla en producto multiusuario hasta cerrar 1.0.0.
