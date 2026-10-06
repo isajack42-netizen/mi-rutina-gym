@@ -145,7 +145,7 @@ function renderRoutines(){
         <div class="routine-content">
             <table>
                 <thead><tr><th>Ejercicio</th><th>Series</th><th>Reps</th><th>RIR</th><th>Descanso</th></tr></thead>
-                <tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${r.sets}</td><td>${escapeHtml(r.reps)}</td><td>${escapeHtml(r.rir)}</td><td>${escapeHtml(normalizeRestLabel(r.rest))}</td></tr>`).join('')}</tbody>
+                <tbody>${rows.map(r=>`<tr><td><div class="routine-exercise-name"><span>${escapeHtml(r.name)}</span>${typeof exerciseLibraryButtonHtml==='function'?exerciseLibraryButtonHtml(r.name,'Técnica'):''}</div></td><td>${r.sets}</td><td>${escapeHtml(r.reps)}</td><td>${escapeHtml(r.rir)}</td><td>${escapeHtml(normalizeRestLabel(r.rest))}</td></tr>`).join('')}</tbody>
             </table>
         </div>
     </details>`;
@@ -154,3 +154,5 @@ function renderRoutines(){
 }
 
 
+
+if(typeof exerciseLibraryWhenReady==='function')exerciseLibraryWhenReady(()=>{try{renderRoutines();}catch(_){}});

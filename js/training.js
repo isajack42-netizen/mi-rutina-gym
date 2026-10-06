@@ -237,7 +237,7 @@ function renderTrain(){
       <div class="tr-meta"><select class="tr-type" onchange="trainSetType(${i})" aria-label="Tipo de serie ${i+1}"><option value="normal" ${tp==='normal'?'selected':''}>Normal</option><option value="warmup" ${tp==='warmup'?'selected':''}>Calentamiento</option><option value="failure" ${tp==='failure'?'selected':''}>Al fallo</option></select><button class="tr-plate" type="button" onclick="openTrainPlateCalc(${i})">${ic('plate')} Discos</button>${startVisible?`<button class="tr-start" type="button" onclick="trainStartSet(${i})">Empezar</button>`:(s.restUsed?`<span class="tr-rest-inline">Descanso ${restLabel(s)}</span>`:'<span></span>')}</div></div>`;
   }).join('');
   const exNote=exerciseNotes[e.name]||'';
-  body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
+  body.innerHTML=`<div class="train-name-row"><h2 class="train-name">${escapeHtml(e.name)}</h2>${typeof exerciseLibraryButtonHtml==='function'?exerciseLibraryButtonHtml(e.name,'Técnica'):''}${e.substitutedFrom?`<span class="badge">Sustituye a ${escapeHtml(e.substitutedFrom)}</span>`:''}</div>
     <div class="train-tags">${tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>
     ${intelShell}
     ${lastHtml}
@@ -408,3 +408,5 @@ async function finishTrainingSafely(savePending){
   refreshAll();
   if(ok)toast(endResult.saved?'Entrenamiento guardado con las series pendientes':endResult.dropped?'Entrenamiento guardado · puedes deshacer el descarte':'Entrenamiento guardado en este dispositivo');
 }
+
+if(typeof exerciseLibraryWhenReady==='function')exerciseLibraryWhenReady(()=>{try{if(document.getElementById('trainOverlay')?.classList.contains('open'))renderTrain();}catch(_){}});
