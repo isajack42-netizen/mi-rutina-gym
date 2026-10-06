@@ -52,37 +52,37 @@
       "step": 1,
       "title": "Crea una base estable",
       "instruction": "Apoya los pies con firmeza, fija la espalda alta contra el banco y mantén los glúteos en contacto con la superficie.",
-      "asset": "assets/exercise-library/bench-press-barbell/step-01-setup.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/step-01-setup.svg"
     },
     {
       "step": 2,
       "title": "Toma y saca la barra",
       "instruction": "Sujeta la barra de forma simétrica, extiende los brazos para sacarla del rack y llévala sobre la línea de los hombros sin perder la posición escapular.",
-      "asset": "assets/exercise-library/bench-press-barbell/step-02-unrack.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/step-02-unrack.svg"
     },
     {
       "step": 3,
       "title": "Desciende con control",
       "instruction": "Baja la barra hacia la zona media-baja del pecho manteniendo los antebrazos aproximadamente verticales y una trayectoria controlada.",
-      "asset": "assets/exercise-library/bench-press-barbell/step-03-descent.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/step-03-descent.svg"
     },
     {
       "step": 4,
       "title": "Mantén tensión abajo",
       "instruction": "Evita rebotar la barra. Conserva pies, espalda alta y agarre estables mientras alcanzas una profundidad cómoda y controlable.",
-      "asset": "assets/exercise-library/bench-press-barbell/step-04-bottom.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/step-04-bottom.svg"
     },
     {
       "step": 5,
       "title": "Empuja hacia arriba",
       "instruction": "Conduce la barra hacia arriba y ligeramente hacia atrás hasta regresar sobre los hombros, extendiendo los codos sin perder el control.",
-      "asset": "assets/exercise-library/bench-press-barbell/step-05-press.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/step-05-press.svg"
     },
     {
       "step": 6,
       "title": "Repite sin desmontar la postura",
       "instruction": "Mantén la misma base, respiración y trayectoria durante la serie; evita recolocarte entre repeticiones salvo que sea necesario por seguridad.",
-      "asset": "assets/exercise-library/bench-press-barbell/step-06-finish.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/step-06-finish.svg"
     }
   ],
   "breathing": {
@@ -104,7 +104,7 @@
       "description": "Los codos se separan excesivamente del torso y la barra pierde una trayectoria cómoda y estable.",
       "correction": "Ajusta el agarre y busca una posición en la que antebrazo y muñeca queden alineados, con los codos ligeramente por debajo de la línea de hombros.",
       "severity": "medium",
-      "asset": "assets/exercise-library/bench-press-barbell/mistake-excessive-elbow-flare.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-excessive-elbow-flare.svg"
     },
     {
       "id": "touch-too-high",
@@ -112,7 +112,7 @@
       "description": "La barra toca cerca del cuello o muy arriba del pecho, obligando a una posición menos eficiente del hombro.",
       "correction": "Dirige el descenso hacia la zona media-baja del pecho y conserva una trayectoria consistente.",
       "severity": "high",
-      "asset": "assets/exercise-library/bench-press-barbell/mistake-touch-too-high.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-touch-too-high.svg"
     },
     {
       "id": "lose-foot-pressure",
@@ -120,7 +120,7 @@
       "description": "Los pies se mueven o dejan de producir una base estable durante la repetición.",
       "correction": "Coloca los pies antes de sacar la barra y mantén presión continua contra el suelo durante toda la serie.",
       "severity": "medium",
-      "asset": "assets/exercise-library/bench-press-barbell/mistake-lose-foot-pressure.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-lose-foot-pressure.svg"
     },
     {
       "id": "bounce-bar",
@@ -128,7 +128,7 @@
       "description": "El descenso termina con un rebote sobre el torso para acelerar el inicio del empuje.",
       "correction": "Reduce la carga si es necesario y controla la parte final del descenso manteniendo tensión antes de empujar.",
       "severity": "high",
-      "asset": "assets/exercise-library/bench-press-barbell/mistake-bounce-bar.webp"
+      "asset": "assets/exercise-library/bench-press-barbell/mistake-bounce-bar.svg"
     }
   ],
   "safetyNotes": [
@@ -159,10 +159,10 @@
     }
   ],
   "media": {
-    "status": "planned",
-    "thumbnail": "assets/exercise-library/bench-press-barbell/thumbnail.webp",
-    "hero": "assets/exercise-library/bench-press-barbell/hero.webp",
-    "muscleMap": "assets/exercise-library/bench-press-barbell/muscle-map-front.webp"
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/bench-press-barbell/thumbnail.svg",
+    "hero": "assets/exercise-library/bench-press-barbell/hero.svg",
+    "muscleMap": "assets/exercise-library/bench-press-barbell/muscle-map-front.svg"
   },
   "contentStatus": "pilot"
 }
