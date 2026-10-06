@@ -76,7 +76,8 @@ function renderTrainCTA(){
   });
 }
 window.openTrainStart=function(){
-  const pre=categories[todayStr()];
+  const planned=typeof plannedRoutineForDate==='function'?plannedRoutineForDate(todayStr()):'';
+  const pre=categories[todayStr()]||(planned&&planned!=='Descanso'?planned:'');
   document.getElementById('modal').innerHTML=`<h2>Modo entrenamiento</h2>
     <p class="muted">Elige la rutina de hoy. Verás tu rendimiento anterior en cada serie y el descanso arranca solo al marcar cada serie como hecha y se guarda como dato.</p>
     <div class="progress-list">${Object.keys(customRoutines).map(k=>`<button class="btn btn-secondary full" style="${k===pre?'border-color:var(--accent)':''}" data-n="${escapeHtml(k)}" onclick="startTraining(this.dataset.n)">${escapeHtml(k)}${k===pre?' · asignada hoy':''}</button>`).join('')}
