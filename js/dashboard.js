@@ -90,9 +90,10 @@ function dashboardTopDecision(coverage){
 }
 function renderDashboardV6(prs=[]){
   const box=document.getElementById('dashboardV6');if(!box)return;
+  const planHtml=typeof scheduleDashboardMarkup==='function'?scheduleDashboardMarkup():'';
   const adherence=metricsAdherence(8,weeklySessionTarget);
   if(!adherence.coverage.coverageDays){
-    box.innerHTML='<div class="empty"><b>Tu resumen aparecerá aquí</b><span>Registra tu primera sesión para empezar a medir adherencia, progreso y próximas decisiones.</span></div>';
+    box.innerHTML=planHtml+'<div class="empty"><b>Tu resumen aparecerá aquí</b><span>Registra tu primera sesión para empezar a medir adherencia, progreso y próximas decisiones.</span></div>';
     return;
   }
   const current=metricsWeekSnapshot(metricsWeekStart());
@@ -121,6 +122,7 @@ function renderDashboardV6(prs=[]){
     </button>`:'<div class="dashboard-decision empty"><b>Aún sin próxima decisión</b><span>Training Intelligence necesita al menos una sesión comparable por ejercicio.</span></div>';
 
   box.innerHTML=`
+    ${planHtml}
     ${decisionHtml}
     <div class="dashboard-v6-kpis dashboard-v6-kpis-strip">
       <div><span>Esta semana</span><b>${current.sessions}/${weeklySessionTarget}</b><small>sesiones</small></div>
