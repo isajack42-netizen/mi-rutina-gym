@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "id": "incline-dumbbell-curl",
+  "name": "Curl inclinado con mancuernas",
+  "aliases": [
+    "Curl inclinado",
+    "Curl inclinado mancuernas",
+    "Incline dumbbell curl",
+    "Curl bíceps inclinado"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "biceps-brachii"
+    ],
+    "secondaryMuscles": [
+      "brachialis"
+    ],
+    "stabilizers": [],
+    "movementPattern": "elbow-flexion",
+    "equipment": [
+      "dumbbells",
+      "incline-bench"
+    ],
+    "difficulty": "intermediate",
+    "goals": [
+      "hypertrophy",
+      "technique"
+    ]
+  },
+  "summary": "Curl con mancuernas realizado sobre un banco inclinado. La posición coloca los brazos ligeramente detrás del torso al inicio, aumentando el estiramiento del bíceps y exigiendo una flexión de codo controlada sin mover los hombros hacia delante.",
+  "benefits": [
+    "Entrena el bíceps desde una posición de mayor extensión de hombro.",
+    "Permite movimiento independiente de cada brazo.",
+    "Facilita mantener el torso inmóvil gracias al respaldo.",
+    "Complementa curls de pie con un perfil distinto."
+  ],
+  "setup": [
+    "Ajusta el banco a una inclinación cómoda y apoya por completo la espalda.",
+    "Deja los brazos caer a los lados con una mancuerna en cada mano.",
+    "Mantén hombros apoyados y muñecas estables.",
+    "Comienza con los codos extendidos hasta un rango cómodo."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Apoya la espalda",
+      "instruction": "Mantén cabeza y torso cómodos contra el banco.",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Inicia desde abajo",
+      "instruction": "Flexiona los codos sin adelantar los hombros.",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Eleva las mancuernas",
+      "instruction": "Sube hasta una contracción fuerte sin perder el respaldo.",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Controla arriba",
+      "instruction": "Evita que los codos se desplacen hacia delante.",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Baja completo",
+      "instruction": "Regresa lentamente al estiramiento inicial.",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala al bajar las mancuernas.",
+    "concentric": "Exhala durante la flexión."
+  },
+  "keyCues": [
+    "Hombros apoyados.",
+    "Codos detrás o junto al torso.",
+    "Sin impulso.",
+    "Muñecas firmes.",
+    "Controla el estiramiento de abajo."
+  ],
+  "commonMistakes": [
+    {
+      "id": "shoulders-forward",
+      "title": "Despegar los hombros",
+      "description": "Llevar los hombros hacia delante acorta el gesto y facilita la repetición.",
+      "correction": "Mantén los hombros contra el respaldo.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/mistake-shoulders-forward.svg"
+    },
+    {
+      "id": "partial-bottom",
+      "title": "Evitar la parte baja",
+      "description": "No descender suficientemente reduce el estímulo en la posición estirada.",
+      "correction": "Usa una carga que permita bajar a un rango cómodo y controlado.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/mistake-partial-bottom.svg"
+    },
+    {
+      "id": "fast-eccentric",
+      "title": "Dejar caer la mancuerna",
+      "description": "Una bajada demasiado rápida elimina control en la parte más demandante.",
+      "correction": "Reduce el peso y controla el descenso.",
+      "severity": "high",
+      "asset": "assets/exercise-library/incline-dumbbell-curl/mistake-fast-eccentric.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No fuerces el estiramiento si aparece molestia en hombro o codo.",
+    "Usa una inclinación que permita mantener hombros cómodos.",
+    "Comienza con menos carga que en un curl de pie si es necesario."
+  ],
+  "variants": [
+    {
+      "exerciseId": "barbell-curl",
+      "note": "Versión de pie con barra que permite una carga bilateral más estable."
+    }
+  ],
+  "substitutions": [],
+  "relatedExercises": [
+    {
+      "exerciseId": "lat-pulldown",
+      "note": "El bíceps participa en el tirón vertical y puede acumular fatiga."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/incline-dumbbell-curl/thumbnail.svg",
+    "hero": "assets/exercise-library/incline-dumbbell-curl/hero.svg",
+    "muscleMap": "assets/exercise-library/incline-dumbbell-curl/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

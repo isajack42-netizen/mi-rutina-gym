@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "id": "barbell-curl",
+  "name": "Curl de bíceps con barra",
+  "aliases": [
+    "Curl con barra",
+    "Curl bíceps barra",
+    "Barbell curl",
+    "Curl de barra"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "biceps-brachii"
+    ],
+    "secondaryMuscles": [
+      "brachialis"
+    ],
+    "stabilizers": [],
+    "movementPattern": "elbow-flexion",
+    "equipment": [
+      "barbell"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Flexión bilateral de codo con barra enfocada en bíceps y braquial. La ejecución busca mantener los brazos relativamente estables junto al torso mientras los codos se flexionan sin convertir la repetición en un balanceo de espalda y cadera.",
+  "benefits": [
+    "Permite entrenar ambos brazos con una carga estable y fácil de progresar.",
+    "Desarrolla bíceps y braquial con un movimiento sencillo de medir.",
+    "Funciona bien en rangos moderados de repeticiones.",
+    "Requiere poco equipo y poca preparación."
+  ],
+  "setup": [
+    "Sujeta la barra con agarre cómodo y simétrico.",
+    "Mantén los pies firmes y el torso erguido.",
+    "Coloca los brazos cerca del cuerpo con hombros relajados.",
+    "Comienza con los codos extendidos sin bloquear de forma agresiva."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Fija el cuerpo",
+      "instruction": "Mantén piernas y torso estables antes de iniciar.",
+      "asset": "assets/exercise-library/barbell-curl/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Flexiona los codos",
+      "instruction": "Eleva la barra sin empujar la cadera hacia delante.",
+      "asset": "assets/exercise-library/barbell-curl/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Acerca la barra",
+      "instruction": "Continúa hasta una contracción fuerte y cómoda del bíceps.",
+      "asset": "assets/exercise-library/barbell-curl/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Pausa controlada",
+      "instruction": "Evita llevar los hombros excesivamente hacia delante.",
+      "asset": "assets/exercise-library/barbell-curl/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Desciende lento",
+      "instruction": "Extiende los codos bajo control hasta el inicio.",
+      "asset": "assets/exercise-library/barbell-curl/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala mientras bajas la barra.",
+    "concentric": "Exhala al flexionar los codos."
+  },
+  "keyCues": [
+    "Codos relativamente quietos.",
+    "Sin impulso de cadera.",
+    "Muñecas firmes.",
+    "Controla la bajada.",
+    "No persigas altura sacrificando postura."
+  ],
+  "commonMistakes": [
+    {
+      "id": "body-swing",
+      "title": "Balancear el cuerpo",
+      "description": "Usar cadera y espalda permite mover más peso pero reduce el trabajo objetivo.",
+      "correction": "Reduce la carga y mantén el torso quieto.",
+      "severity": "high",
+      "asset": "assets/exercise-library/barbell-curl/mistake-body-swing.svg"
+    },
+    {
+      "id": "elbows-forward",
+      "title": "Llevar los codos muy adelante",
+      "description": "Desplazar los codos exageradamente cambia el final del recorrido.",
+      "correction": "Mantén los brazos cerca del torso y permite solo el movimiento necesario.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/barbell-curl/mistake-elbows-forward.svg"
+    },
+    {
+      "id": "wrist-bend",
+      "title": "Doblar las muñecas",
+      "description": "Una muñeca excesivamente flexionada o extendida puede reducir comodidad y control.",
+      "correction": "Sujeta la barra con muñecas más neutras.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/barbell-curl/mistake-wrist-bend.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Usa un agarre que resulte cómodo para muñecas y codos.",
+    "No fuerces el rango si aparece dolor en el codo.",
+    "Reduce la carga si necesitas balancearte para completar las repeticiones."
+  ],
+  "variants": [
+    {
+      "exerciseId": "incline-dumbbell-curl",
+      "note": "Variante con mancuernas y hombro extendido que modifica el perfil del bíceps."
+    }
+  ],
+  "substitutions": [],
+  "relatedExercises": [
+    {
+      "exerciseId": "lat-pulldown",
+      "note": "El bíceps participa como músculo secundario en este tirón vertical."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/barbell-curl/thumbnail.svg",
+    "hero": "assets/exercise-library/barbell-curl/hero.svg",
+    "muscleMap": "assets/exercise-library/barbell-curl/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "exercises": [
+    {
+      "id": "bench-press-barbell",
+      "name": "Press banca con barra",
+      "status": "ready"
+    },
+    {
+      "id": "incline-dumbbell-press",
+      "name": "Press inclinado con mancuernas",
+      "status": "ready"
+    },
+    {
+      "id": "cable-fly",
+      "name": "Aperturas en polea",
+      "status": "ready"
+    },
+    {
+      "id": "overhead-press-barbell",
+      "name": "Press militar con barra",
+      "status": "ready"
+    },
+    {
+      "id": "lateral-raise-dumbbell",
+      "name": "Elevaciones laterales con mancuernas",
+      "status": "ready"
+    },
+    {
+      "id": "lat-pulldown",
+      "name": "Jalón al pecho",
+      "status": "ready"
+    },
+    {
+      "id": "seated-cable-row",
+      "name": "Remo sentado en polea",
+      "status": "ready"
+    },
+    {
+      "id": "one-arm-dumbbell-row",
+      "name": "Remo unilateral con mancuerna",
+      "status": "ready"
+    },
+    {
+      "id": "barbell-curl",
+      "name": "Curl de bíceps con barra",
+      "status": "ready"
+    },
+    {
+      "id": "incline-dumbbell-curl",
+      "name": "Curl inclinado con mancuernas",
+      "status": "ready"
+    },
+    {
+      "id": "triceps-cable-pushdown",
+      "name": "Extensión de tríceps en polea",
+      "status": "ready"
+    },
+    {
+      "id": "parallel-bar-dip",
+      "name": "Fondos en paralelas",
+      "status": "ready"
+    },
+    {
+      "id": "back-squat-barbell",
+      "name": "Sentadilla con barra",
+      "status": "ready"
+    },
+    {
+      "id": "leg-press",
+      "name": "Prensa de pierna",
+      "status": "ready"
+    },
+    {
+      "id": "lying-leg-curl",
+      "name": "Curl femoral tumbado",
+      "status": "ready"
+    }
+  ]
+}

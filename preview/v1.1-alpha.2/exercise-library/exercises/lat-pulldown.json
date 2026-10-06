@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "id": "lat-pulldown",
+  "name": "Jalón al pecho",
+  "aliases": [
+    "Jalón dorsal",
+    "Jalón en polea alta",
+    "Lat pulldown",
+    "Jalón al pecho en máquina"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "latissimus-dorsi"
+    ],
+    "secondaryMuscles": [
+      "biceps-brachii",
+      "brachialis"
+    ],
+    "stabilizers": [
+      "rhomboids",
+      "middle-trapezius"
+    ],
+    "movementPattern": "vertical-pull",
+    "equipment": [
+      "lat-pulldown-machine"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Tirón vertical realizado en máquina de polea alta. Desarrolla principalmente el dorsal ancho con ayuda de bíceps y otros flexores del codo. La ejecución busca llevar la barra hacia la parte alta del pecho manteniendo el torso estable y evitando convertir el gesto en un remo.",
+  "benefits": [
+    "Permite entrenar el patrón de tirón vertical con carga ajustable.",
+    "Desarrolla dorsal ancho y musculatura flexora del codo.",
+    "Es fácil de adaptar a distintos niveles de fuerza.",
+    "Sirve como base para progresar hacia dominadas u otros tirones verticales."
+  ],
+  "setup": [
+    "Ajusta el soporte de piernas para que el cuerpo quede firme.",
+    "Toma la barra con un agarre cómodo y simétrico.",
+    "Siéntate con el torso alto y una ligera inclinación natural.",
+    "Comienza con brazos extendidos y hombros controlados, sin colgarte pasivamente."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Fija la base",
+      "instruction": "Asegura muslos bajo el soporte y mantiene el torso estable.",
+      "asset": "assets/exercise-library/lat-pulldown/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Inicia con la espalda",
+      "instruction": "Comienza el tirón llevando los hombros hacia una posición estable antes de flexionar fuerte los codos.",
+      "asset": "assets/exercise-library/lat-pulldown/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Tira hacia el pecho",
+      "instruction": "Lleva la barra hacia la parte alta del pecho con los codos descendiendo a los lados.",
+      "asset": "assets/exercise-library/lat-pulldown/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Controla abajo",
+      "instruction": "Pausa brevemente sin convertir el movimiento en un balanceo.",
+      "asset": "assets/exercise-library/lat-pulldown/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Regresa lento",
+      "instruction": "Extiende los brazos de forma controlada hasta recuperar el inicio.",
+      "asset": "assets/exercise-library/lat-pulldown/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala mientras permites que la barra suba de forma controlada.",
+    "concentric": "Exhala durante el tirón hacia el pecho."
+  },
+  "keyCues": [
+    "Pecho alto y torso estable.",
+    "Piensa en llevar los codos hacia abajo.",
+    "No tires la barra detrás de la cabeza.",
+    "Evita usar balanceo para mover más peso.",
+    "Controla la subida completa."
+  ],
+  "commonMistakes": [
+    {
+      "id": "behind-neck",
+      "title": "Llevar la barra detrás de la cabeza",
+      "description": "Esta trayectoria no es necesaria para estimular el dorsal y puede resultar incómoda para hombros o cuello.",
+      "correction": "Dirige la barra hacia la parte alta del pecho frente al cuerpo.",
+      "severity": "high",
+      "asset": "assets/exercise-library/lat-pulldown/mistake-behind-neck.svg"
+    },
+    {
+      "id": "leaning-back",
+      "title": "Inclinarse demasiado atrás",
+      "description": "Un balanceo grande convierte el ejercicio en un tirón más horizontal.",
+      "correction": "Reduce la carga y conserva solo una inclinación ligera y estable.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/lat-pulldown/mistake-leaning-back.svg"
+    },
+    {
+      "id": "half-range",
+      "title": "Recorrido demasiado corto",
+      "description": "No permitir que los brazos se extiendan ni bajar la barra suficiente limita el recorrido útil.",
+      "correction": "Usa una carga que permita un rango cómodo y controlado.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/lat-pulldown/mistake-half-range.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No fuerces la barra detrás del cuello.",
+    "Ajusta agarre y recorrido si aparece molestia en hombro o codo.",
+    "Evita cargas que obliguen a balancear el torso."
+  ],
+  "variants": [],
+  "substitutions": [
+    {
+      "exerciseId": "one-arm-dumbbell-row",
+      "note": "Alternativa unilateral de tirón horizontal cuando no hay polea alta."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "seated-cable-row",
+      "note": "Complementa el trabajo de espalda con un vector horizontal."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/lat-pulldown/thumbnail.svg",
+    "hero": "assets/exercise-library/lat-pulldown/hero.svg",
+    "muscleMap": "assets/exercise-library/lat-pulldown/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "id": "leg-press",
+  "name": "Prensa de pierna",
+  "aliases": [
+    "Prensa",
+    "Leg press",
+    "Prensa inclinada",
+    "Prensa de piernas"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "quadriceps"
+    ],
+    "secondaryMuscles": [
+      "gluteus-maximus",
+      "hamstrings"
+    ],
+    "stabilizers": [],
+    "movementPattern": "squat",
+    "equipment": [
+      "leg-press-machine"
+    ],
+    "difficulty": "beginner",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Ejercicio guiado de pierna en máquina donde se empuja una plataforma alejándola del cuerpo. La máquina reduce la necesidad de estabilizar el torso y permite concentrar el esfuerzo en cuádriceps y glúteos.",
+  "benefits": [
+    "Permite cargar las piernas con una trayectoria guiada.",
+    "Reduce la demanda de equilibrio y estabilidad respecto a una sentadilla libre.",
+    "Es sencilla de progresar en carga y repeticiones.",
+    "Puede adaptarse modificando ligeramente la posición de los pies."
+  ],
+  "setup": [
+    "Ajusta asiento y respaldo para mantener pelvis y espalda apoyadas.",
+    "Coloca los pies de forma simétrica en la plataforma.",
+    "Desbloquea la máquina solo cuando tengas una posición estable.",
+    "Comienza con rodillas extendidas pero sin bloquearlas con fuerza."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Coloca los pies",
+      "instruction": "Asegura un apoyo completo y simétrico sobre la plataforma.",
+      "asset": "assets/exercise-library/leg-press/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Desciende la plataforma",
+      "instruction": "Flexiona rodillas y cadera manteniendo la espalda apoyada.",
+      "asset": "assets/exercise-library/leg-press/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Controla profundidad",
+      "instruction": "Detén el descenso antes de que la pelvis se despegue o redondee en exceso.",
+      "asset": "assets/exercise-library/leg-press/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Empuja",
+      "instruction": "Extiende rodillas y cadera manteniendo los pies apoyados.",
+      "asset": "assets/exercise-library/leg-press/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Termina suave",
+      "instruction": "Vuelve arriba sin bloquear de golpe las rodillas.",
+      "asset": "assets/exercise-library/leg-press/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Inhala durante el descenso.",
+    "concentric": "Exhala durante el empuje o al superar la parte más difícil."
+  },
+  "keyCues": [
+    "Espalda y pelvis apoyadas.",
+    "Pie completo en la plataforma.",
+    "Rodillas siguen la dirección de los pies.",
+    "No rebotes abajo.",
+    "No bloquees agresivamente las rodillas."
+  ],
+  "commonMistakes": [
+    {
+      "id": "pelvis-lifts",
+      "title": "Pelvis se despega",
+      "description": "Descender demasiado puede hacer que la pelvis se levante del respaldo.",
+      "correction": "Reduce la profundidad hasta mantener espalda y pelvis estables.",
+      "severity": "high",
+      "asset": "assets/exercise-library/leg-press/mistake-pelvis-lifts.svg"
+    },
+    {
+      "id": "knees-lock",
+      "title": "Bloquear las rodillas",
+      "description": "Terminar con un bloqueo brusco puede reducir control.",
+      "correction": "Extiende con control sin descansar violentamente sobre la articulación.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/leg-press/mistake-knees-lock.svg"
+    },
+    {
+      "id": "partial-range",
+      "title": "Recorrido muy corto",
+      "description": "Usar una carga excesiva suele acortar demasiado el movimiento.",
+      "correction": "Reduce el peso y utiliza un rango cómodo más amplio.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/leg-press/mistake-partial-range.svg"
+    }
+  ],
+  "safetyNotes": [
+    "No coloques las manos entre partes móviles de la máquina.",
+    "Comprueba que los seguros estén bien liberados y colocados.",
+    "Ajusta el recorrido si aparece molestia de rodilla o cadera."
+  ],
+  "variants": [],
+  "substitutions": [
+    {
+      "exerciseId": "back-squat-barbell",
+      "note": "Alternativa cuando prefieres una sentadilla libre y tienes el control técnico necesario."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "lying-leg-curl",
+      "note": "Complementa la prensa con flexión específica de rodilla para isquiotibiales."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/leg-press/thumbnail.svg",
+    "hero": "assets/exercise-library/leg-press/hero.svg",
+    "muscleMap": "assets/exercise-library/leg-press/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

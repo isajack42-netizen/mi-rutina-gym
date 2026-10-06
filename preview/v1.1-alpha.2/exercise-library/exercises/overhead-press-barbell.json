@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "overhead-press-barbell",
+  "name": "Press militar con barra",
+  "aliases": [
+    "Press militar",
+    "Press de hombro con barra",
+    "Overhead press",
+    "Barbell overhead press"
+  ],
+  "locale": "es-MX",
+  "taxonomy": {
+    "primaryMuscles": [
+      "anterior-deltoid"
+    ],
+    "secondaryMuscles": [
+      "triceps-brachii",
+      "lateral-deltoid"
+    ],
+    "stabilizers": [
+      "erector-spinae",
+      "serratus-anterior",
+      "upper-trapezius"
+    ],
+    "movementPattern": "vertical-push",
+    "equipment": [
+      "barbell",
+      "rack"
+    ],
+    "difficulty": "intermediate",
+    "goals": [
+      "hypertrophy",
+      "strength",
+      "technique"
+    ]
+  },
+  "summary": "Empuje vertical con barra que desarrolla principalmente hombros y tríceps. Se ejecuta desde una base estable llevando la barra desde la parte alta del pecho hasta una posición sobre la cabeza, procurando mantener el tronco organizado y una trayectoria eficiente.",
+  "benefits": [
+    "Permite progresar fuerza en el patrón de empuje vertical.",
+    "Trabaja hombros y tríceps en un movimiento compuesto.",
+    "Exige estabilidad del torso y control de la trayectoria.",
+    "Es fácil de medir y progresar mediante carga y repeticiones."
+  ],
+  "setup": [
+    "Ajusta el rack para sacar la barra sin ponerte de puntas ni hacer una sentadilla profunda.",
+    "Toma la barra con un agarre cómodo y coloca los antebrazos aproximadamente debajo de ella.",
+    "Sitúa los pies firmes y genera tensión en abdomen y glúteos.",
+    "Comienza con la barra cerca de la parte superior del pecho."
+  ],
+  "executionSteps": [
+    {
+      "step": 1,
+      "title": "Crea tensión",
+      "instruction": "Fija pies, abdomen y glúteos antes de iniciar el empuje.",
+      "asset": "assets/exercise-library/overhead-press-barbell/step-01.svg"
+    },
+    {
+      "step": 2,
+      "title": "Inicia vertical",
+      "instruction": "Empuja la barra hacia arriba dejando espacio para que pase frente a la cara.",
+      "asset": "assets/exercise-library/overhead-press-barbell/step-02.svg"
+    },
+    {
+      "step": 3,
+      "title": "Pasa la frente",
+      "instruction": "Cuando la barra supere la frente, lleva suavemente la cabeza bajo la barra.",
+      "asset": "assets/exercise-library/overhead-press-barbell/step-03.svg"
+    },
+    {
+      "step": 4,
+      "title": "Termina arriba",
+      "instruction": "Finaliza con la barra estable sobre la base de apoyo y los codos extendidos con control.",
+      "asset": "assets/exercise-library/overhead-press-barbell/step-04.svg"
+    },
+    {
+      "step": 5,
+      "title": "Desciende controlado",
+      "instruction": "Regresa la barra a la parte alta del pecho sin dejarla caer.",
+      "asset": "assets/exercise-library/overhead-press-barbell/step-05.svg"
+    }
+  ],
+  "breathing": {
+    "eccentric": "Toma aire antes del empuje o durante el descenso para recuperar tensión.",
+    "concentric": "Mantén presión durante la salida y exhala de forma controlada al estabilizar arriba."
+  },
+  "keyCues": [
+    "Aprieta abdomen y glúteos.",
+    "Barra cerca del cuerpo.",
+    "Evita inclinarte hacia atrás para convertirlo en press inclinado.",
+    "Termina con la barra sobre tu base, no delante.",
+    "Controla el descenso."
+  ],
+  "commonMistakes": [
+    {
+      "id": "excessive-lean",
+      "title": "Inclinarse demasiado atrás",
+      "description": "Una extensión lumbar excesiva cambia el ángulo del movimiento y reduce el control del torso.",
+      "correction": "Reduce la carga y mantén costillas y pelvis más apiladas.",
+      "severity": "high",
+      "asset": "assets/exercise-library/overhead-press-barbell/mistake-excessive-lean.svg"
+    },
+    {
+      "id": "bar-forward",
+      "title": "Barra demasiado al frente",
+      "description": "Terminar con la barra lejos del cuerpo aumenta la palanca y dificulta estabilizar.",
+      "correction": "Busca que la barra termine sobre hombros y mitad del pie.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/overhead-press-barbell/mistake-bar-forward.svg"
+    },
+    {
+      "id": "wide-elbows",
+      "title": "Codos mal colocados",
+      "description": "Una salida con codos muy abiertos o muy atrás dificulta una trayectoria eficiente.",
+      "correction": "Ajusta el agarre para mantener antebrazos organizados debajo de la barra.",
+      "severity": "medium",
+      "asset": "assets/exercise-library/overhead-press-barbell/mistake-wide-elbows.svg"
+    }
+  ],
+  "safetyNotes": [
+    "Evita compensar con una extensión lumbar dolorosa.",
+    "Usa el rack para iniciar y terminar la serie de forma controlada.",
+    "No fuerces una posición sobre la cabeza que resulte dolorosa."
+  ],
+  "variants": [],
+  "substitutions": [
+    {
+      "exerciseId": "lateral-raise-dumbbell",
+      "note": "Alternativa de aislamiento para deltoides cuando no necesitas un empuje compuesto."
+    }
+  ],
+  "relatedExercises": [
+    {
+      "exerciseId": "bench-press-barbell",
+      "note": "Otro patrón de empuje compuesto con participación de tríceps y deltoides anterior."
+    }
+  ],
+  "media": {
+    "status": "ready",
+    "thumbnail": "assets/exercise-library/overhead-press-barbell/thumbnail.svg",
+    "hero": "assets/exercise-library/overhead-press-barbell/hero.svg",
+    "muscleMap": "assets/exercise-library/overhead-press-barbell/muscle-map-front.svg"
+  },
+  "contentStatus": "reviewed"
+}

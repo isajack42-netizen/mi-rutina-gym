@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620" role="img" aria-label="Músculos trabajados · Sentadilla con barra" data-style="anatomical-v2">
+ <defs>
+  <linearGradient id="mapbg" x2="0" y2="1"><stop stop-color="#151f29"/><stop offset="1" stop-color="#0b1118"/></linearGradient>
+  <linearGradient id="skin" x2="1" y2="1"><stop stop-color="#f4f6f7"/><stop offset=".55" stop-color="#c8d0d6"/><stop offset="1" stop-color="#89949d"/></linearGradient>
+ </defs>
+ <rect width="900" height="620" rx="28" fill="url(#mapbg)"/>
+ <g opacity=".98">
+  <!-- front mannequin -->
+  <ellipse cx="235" cy="93" rx="34" ry="42" fill="url(#skin)" stroke="#64717b" stroke-width="2"/>
+  <path d="M174 160Q235 127 296 160L282 335Q235 360 188 335Z" fill="url(#skin)" stroke="#64717b" stroke-width="2"/>
+  <path d="M174 175L137 308M296 175L333 308" stroke="url(#skin)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M204 335L186 557M266 335L284 557" stroke="url(#skin)" stroke-width="44" stroke-linecap="round"/>
+  <path d="M235 160v175M194 235h82M198 278h74" stroke="#8d979f" stroke-width="1.5" opacity=".8"/>
+  <!-- back mannequin -->
+  <ellipse cx="665" cy="93" rx="34" ry="42" fill="url(#skin)" stroke="#64717b" stroke-width="2"/>
+  <path d="M604 160Q665 127 726 160L712 335Q665 360 618 335Z" fill="url(#skin)" stroke="#64717b" stroke-width="2"/>
+  <path d="M604 175L567 308M726 175L763 308" stroke="url(#skin)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M634 335L616 557M696 335L714 557" stroke="url(#skin)" stroke-width="44" stroke-linecap="round"/>
+  <path d="M665 160v175M624 235h82M628 278h74" stroke="#8d979f" stroke-width="1.5" opacity=".8"/>
+  <path d="M190 365q28-20 45 0l-12 112q-30 8-44-8z" fill="#e94f48"/><path d="M280 365q-28-20-45 0l12 112q30 8 44-8z" fill="#e94f48"/><path d="M657 242h16v112h-16z" rx="8" fill="#e8c958"/><path d="M620 352q45-32 90 0l-8 49q-37 24-74 0z" fill="#e94f48"/><path d="M620 398q30-18 45 0l-10 95q-28 12-43-6z" fill="#f47a4a"/><path d="M710 398q-30-18-45 0l10 95q28 12 43-6z" fill="#f47a4a"/>
+ </g>
+ </svg>
