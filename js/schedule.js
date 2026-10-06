@@ -139,6 +139,42 @@ window.nextPlannedWorkout=function(from=todayStr(),limit=14){
   }
   return null;
 };
+window.scheduleDashboardMarkup=function(){
+  if(!scheduleHasPlan(weeklyPlan))return '';
+  const today=todayStr(),current=scheduleStatusForDate(today),compliance=scheduleWeekCompliance(today);
+  const next=nextPlannedWorkout(today,14);
+  let title='',meta='',action='';
+  if(current.planned&&current.planned!=='Descanso'){
+    if(current.status==='completed'){
+      title='Hoy · '+current.planned+' completado';
+      meta='La sesión coincide con el plan.';
+    }else if(current.status==='changed'){
+      title='Hoy · '+current.planned+' planeado';
+      meta='Registraste '+(current.actual||'otra sesión')+'.';
+    }else{
+      title='Hoy · '+current.planned;
+      meta='Entrenamiento planeado para hoy.';
+      if(customRoutines[current.planned])action='<button class="btn btn-primary" type="button" data-routine="'+escapeHtml(current.planned)+'" onclick="startPlannedRoutine(this.dataset.routine)">Entrenar '+escapeHtml(current.planned)+'</button>';
+    }
+  }else if(current.planned==='Descanso'){
+    title='Hoy · Descanso planeado';
+    meta=next&&next.date!==today?'Próxima sesión: '+next.routine+' · '+fmtDate(next.date):'Sin otra sesión planeada en los próximos días.';
+  }else if(next){
+    title='Próxima sesión · '+next.routine;
+    meta=fmtDate(next.date);
+  }else{
+    title='Plan semanal activo';
+    meta='No hay otra sesión planeada en los próximos 14 días.';
+  }
+  const due=compliance.due;
+  const adherence=due?Math.round(compliance.completed/due*100):null;
+  const progress=due?compliance.completed+'/'+due+' previstas hasta hoy':'Sin sesiones vencidas';
+  const adjustments=compliance.adjustments?compliance.adjustments+' ajuste'+(compliance.adjustments===1?'':'s')+' esta semana':'Plantilla sin cambios esta semana';
+  return '<div class="dashboard-week-plan">'
+    +'<div><span class="eyebrow">Plan semanal</span><h3>'+escapeHtml(title)+'</h3><p>'+escapeHtml(meta)+'</p></div>'
+    +'<div class="dashboard-week-plan-meta"><b>'+escapeHtml(progress)+'</b><span>'+(adherence===null?'—':adherence+'%')+' cumplimiento exacto · '+escapeHtml(adjustments)+'</span></div>'
+    +action+'</div>';
+};
 
 async function persistWeeklyPlanChange(message){
   weeklyPlan=sanitizeWeeklyPlan(weeklyPlan);
