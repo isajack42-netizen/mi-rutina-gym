@@ -30,7 +30,7 @@ function applyRecoverySnapshot(snapshot,scope){
 async function writeRecoveryJournal(){
   await localPersistChain;
   if(localStoreReady)await LiftLocalDB.setMeta(RECOVERY_KEY,copyRecovery({uid:DOC_ID,items:recoveryItems}));
-  else localStorage.setItem(RECOVERY_KEY,JSON.stringify({uid:DOC_ID,items:recoveryItems}));
+  else PreviewLocalStorage.setItem(RECOVERY_KEY,JSON.stringify({uid:DOC_ID,items:recoveryItems}));
 }
 function validTrainingSnapshot(value){
   return isPlainObject(value)&&validDateKey(value.date)&&Array.isArray(value.order)&&value.order.every(id=>Number.isFinite(id))&&Number.isFinite(value.startedAt)&&Number.isFinite(value.idx);
@@ -46,8 +46,8 @@ window.importRecoveryFile=async function(file){
 };
 async function loadRecoveryJournal(){
   try{
-    const value=localStoreReady?await LiftLocalDB.getMeta(RECOVERY_KEY):safeParse(localStorage.getItem(RECOVERY_KEY),null);
-    const atomic=localStoreReady?null:safeParse(localStorage.getItem(LOCAL_ATOMIC_KEY),null);
+    const value=localStoreReady?await LiftLocalDB.getMeta(RECOVERY_KEY):safeParse(PreviewLocalStorage.getItem(RECOVERY_KEY),null);
+    const atomic=localStoreReady?null:safeParse(PreviewLocalStorage.getItem(LOCAL_ATOMIC_KEY),null);
     const items=atomic?.uid===DOC_ID?atomic.recovery:value?.uid===DOC_ID?value.items:[];
     recoveryItems=Array.isArray(items)?items.filter(x=>x?.before&&x?.scope).slice(-10):[];
   }catch(e){recoveryItems=[];console.warn('No se pudo leer la recuperación:',e);}
@@ -149,9 +149,9 @@ async function startWithStorageLock(start){
   const loading=document.getElementById('loadingOverlay'), original=loading.innerHTML;
   loading.innerHTML='<div style="padding:24px;text-align:center"><b>Abre LiftEngine en una sola ventana.</b><p>Cierra la otra pestaña o ventana de la app para continuar aquí.</p></div>';
   return navigator.locks.request('liftengine-local-writer',async()=>{
-    appOwnsStorage=true;DOC_ID=localStorage.getItem('gymLastUid')||null;loading.innerHTML=original;
+    appOwnsStorage=true;DOC_ID=PreviewLocalStorage.getItem('gymLastUid')||null;loading.innerHTML=original;
     // training.js loads before the lock. Refresh its state after acquiring it.
-    train=safeParse(localStorage.getItem(TRAIN_KEY),null);
+    train=safeParse(PreviewLocalStorage.getItem(TRAIN_KEY),null);
     if(train){restCtx=train.__restCtx||null;window.timerEndAt=Number(train.__timerEndAt)||0;window.timerAlarmed=!!train.__timerAlarmed;delete train.__restCtx;delete train.__timerEndAt;delete train.__timerAlarmed;}
     await start();await new Promise(()=>{});
   });

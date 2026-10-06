@@ -2796,3 +2796,6 @@ html.dialog-open,body.dialog-open{overscroll-behavior:none}
   .exercise-browser-thumb{width:76px}
   .tab-btn{font-size:.58rem}
 }
+
+/* Preview-only identity */
+body::after{content:"PREVIEW v1.1 α · LOCAL AISLADO";position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:99999;padding:5px 8px;border-radius:999px;background:rgba(15,20,27,.88);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:9px;font-weight:900;letter-spacing:.05em;pointer-events:none;backdrop-filter:blur(8px)}

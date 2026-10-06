@@ -1,7 +1,7 @@
 // LiftEngine · almacenamiento local IndexedDB (v5.6)
 'use strict';
 (function(){
-  const DB_NAME='liftengine-local';
+  const DB_NAME='liftengine-preview-v1.1-alpha.1';
   const DB_VERSION=1;
   const DAY_STORE='days';
   const SETTINGS_STORE='settings';

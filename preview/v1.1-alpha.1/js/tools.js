@@ -257,7 +257,7 @@ window.importCSV=async function(event){
 
 function recoverableMeasurementsFromLocalBackup(){
   try{
-    const backup=safeParse(localStorage.getItem('gymRecoveryBackup'),{}), item=backup&&backup[MEASURE];
+    const backup=safeParse(PreviewLocalStorage.getItem('gymRecoveryBackup'),{}), item=backup&&backup[MEASURE];
     if(!item||typeof item.raw!=='string') return [];
     return sanitizeMeasurements(JSON.parse(item.raw));
   }catch(e){ return []; }
@@ -271,8 +271,8 @@ Se combinarán con tus medidas actuales sin borrar registros más recientes.`,{t
   const byDate=new Map();recovered.forEach(x=>byDate.set(x.date,x));measurements.forEach(x=>byDate.set(x.date,x));
   measurements=[...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date));
   try{
-    const backup=safeParse(localStorage.getItem('gymRecoveryBackup'),{});delete backup[MEASURE];
-    if(Object.keys(backup).length)localStorage.setItem('gymRecoveryBackup',JSON.stringify(backup));else localStorage.removeItem('gymRecoveryBackup');
+    const backup=safeParse(PreviewLocalStorage.getItem('gymRecoveryBackup'),{});delete backup[MEASURE];
+    if(Object.keys(backup).length)PreviewLocalStorage.setItem('gymRecoveryBackup',JSON.stringify(backup));else PreviewLocalStorage.removeItem('gymRecoveryBackup');
   }catch(e){}
   await saveToFirebase({days:recovered.map(x=>x.date)});renderBodyWeights();renderSettingsModal();toast('Medidas recuperadas y sincronizadas');
 }

@@ -6,7 +6,7 @@
   catch(_){ await import('./js/version.js'); }
   const version=globalThis.LIFTENGINE_VERSION || 'dev';
   const css=document.querySelector('link[rel="stylesheet"][href^="styles.css"]'); if(css) css.href=`styles.css?v=${encodeURIComponent(version)}`;
-  const files=['config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','exercise-library','routines','notifications','training','recovery','bootstrap'];
+  const files=['preview-isolation','config','storage','core','settings','logbook','metrics','dashboard','analytics','history','planning','schedule','review','intelligence','tools','exercise-library','routines','notifications','training','recovery','bootstrap'];
   for(const name of files){
     await new Promise((resolve,reject)=>{
       const s=document.createElement('script');
@@ -14,6 +14,7 @@
       s.onload=resolve; s.onerror=()=>reject(new Error(`No se pudo cargar ${name}.js`));
       document.head.appendChild(s);
     });
+    if(name==='preview-isolation'&&globalThis.LIFTENGINE_PREVIEW_READY) await globalThis.LIFTENGINE_PREVIEW_READY;
   }
 })().catch(e=>{
   console.error('LiftEngine no pudo iniciar:',e);

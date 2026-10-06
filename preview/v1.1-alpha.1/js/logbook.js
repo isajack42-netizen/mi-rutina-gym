@@ -205,7 +205,7 @@ function migrateNames(){
     if(JSON.stringify(before)!==JSON.stringify(after)){customMuscles[group]=after;changed=true;settingsChanged=true;}
   });
   if(changed){
-    try{ if(!localStorage.getItem('gymBackupBeforeRename')) localStorage.setItem('gymBackupBeforeRename',snap); }catch(e){}
+    try{ if(!PreviewLocalStorage.getItem('gymBackupBeforeRename')) PreviewLocalStorage.setItem('gymBackupBeforeRename',snap); }catch(e){}
     changedDates.forEach(date=>markDayDirty(date,{cloud:true,local:true}));
     if(settingsChanged) markSettingsDirty({cloud:true,local:true});
   }

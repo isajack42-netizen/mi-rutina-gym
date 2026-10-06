@@ -1,11 +1,11 @@
 // LiftEngine · núcleo: estado, persistencia, Firebase, unidades y tema
 'use strict';
-let DOC_ID = localStorage.getItem('gymLastUid') || null;
+let DOC_ID = PreviewLocalStorage.getItem('gymLastUid') || null;
 const PENDING_KEY='gymPendingSync', SYNCED_KEY='gymSyncedAt', UPDATED_KEY='gymUpdatedAt';
 const DIRTY_DAYS_PREFIX='gymDirtyDaysV1:', DIRTY_SETTINGS_PREFIX='gymDirtySettingsV1:';
 const FULL_PULL_INTERVAL_MS=24*60*60*1000;
 let forceNextFullPull=false, cloudSyncPaused=false;
-let fb=null, cloudReady=false, syncing=false, updatedAt=Number(localStorage.getItem(UPDATED_KEY))||0, lastSyncError='', lastCloudPullAt=0;
+let fb=null, cloudReady=false, syncing=false, updatedAt=Number(PreviewLocalStorage.getItem(UPDATED_KEY))||0, lastSyncError='', lastCloudPullAt=0;
 let cloudMode='unknown', cloudMeta={days:{},settings:{revision:0,hash:''},pull:{incrementalReady:false,cursor:null,lastFullAt:0}};
 const CLOUD_META_PREFIX='gymCloudMetaV2:';
 let mutationSeq=0, localDirtyDays=new Map(), cloudDirtyDays=new Map(), localSettingsDirty=0, cloudSettingsDirty=0;
@@ -16,6 +16,7 @@ function ic(n){return `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/><
 function withTimeout(p,ms){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('timeout')),ms);Promise.resolve(p).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});}
 
 async function connectFirebase(){
+  if(globalThis.LIFTENGINE_PREVIEW_MODE) return false;
   if(fb) return true;
   try{
     // En móvil una carga en frío de los módulos ESM puede superar 8 s.
@@ -56,11 +57,11 @@ async function wipeLocalData(){
     await localPersistChain;
     if(typeof recoveryItems!=='undefined')recoveryItems=[];
     [KEY,CAT,WEIGHT,MEASURE,'trackGym_notes',ROUTINES_KEY,'gymAliases','gymMuscles','gymExerciseNotes',ANALYTICS_TARGET_KEY,BODY_GOAL_KEY,WEEKLY_PLAN_KEY,PENDING_KEY,SYNCED_KEY,UPDATED_KEY,'gymTrainState','gymBackupBeforeRename','gymBackupBeforeImport','gymBackupBeforeCSVImport','gymBackupBeforeCloudV2','gymRecoveryBackup','gymRecoveryJournalV1','gymAtomicSnapshotV1','gymIndexedDBPrimary','gymLastUid']
-      .forEach(k=>{ try{localStorage.removeItem(k)}catch(e){} });
+      .forEach(k=>{ try{PreviewLocalStorage.removeItem(k)}catch(e){} });
     try{
-      for(let i=localStorage.length-1;i>=0;i--){
-        const k=localStorage.key(i);
-        if(k&&(k.startsWith(CLOUD_META_PREFIX)||k.startsWith(DIRTY_DAYS_PREFIX)||k.startsWith(DIRTY_SETTINGS_PREFIX))) localStorage.removeItem(k);
+      for(let i=PreviewLocalStorage.length-1;i>=0;i--){
+        const k=PreviewLocalStorage.key(i);
+        if(k&&(k.startsWith(CLOUD_META_PREFIX)||k.startsWith(DIRTY_DAYS_PREFIX)||k.startsWith(DIRTY_SETTINGS_PREFIX))) PreviewLocalStorage.removeItem(k);
       }
     }catch(e){}
     try{ await globalThis.LiftLocalDB?.clearAll?.(); }catch(e){ console.warn('No se pudo limpiar IndexedDB:',e); }
@@ -72,7 +73,7 @@ async function wipeLocalData(){
 window.logout = async function() {
     if(!fb) return;
     if(saveInFlight||syncing||recoveryBusy){toast('Espera a que termine el guardado antes de cerrar sesión');return;}
-    if((localStorage.getItem(PENDING_KEY)==='1'||train||localSaveError||localDirtyDays.size||localSettingsDirty) && !(await appConfirm(`Hay cambios o una sesión en curso que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?`,{title:'Cambios pendientes',confirmText:'Cerrar sesión',danger:true}))) return;
+    if((PreviewLocalStorage.getItem(PENDING_KEY)==='1'||train||localSaveError||localDirtyDays.size||localSettingsDirty) && !(await appConfirm(`Hay cambios o una sesión en curso que aún NO se han sincronizado con la nube y se perderían al cerrar sesión.\n\n¿Cerrar sesión de todos modos?`,{title:'Cambios pendientes',confirmText:'Cerrar sesión',danger:true}))) return;
     if(await appConfirm('¿Estás seguro de cerrar sesión? Solo podrás ver y sincronizar tus rutinas al volver a entrar.',{title:'Cerrar sesión',confirmText:'Cerrar sesión',danger:true})) {
         await fb.signOut(fb.auth);
         await wipeLocalData();
@@ -406,10 +407,10 @@ function sanitizeMuscles(raw){
 function backupCorruptLocal(key,raw){
   if(raw==null) return;
   try{
-    const existing=safeParse(localStorage.getItem('gymRecoveryBackup'),{});
+    const existing=safeParse(PreviewLocalStorage.getItem('gymRecoveryBackup'),{});
     if(!existing[key]) existing[key]={savedAt:new Date().toISOString(),raw};
     localRecoveryDetected=true;
-    localStorage.setItem('gymRecoveryBackup',JSON.stringify(existing));
+    PreviewLocalStorage.setItem('gymRecoveryBackup',JSON.stringify(existing));
   }catch(e){ console.warn('No se pudo guardar recuperación local:',key,e); }
 }
 
@@ -422,7 +423,7 @@ function itemCount(value){
   return value==null ? 0 : 1;
 }
 function readLocal(key,fallback,sanitizer){
-  const raw=localStorage.getItem(key);
+  const raw=PreviewLocalStorage.getItem(key);
   if(raw===null) return fallback;
   try{
     const parsed=JSON.parse(raw);
@@ -458,24 +459,24 @@ function loadLegacyLocal(){
   measurements=readLocal(MEASURE,[],sanitizeMeasurements);
   notes=readLocal('trackGym_notes',{},sanitizeNotes);
   exerciseNotes=readLocal(EX_NOTES_KEY,{},sanitizeExerciseNotes);
-  const routinesStored=localStorage.getItem(ROUTINES_KEY)!==null;
-  const aliasesStored=localStorage.getItem('gymAliases')!==null;
-  const musclesStored=localStorage.getItem('gymMuscles')!==null;
+  const routinesStored=PreviewLocalStorage.getItem(ROUTINES_KEY)!==null;
+  const aliasesStored=PreviewLocalStorage.getItem('gymAliases')!==null;
+  const musclesStored=PreviewLocalStorage.getItem('gymMuscles')!==null;
   customRoutines = routinesStored ? sanitizeRoutines(readLocal(ROUTINES_KEY, {}, x=>x)) : JSON.parse(JSON.stringify(defaultPPL));
-  currentUnit=localStorage.getItem(UNIT_KEY)==='lbs'?'lbs':'kg';
-  currentTheme=normalizeTheme(localStorage.getItem(THEME_KEY));
-  weeklySessionTarget=Math.min(7,Math.max(1,parseInt(localStorage.getItem(ANALYTICS_TARGET_KEY),10)||6));
-  bodyGoal=sanitizeBodyGoal(safeParse(localStorage.getItem(BODY_GOAL_KEY),{}));
-  weeklyPlan=sanitizeWeeklyPlan(safeParse(localStorage.getItem(WEEKLY_PLAN_KEY),{}));
+  currentUnit=PreviewLocalStorage.getItem(UNIT_KEY)==='lbs'?'lbs':'kg';
+  currentTheme=normalizeTheme(PreviewLocalStorage.getItem(THEME_KEY));
+  weeklySessionTarget=Math.min(7,Math.max(1,parseInt(PreviewLocalStorage.getItem(ANALYTICS_TARGET_KEY),10)||6));
+  bodyGoal=sanitizeBodyGoal(safeParse(PreviewLocalStorage.getItem(BODY_GOAL_KEY),{}));
+  weeklyPlan=sanitizeWeeklyPlan(safeParse(PreviewLocalStorage.getItem(WEEKLY_PLAN_KEY),{}));
   customAliases = aliasesStored ? sanitizeAliases(readLocal('gymAliases', {}, x=>x)) : JSON.parse(JSON.stringify(defaultAliases));
   customMuscles = musclesStored ? sanitizeMuscles(readLocal('gymMuscles', {}, x=>x)) : JSON.parse(JSON.stringify(defaultMuscles));
-  const atomic=safeParse(localStorage.getItem('gymAtomicSnapshotV1'),null);
+  const atomic=safeParse(PreviewLocalStorage.getItem('gymAtomicSnapshotV1'),null);
   if(atomic&&atomic.uid===DOC_ID){data=sanitizeData(atomic.data);categories=sanitizeCategories(atomic.categories);weights=sanitizeWeights(atomic.weights);measurements=sanitizeMeasurements(atomic.measurements);notes=sanitizeNotes(atomic.notes);applySettingsSnapshot(atomic.settings);}
 }
 
 function persistLegacySnapshot(){
   const snapshot={uid:DOC_ID,data,categories,weights,measurements,notes,settings:buildSettingsSnapshot(),reliability:localPersistenceMeta(),recovery:recoveryItems};
-  localStorage.setItem('gymAtomicSnapshotV1',JSON.stringify(snapshot));
+  PreviewLocalStorage.setItem('gymAtomicSnapshotV1',JSON.stringify(snapshot));
 }
 
 function dirtyDaysKey(){ return DIRTY_DAYS_PREFIX+(DOC_ID||'anonymous'); }
@@ -483,16 +484,16 @@ function dirtySettingsKey(){ return DIRTY_SETTINGS_PREFIX+(DOC_ID||'anonymous');
 function persistCloudDirtyMarkers(){
   try{
     const days=[...cloudDirtyDays.keys()].filter(validDateKey).sort();
-    if(days.length) localStorage.setItem(dirtyDaysKey(),JSON.stringify(days)); else localStorage.removeItem(dirtyDaysKey());
-    if(cloudSettingsDirty) localStorage.setItem(dirtySettingsKey(),'1'); else localStorage.removeItem(dirtySettingsKey());
-    if(days.length||cloudSettingsDirty) localStorage.setItem(PENDING_KEY,'1');
+    if(days.length) PreviewLocalStorage.setItem(dirtyDaysKey(),JSON.stringify(days)); else PreviewLocalStorage.removeItem(dirtyDaysKey());
+    if(cloudSettingsDirty) PreviewLocalStorage.setItem(dirtySettingsKey(),'1'); else PreviewLocalStorage.removeItem(dirtySettingsKey());
+    if(days.length||cloudSettingsDirty) PreviewLocalStorage.setItem(PENDING_KEY,'1');
   }catch(e){ console.warn('No se pudieron guardar marcadores de cambios:',e); }
 }
 function loadCloudDirtyMarkers(){
   cloudDirtyDays=new Map(); cloudSettingsDirty=0;
-  const days=safeParse(localStorage.getItem(dirtyDaysKey()),[]);
+  const days=safeParse(PreviewLocalStorage.getItem(dirtyDaysKey()),[]);
   if(Array.isArray(days)) days.filter(validDateKey).forEach(d=>cloudDirtyDays.set(d,++mutationSeq));
-  if(localStorage.getItem(dirtySettingsKey())==='1') cloudSettingsDirty=++mutationSeq;
+  if(PreviewLocalStorage.getItem(dirtySettingsKey())==='1') cloudSettingsDirty=++mutationSeq;
 }
 function markDayDirty(date,{cloud=true,local=true}={}){
   if(!validDateKey(date)) return;
@@ -546,7 +547,7 @@ function applyLocalSettingsRecord(raw){
 }
 
 async function load(){
-  // Compatibilidad: primero se carga el snapshot histórico de localStorage. En la
+  // Compatibilidad: primero se carga el snapshot histórico de PreviewLocalStorage. En la
   // primera ejecución v5.6 se migra a IndexedDB y se conserva ese snapshot como
   // red de seguridad para poder volver a una versión anterior si fuera necesario.
   loadLegacyLocal();
@@ -560,7 +561,7 @@ async function load(){
       const records=allLocalDates().map(buildLocalDayRecord).filter(Boolean);
       await LiftLocalDB.replaceDays(records);
       await LiftLocalDB.putSettings(buildLocalSettingsRecord());
-      await LiftLocalDB.setMeta('migration-v1',{at:Date.now(),from:'localStorage'});
+      await LiftLocalDB.setMeta('migration-v1',{at:Date.now(),from:'PreviewLocalStorage'});
     }else{
       const [records,settings]=await Promise.all([LiftLocalDB.getAllDays(),LiftLocalDB.getSettings()]);
       data={}; categories={}; weights=[]; measurements=[]; notes={};
@@ -570,13 +571,13 @@ async function load(){
     localStoreReady=true; localStoreMode='indexeddb';
     await restoreLocalReliability(await LiftLocalDB.getMeta('reliability-v1'));
     localNormalizationDetected=false;
-    try{localStorage.setItem('gymIndexedDBPrimary','true');}catch(_){}
+    try{PreviewLocalStorage.setItem('gymIndexedDBPrimary','true');}catch(_){}
   }catch(e){
     localStoreReady=false; localStoreMode='legacy';
-    console.warn('LiftEngine · IndexedDB no disponible, usando compatibilidad localStorage:',e);
-    const atomic=safeParse(localStorage.getItem('gymAtomicSnapshotV1'),null);
+    console.warn('LiftEngine · IndexedDB no disponible, usando compatibilidad PreviewLocalStorage:',e);
+    const atomic=safeParse(PreviewLocalStorage.getItem('gymAtomicSnapshotV1'),null);
     if(atomic?.uid===DOC_ID)await restoreLocalReliability(atomic.reliability);
-    if(safeParse(localStorage.getItem('gymIndexedDBPrimary'),false)){localSaveError='No se pudo abrir el almacenamiento principal.';throw e;}
+    if(safeParse(PreviewLocalStorage.getItem('gymIndexedDBPrimary'),false)){localSaveError='No se pudo abrir el almacenamiento principal.';throw e;}
   }
   document.getElementById('unitBtn').innerText=currentUnit.toUpperCase();
   applyTheme();
@@ -591,7 +592,7 @@ async function load(){
 
 function persistLocal({forceAll=false,replaceDays=false,settings=false}={}){
   if(localPersistTimer){clearTimeout(localPersistTimer);localPersistTimer=null;}
-  try{ localStorage.setItem(UNIT_KEY,currentUnit); localStorage.setItem(THEME_KEY,currentTheme); localStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); localStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal))); localStorage.setItem(WEEKLY_PLAN_KEY,JSON.stringify(sanitizeWeeklyPlan(weeklyPlan))); }catch(e){}
+  try{ PreviewLocalStorage.setItem(UNIT_KEY,currentUnit); PreviewLocalStorage.setItem(THEME_KEY,currentTheme); PreviewLocalStorage.setItem(ANALYTICS_TARGET_KEY,String(weeklySessionTarget)); PreviewLocalStorage.setItem(BODY_GOAL_KEY,JSON.stringify(sanitizeBodyGoal(bodyGoal))); PreviewLocalStorage.setItem(WEEKLY_PLAN_KEY,JSON.stringify(sanitizeWeeklyPlan(weeklyPlan))); }catch(e){}
   if(!localStoreReady||!globalThis.LiftLocalDB){
     try{persistLegacySnapshot();localDirtyDays.clear();localSettingsDirty=0;localSaveSuccess();return Promise.resolve(true);}
     catch(e){localSaveFailure(e);return Promise.resolve(false);}
@@ -640,7 +641,7 @@ function compactDataForCloud(raw){
 function compactEntriesForDate(date){ return compactDataForCloud({[date]:data[date]||[]})[date]||[]; }
 function cloudMetaKey(){ return CLOUD_META_PREFIX+(DOC_ID||'anonymous'); }
 function loadCloudMeta(){
-  const raw=safeParse(localStorage.getItem(cloudMetaKey()),null);
+  const raw=safeParse(PreviewLocalStorage.getItem(cloudMetaKey()),null);
   cloudMeta=isPlainObject(raw)?raw:{days:{},settings:{revision:0,hash:''},pull:{incrementalReady:false,cursor:null,lastFullAt:0}};
   if(!isPlainObject(cloudMeta.days)) cloudMeta.days={};
   if(!isPlainObject(cloudMeta.settings)) cloudMeta.settings={revision:0,hash:''};
@@ -649,7 +650,7 @@ function loadCloudMeta(){
   cloudMeta.pull.lastFullAt=Number(cloudMeta.pull.lastFullAt)||0;
   if(cloudMeta.pull.cursor&&!isPlainObject(cloudMeta.pull.cursor)) cloudMeta.pull.cursor=null;
 }
-function saveCloudMeta(){ try{localStorage.setItem(cloudMetaKey(),JSON.stringify(cloudMeta));}catch(e){console.warn('No se pudo guardar metadata de nube',e);} }
+function saveCloudMeta(){ try{PreviewLocalStorage.setItem(cloudMetaKey(),JSON.stringify(cloudMeta));}catch(e){console.warn('No se pudo guardar metadata de nube',e);} }
 function cursorFromTimestamp(ts){
   if(!ts||typeof ts.seconds!=='number') return null;
   return {seconds:Number(ts.seconds)||0,nanoseconds:Number(ts.nanoseconds)||0};
@@ -805,7 +806,7 @@ async function cloudV2PermissionsAvailable(){
   catch(e){ if(e?.code==='permission-denied') lastSyncError='Las reglas de Firestore aún no permiten la nube v2. Publica firestore.rules de esta versión.'; return false; }
 }
 function localCloudMigrationBackup(){
-  try{ localStorage.setItem('gymBackupBeforeCloudV2',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,...buildSettingsSnapshot()})); }catch(e){console.warn('No se pudo crear backup de migración',e);}
+  try{ PreviewLocalStorage.setItem('gymBackupBeforeCloudV2',JSON.stringify({savedAt:new Date().toISOString(),data,categories,weights,measurements,notes,...buildSettingsSnapshot()})); }catch(e){console.warn('No se pudo crear backup de migración',e);}
 }
 async function migrateLocalToCloudV2(){
   if(!(await cloudV2PermissionsAvailable())) return false;
@@ -827,7 +828,7 @@ async function migrateLocalToCloudV2(){
     await fb.setDoc(fb.doc(fb.db,'userData',DOC_ID),{cloudSchemaVersion:CLOUD_SCHEMA_VERSION,revision:1,updatedAt:rootUpdatedAt,serverUpdatedAt:fb.serverTimestamp(),...settings});
     cloudMode='v2'; cloudMeta={days:nextDays,settings:{revision:1,hash:fingerprint(settings)},pull:{incrementalReady:false,cursor:null,lastFullAt:0}};
     cloudDirtyDays.clear(); cloudSettingsDirty=0; persistCloudDirtyMarkers(); saveCloudMeta();
-    try{localStorage.removeItem(PENDING_KEY);}catch(e){} updateSyncStatus('Sincronizado','ok');
+    try{PreviewLocalStorage.removeItem(PENDING_KEY);}catch(e){} updateSyncStatus('Sincronizado','ok');
     return true;
   }catch(e){ console.error('Migración nube v2 falló:',e); lastSyncError=e?.message||String(e); cloudMode='legacy'; return false; }
 }
@@ -850,7 +851,7 @@ async function applyLegacyCloud(cloud,stamp){
   markAllDaysDirty({cloud:false,local:true}); markSettingsDirty({cloud:false,local:true});
   item.after=recoveryScopeSnapshot(item.scope);
   if(!(await persistLocal({forceAll:true,replaceDays:true,settings:true})))throw new Error('No se pudo guardar la copia de nube.');
-  updatedAt=stamp;try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(stamp));localStorage.setItem(UPDATED_KEY,String(stamp));}catch(e){}
+  updatedAt=stamp;try{PreviewLocalStorage.removeItem(PENDING_KEY);PreviewLocalStorage.setItem(SYNCED_KEY,String(stamp));PreviewLocalStorage.setItem(UPDATED_KEY,String(stamp));}catch(e){}
   refreshAll();return changed;
 }
 function applyLocalDayContent(date,c){
@@ -964,7 +965,7 @@ function applySaveScope(scope){
 function clearPendingIfClean(){
   persistCloudDirtyMarkers();
   if(!hasCloudDirty()){
-    try{localStorage.removeItem(PENDING_KEY);localStorage.setItem(SYNCED_KEY,String(updatedAt));}catch(e){}
+    try{PreviewLocalStorage.removeItem(PENDING_KEY);PreviewLocalStorage.setItem(SYNCED_KEY,String(updatedAt));}catch(e){}
   }
 }
 async function saveCloudV2Changes(){
@@ -973,7 +974,7 @@ async function saveCloudV2Changes(){
   // bandera global pero todavía no había dirtyDays, reconstruimos el conjunto
   // una única vez comparando hashes. Las operaciones normales v5.6 no hacen
   // este barrido completo.
-  if(localStorage.getItem(PENDING_KEY)==='1'&&!hasCloudDirty()) markFallbackDirtyFromState();
+  if(PreviewLocalStorage.getItem(PENDING_KEY)==='1'&&!hasCloudDirty()) markFallbackDirtyFromState();
 
   for(const [date,version] of [...cloudDirtyDays.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
     const hash=dayHash(date), meta=cloudMeta.days[date];
@@ -1009,7 +1010,7 @@ async function saveToFirebase(scope=null){
   // detectan diferencias por hash. Los flujos normales v5.6 pasan days/settings.
   if(!scope&&!hasCloudDirty()) markFallbackDirtyFromState();
   updatedAt=Date.now();
-  try{localStorage.setItem(UPDATED_KEY,String(updatedAt)); if(hasCloudDirty())localStorage.setItem(PENDING_KEY,'1');}catch(e){}
+  try{PreviewLocalStorage.setItem(UPDATED_KEY,String(updatedAt)); if(hasCloudDirty())PreviewLocalStorage.setItem(PENDING_KEY,'1');}catch(e){}
   if(!(await persistLocal()))return false;
   if(!hasCloudDirty()) { updateSyncStatus('Sincronizado','ok'); return true; }
   if(cloudSyncPaused){updateSyncStatus('Sincronización pausada · cambios locales conservados','saving');return false;}
@@ -1030,14 +1031,14 @@ async function saveToFirebase(scope=null){
       }
     }while(saveQueued||hasCloudDirty());
     clearPendingIfClean();if(!(await persistLocal())){ok=false;return false;}updateSyncStatus('Sincronizado','ok');
-  }catch(e){console.error('LiftEngine · error sincronizando:',e);lastSyncError=e?.message||String(e);persistCloudDirtyMarkers();updateSyncStatus('Guardado local · sin conexión','error');ok=false;}
+  }catch(e){console.error('LiftEngine · error sincronizando:',e);lastSyncError=e?.message||String(e);persistCloudDirtyMarkers();updateSyncStatus('Preview local · nube desactivada','error');ok=false;}
   finally{saveInFlight=false;if((saveQueued||hasCloudDirty())&&ok)saveToFirebase();}return ok;
 }
 
 async function syncCloudV2(rootCloud){
   cloudMode='v2'; loadCloudMeta();
   const {remote,full}=await fetchCloudDaysV2();
-  const pending=localStorage.getItem(PENDING_KEY)==='1'||hasCloudDirty();
+  const pending=PreviewLocalStorage.getItem(PENDING_KEY)==='1'||hasCloudDirty();
   const protectedDate=(typeof train!=='undefined'&&train&&validDateKey(train.date))?train.date:null;
   const localDrafts=captureDraftEntries();
 
@@ -1108,7 +1109,7 @@ async function syncCloudV2(rootCloud){
   }
   clearPendingIfClean();
   if(!(await persistLocal()))return false;
-  try{localStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){}
+  try{PreviewLocalStorage.setItem(UPDATED_KEY,String(updatedAt));}catch(e){}
   saveCloudMeta(); updateSyncStatus(hasCloudDirty()?'Pendiente de sincronizar':'Sincronizado',hasCloudDirty()?'saving':'ok');
   return !hasCloudDirty();
 }
@@ -1125,8 +1126,8 @@ async function syncFromCloud(){
     }
     const cloud=snap.data();
     if(Number(cloud.cloudSchemaVersion)>=CLOUD_SCHEMA_VERSION)return await syncCloudV2(cloud);
-    cloudMode='legacy';const cloudStamp=Number(cloud.updatedAt)||0,pending=localStorage.getItem(PENDING_KEY)==='1';let useLocal=false;
-    if(pending){const synced=Number(localStorage.getItem(SYNCED_KEY))||0;useLocal=cloudStamp>synced?await chooseCloudConflict('Este dispositivo y la nube heredada tienen cambios pendientes.'):true;}
+    cloudMode='legacy';const cloudStamp=Number(cloud.updatedAt)||0,pending=PreviewLocalStorage.getItem(PENDING_KEY)==='1';let useLocal=false;
+    if(pending){const synced=Number(PreviewLocalStorage.getItem(SYNCED_KEY))||0;useLocal=cloudStamp>synced?await chooseCloudConflict('Este dispositivo y la nube heredada tienen cambios pendientes.'):true;}
     let legacyChanged=false;
     if(useLocal) await saveCloudLegacy();
     else legacyChanged=!!(await applyLegacyCloud(cloud,cloudStamp));
@@ -1191,18 +1192,18 @@ window.retryCloudSync = async function(){
   forceNextFullPull=true;cloudSyncPaused=false;
   updateSyncStatus('Conectando…','saving');
   try{
-    if(!(await connectFirebase())){ updateSyncStatus('Guardado local · sin conexión','error'); toast('No se pudo conectar con Firebase'); return false; }
+    if(!(await connectFirebase())){ updateSyncStatus('Preview local · nube desactivada','error'); toast('No se pudo conectar con Firebase'); return false; }
     const user=fb.auth.currentUser || await waitForAuthState(8000);
     if(!user){ updateSyncStatus('Sesión no disponible','error'); toast('Vuelve a iniciar sesión con Google'); return false; }
     DOC_ID=user.uid;
-    localStorage.setItem('gymLastUid',user.uid);
+    PreviewLocalStorage.setItem('gymLastUid',user.uid);
     const ok=await syncFromCloudWithRetry(2);
-    if(!ok){ updateSyncStatus('Guardado local · sin conexión','error'); toast(localSaveError?'No se pudo guardar. Descarga una copia antes de cerrar.':'No se pudo sincronizar. Tus datos siguen guardados en este dispositivo.'); }
+    if(!ok){ updateSyncStatus('Preview local · nube desactivada','error'); toast(localSaveError?'No se pudo guardar. Descarga una copia antes de cerrar.':'No se pudo sincronizar. Tus datos siguen guardados en este dispositivo.'); }
     else toast('Sincronización actualizada');
     return ok;
   }catch(e){
     console.error('Error al reintentar sincronización:',e);
-    updateSyncStatus('Guardado local · sin conexión','error');
+    updateSyncStatus('Preview local · nube desactivada','error');
     toast('No se pudo sincronizar');
     return false;
   }

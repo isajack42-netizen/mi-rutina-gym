@@ -1,7 +1,7 @@
 {
-  "name": "LiftEngine",
-  "short_name": "LiftEngine",
-  "description": "Registro, progresión y constancia en el gym",
+  "name": "LiftEngine Preview v1.1",
+  "short_name": "LiftEngine α",
+  "description": "Preview aislado de LiftEngine v1.1 Exercise Library",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

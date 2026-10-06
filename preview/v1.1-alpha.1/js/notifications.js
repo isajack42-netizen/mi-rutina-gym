@@ -7,7 +7,7 @@ function notifState(){
   if(!('Notification' in window)||!('serviceWorker' in navigator)) return 'unsupported';
   if(isIOS()&&!isStandalone()) return 'needs-install';
   if(Notification.permission==='denied') return 'denied';
-  if(Notification.permission==='granted') return localStorage.getItem('gymNotif')==='0'?'off':'on';
+  if(Notification.permission==='granted') return PreviewLocalStorage.getItem('gymNotif')==='0'?'off':'on';
   return 'off';
 }
 function notifBody(){ try{ const e=train&&trainCur(); return e?('Siguiente serie · '+e.name):'Hora de tu siguiente serie'; }catch(_){ return 'Hora de tu siguiente serie'; } }
@@ -27,17 +27,17 @@ window.toggleNotifications=async function(silent){
   if(st==='unsupported'){ toast('Tu navegador no admite notificaciones'); return; }
   if(st==='needs-install'){ await appAlert('En iPhone las notificaciones solo funcionan con la app instalada.\n\nSafari → Compartir → Añadir a pantalla de inicio, y ábrela desde ese icono.','Instala LiftEngine'); return; }
   if(st==='denied'){ await appAlert('Las notificaciones están bloqueadas para esta página.\n\nActívalas en los ajustes del sistema o del navegador (Notificaciones → LiftEngine / Chrome).','Notificaciones bloqueadas'); return; }
-  if(st==='on'){ try{localStorage.setItem('gymNotif','0')}catch(e){} notifCancel(); }
+  if(st==='on'){ try{PreviewLocalStorage.setItem('gymNotif','0')}catch(e){} notifCancel(); }
   else{
     const p=Notification.permission==='granted'?'granted':await Notification.requestPermission();
-    if(p==='granted'){ try{localStorage.setItem('gymNotif','1')}catch(e){} notifShow('Avisos activados','Te avisaremos cuando termine tu descanso.'); }
+    if(p==='granted'){ try{PreviewLocalStorage.setItem('gymNotif','1')}catch(e){} notifShow('Avisos activados','Te avisaremos cuando termine tu descanso.'); }
     else toast('Permiso no concedido');
   }
   if(!silent) renderSettingsModal();
 };
 async function notifOffer(){
-  if(notifState()!=='off'||Notification.permission!=='default'||localStorage.getItem('gymNotifAsked')) return;
-  try{ localStorage.setItem('gymNotifAsked','1'); }catch(e){}
+  if(notifState()!=='off'||Notification.permission!=='default'||PreviewLocalStorage.getItem('gymNotifAsked')) return;
+  try{ PreviewLocalStorage.setItem('gymNotifAsked','1'); }catch(e){}
   if(await appConfirm('¿Quieres recibir avisos de descanso? En segundo plano funcionan cuando el sistema mantiene activa la PWA.',{title:'Avisos de descanso',confirmText:'Activar'})) toggleNotifications(true);
 }
 

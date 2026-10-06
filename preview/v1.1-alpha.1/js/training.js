@@ -2,8 +2,8 @@
 'use strict';
 // ===== MODO ENTRENAMIENTO =====
 const TRAIN_KEY='gymTrainState';
-const rawTrainState=safeParse(localStorage.getItem(TRAIN_KEY),null);
-let train=rawTrainState&&typeof rawTrainState==='object'?{...rawTrainState}:null, trainClock=null, wakeLock=null, trainReturnFocus=null, trainAutoRest=localStorage.getItem('gymAutoRest')!=='0';
+const rawTrainState=safeParse(PreviewLocalStorage.getItem(TRAIN_KEY),null);
+let train=rawTrainState&&typeof rawTrainState==='object'?{...rawTrainState}:null, trainClock=null, wakeLock=null, trainReturnFocus=null, trainAutoRest=PreviewLocalStorage.getItem('gymAutoRest')!=='0';
 let restCtx=train&&train.__restCtx&&typeof train.__restCtx==='object'?train.__restCtx:null;
 if(train){
   window.timerEndAt=Number(train.__timerEndAt)||0;
@@ -51,8 +51,8 @@ function saveTrain(){
   try{
     if(train){
       const payload={...train,__restCtx:restCtx||null,__timerEndAt:Number(window.timerEndAt)||0,__timerAlarmed:!!window.timerAlarmed};
-      localStorage.setItem(TRAIN_KEY,JSON.stringify(payload));
-    }else localStorage.removeItem(TRAIN_KEY);
+      PreviewLocalStorage.setItem(TRAIN_KEY,JSON.stringify(payload));
+    }else PreviewLocalStorage.removeItem(TRAIN_KEY);
   }catch(e){localSaveFailure(e);}
   if(typeof reliabilityLoaded!=='undefined'&&reliabilityLoaded)queuePersistLocal(60);
 }
@@ -359,7 +359,7 @@ window.trainAddExerciseOk=function(){
 }
 window.trainAddSet=function(){ const e=trainCur(); if(!e) return; const l=e.sets[e.sets.length-1]||{}; e.sets.push({setNumber:e.sets.length+1,reps:'-',weight:0,rir:'-',rest:l.rest||'90 s',type:normalizeSetType(l.type),done:false}); saveTrainingDraftLocal(); renderTrain(); }
 window.trainDelSet=async function(){ const e=trainCur(); if(!e||e.sets.length<2) return; if(isDone(e.sets[e.sets.length-1])){ toast('Desmarca la última serie para quitarla'); return; } if(await recoverableChange('Quitar serie',{days:[train.date],training:true},()=>e.sets.pop()))renderTrain(); }
-window.trainToggleAuto=function(){ trainAutoRest=!trainAutoRest; try{localStorage.setItem('gymAutoRest',trainAutoRest?'1':'0')}catch(e){} if(!trainAutoRest) stopTimer(); renderTrain(); }
+window.trainToggleAuto=function(){ trainAutoRest=!trainAutoRest; try{PreviewLocalStorage.setItem('gymAutoRest',trainAutoRest?'1':'0')}catch(e){} if(!trainAutoRest) stopTimer(); renderTrain(); }
 window.trainGo=function(i){ train.idx=i; saveTrain(); renderTrain(); document.getElementById('trainBody').scrollTop=0; trainRevealCurrentTarget(false); }
 window.trainNav=function(n){
   const len=trainEntries().length;

@@ -176,16 +176,16 @@ async function initApp() {
     if(await connectFirebase()) {
         fb.onAuthStateChanged(fb.auth, async user => {
             if(user) {
-                const prevUid=localStorage.getItem('gymLastUid');
-                if(prevUid && prevUid!==user.uid){ reliabilityLoaded=false;await wipeLocalData(); train=null; DOC_ID=user.uid; localStorage.setItem('gymLastUid',user.uid); await load();await loadRecoveryJournal();reliabilityLoaded=true;refreshAll(); }
+                const prevUid=PreviewLocalStorage.getItem('gymLastUid');
+                if(prevUid && prevUid!==user.uid){ reliabilityLoaded=false;await wipeLocalData(); train=null; DOC_ID=user.uid; PreviewLocalStorage.setItem('gymLastUid',user.uid); await load();await loadRecoveryJournal();reliabilityLoaded=true;refreshAll(); }
                 DOC_ID = user.uid;
-                localStorage.setItem('gymLastUid', user.uid);
+                PreviewLocalStorage.setItem('gymLastUid', user.uid);
                 document.getElementById('authOverlay').classList.add('hidden');
                 if(!prevUid) document.getElementById('loadingOverlay').style.display='flex';
                 updateSyncStatus('Conectando…','saving');
                 syncFromCloudWithRetry(2).then(ok => {
                     document.getElementById('loadingOverlay').style.display='none';
-                    if(!ok) updateSyncStatus('Guardado local · sin conexión','error');
+                    if(!ok) updateSyncStatus('Preview local · nube desactivada','error');
                 });
             } else {
                 DOC_ID = null;
@@ -196,21 +196,21 @@ async function initApp() {
     } else {
         document.getElementById('loadingOverlay').style.display='none';
         if(!DOC_ID) document.getElementById('authOverlay').classList.remove('hidden');
-        updateSyncStatus('Guardado local · sin conexión','error');
+        updateSyncStatus('Preview local · nube desactivada','error');
         // Un fallo de carga inicial de los módulos no debe dejar la app en local
         // hasta la siguiente recarga. Si ya conocíamos al usuario, reintentamos.
         if(DOC_ID && navigator.onLine) setTimeout(()=>retryCloudSync(),2500);
     }
 }
 
-window.addEventListener('online',()=>{ if(appOwnsStorage&&reliabilityLoaded&&!saveInFlight && DOC_ID) syncFromCloudWithRetry(2).then(ok=>{ if(!ok) updateSyncStatus('Guardado local · sin conexión','error'); }); });
+window.addEventListener('online',()=>{ if(appOwnsStorage&&reliabilityLoaded&&!saveInFlight && DOC_ID) syncFromCloudWithRetry(2).then(ok=>{ if(!ok) updateSyncStatus('Preview local · nube desactivada','error'); }); });
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!appOwnsStorage||!reliabilityLoaded) return;
   if(window.timerInt) tickTimer();
   if(DOC_ID && !syncing && !saveInFlight && navigator.onLine){
     const state=document.getElementById('syncStatus')?.dataset.state;
     if(state==='error') retryCloudSync();
-    else if(Date.now()-lastCloudPullAt>45000) syncFromCloudWithRetry(1).then(ok=>{if(!ok) updateSyncStatus('Guardado local · sin conexión','error');});
+    else if(Date.now()-lastCloudPullAt>45000) syncFromCloudWithRetry(1).then(ok=>{if(!ok) updateSyncStatus('Preview local · nube desactivada','error');});
   }
 });
 
